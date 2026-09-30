@@ -6,6 +6,7 @@ import { validateConfig } from './config/config.ts';
 import type { AppConfig } from './config/config.ts';
 import { HealthModule } from './health/health.module.ts';
 import { IngestionModule } from './ingestion/ingestion.module.ts';
+import { RealtimeModule } from './realtime/realtime.module.ts';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { IngestionModule } from './ingestion/ingestion.module.ts';
     }),
     HealthModule,
     IngestionModule,
+    RealtimeModule,
   ],
 })
 export class AppModule {}
