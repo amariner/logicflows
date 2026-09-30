@@ -11,3 +11,4 @@ Un simulador de paletizadora publica telemetría por MQTT. Una API en NestJS la 
 ## Documentación
 
 - [Decisiones de arquitectura (ADR)](docs/adr/README.md)
+- [Guía de contribución y Definition of Done](CONTRIBUTING.md)
