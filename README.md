@@ -70,6 +70,7 @@ pnpm infra:up          # arranca y espera a que ambos servicios estén sanos
 | `pnpm infra:reset` | Detiene los servicios y **elimina los datos**: mensajes retenidos, sesiones y base de datos |
 | `pnpm infra:logs` | Muestra los registros en tiempo real |
 | `pnpm simulator` | Arranca el [simulador](apps/simulator) de una célula que publica en el broker local |
+| `pnpm api` | Arranca la [API](apps/api) en modo desarrollo en `http://localhost:3000`, con la documentación en `/docs` |
 
 | Servicio | Dirección | Credenciales |
 |---|---|---|
