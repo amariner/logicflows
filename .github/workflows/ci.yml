@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Una nueva ejecución en la misma rama cancela la anterior, que ya no aporta.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Comprobaciones
+    runs-on: ubuntu-24.04
+    # Límite acordado para la duración de la CI (ADR-0001).
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      # Instala la versión de pnpm declarada en packageManager y guarda en
+      # caché su almacén de paquetes según el lockfile.
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+
+      # pnpm descarga la versión de Node.js declarada en devEngines.runtime.
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Formato
+        run: pnpm format:check
+
+      - name: Tipos
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Pruebas
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
