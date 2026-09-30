@@ -1,0 +1,13 @@
+{
+  "name": "logicflows-poc",
+  "private": true,
+  "packageManager": "pnpm@11.10.0",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24.21.0",
+      "onFail": "download"
+    }
+  },
+  "devDependencies": {}
+}

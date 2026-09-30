@@ -1,0 +1,58 @@
+# Prueba de concepto de LF-12: compila el visor como aplicación Android
+# a partir de un workspace de pnpm con el enlazador aislado por defecto.
+name: Spike LF-12 · Android con pnpm
+
+on:
+  push:
+    branches: [spike/LF-12-capacitor-pnpm]
+  workflow_dispatch:
+
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      # Usa la versión de pnpm declarada en packageManager.
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # pnpm descarga la versión de Node.js declarada en devEngines.runtime.
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Versiones de las herramientas
+        run: |
+          pnpm exec node --version
+          pnpm --version
+          java -version
+
+      - name: Pruebas y lint del visor
+        run: |
+          pnpm --filter dashboard test --watch=false
+          pnpm --filter dashboard lint
+
+      - name: Build web
+        run: pnpm --filter dashboard build
+
+      - name: Sincronizar el proyecto Android
+        run: pnpm --filter dashboard exec cap sync android
+
+      # Las rutas a los plugins deben coincidir con las versionadas.
+      - name: Comprobar que la sincronización es reproducible
+        run: git diff --exit-code apps/dashboard/android
+
+      - name: Compilar el APK de depuración
+        working-directory: apps/dashboard/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dashboard-debug-apk
+          path: apps/dashboard/android/app/build/outputs/apk/debug/*.apk
+          retention-days: 7
