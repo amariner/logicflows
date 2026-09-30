@@ -1,0 +1,28 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compileOnSave": false,
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM"],
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "useDefineForClassFields": false,
+    "outDir": "./out-tsc",
+    // Incluye el código fuente del contrato, fuera de este paquete.
+    "rootDir": "../..",
+    // El empaquetador de Angular no admite condiciones de exportación propias:
+    // el visor lee el código fuente del contrato mediante paths (ADR-0005).
+    "paths": {
+      "@logicflows/contract": ["../../packages/contract/src/index.ts"]
+    },
+    // El contrato importa sus módulos con la extensión .ts.
+    "rewriteRelativeImportExtensions": true
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true
+  }
+}

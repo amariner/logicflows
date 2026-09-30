@@ -5,7 +5,11 @@ packages:
 minimumReleaseAgeStrict: true
 
 allowBuilds:
+  '@parcel/watcher': false
   '@scarf/scarf': false
   cpu-features: false
+  esbuild: false
+  lmdb: false
+  msgpackr-extract: false
   protobufjs: false
   ssh2: false

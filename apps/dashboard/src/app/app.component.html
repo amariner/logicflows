@@ -1,0 +1,26 @@
+<ion-app>
+  <ion-split-pane contentId="main-content">
+    <ion-menu contentId="main-content" type="overlay">
+      <ion-content>
+        <ion-list>
+          <ion-list-header>LogicFlows</ion-list-header>
+          @for (entry of menu; track entry.url) {
+            <ion-menu-toggle [autoHide]="false">
+              <ion-item
+                routerDirection="root"
+                [routerLink]="entry.url"
+                routerLinkActive="selected"
+                lines="none"
+                [detail]="false"
+              >
+                <ion-icon aria-hidden="true" slot="start" [name]="entry.icon" />
+                <ion-label>{{ entry.title }}</ion-label>
+              </ion-item>
+            </ion-menu-toggle>
+          }
+        </ion-list>
+      </ion-content>
+    </ion-menu>
+    <ion-router-outlet id="main-content" />
+  </ion-split-pane>
+</ion-app>
