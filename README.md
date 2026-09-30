@@ -50,7 +50,7 @@ Cada paquete expone los mismos scripts (`typecheck`, `lint`, `test` y `build`) a
 `pnpm-workspace.yaml` aplica dos defensas frente a paquetes comprometidos:
 
 - **Antigüedad mínima.** pnpm no instala versiones publicadas hace menos de un día (su valor por defecto) y `minimumReleaseAgeStrict: true` impide que lo haga en silencio cuando se pide una versión más reciente: la instalación falla. La mayoría de las versiones maliciosas se detectan y retiran en esas primeras horas. Si una corrección de seguridad urgente lo exige, se añade una excepción en `minimumReleaseAgeExclude` y se justifica en la pull request.
-- **Scripts de instalación.** Las dependencias con scripts de instalación (`postinstall`) no los ejecutan salvo que se autoricen en `allowBuilds`, y la instalación falla mientras haya alguno sin decidir. Cada entrada se decide al revisar la pull request que añade la dependencia. Hoy se deniegan `cpu-features`, `ssh2` y `protobufjs`, dependencias opcionales de Testcontainers que las pruebas no necesitan.
+- **Scripts de instalación.** Las dependencias con scripts de instalación (`postinstall`) no los ejecutan salvo que se autoricen en `allowBuilds`, y la instalación falla mientras haya alguno sin decidir. Cada entrada se decide al revisar la pull request que añade la dependencia. Hoy se deniegan todos los que aparecen: `cpu-features`, `ssh2` y `protobufjs` (opcionales de Testcontainers); `esbuild`, `@parcel/watcher`, `lmdb` y `msgpackr-extract` (herramientas de Angular, que distribuyen binarios precompilados); y `@scarf/scarf`, que envía estadísticas de instalación a un servidor externo.
 
 pnpm reescribe este fichero al modificar la configuración y elimina los comentarios, por eso las decisiones se documentan aquí.
 
@@ -71,6 +71,7 @@ pnpm infra:up          # arranca y espera a que ambos servicios estén sanos
 | `pnpm infra:logs` | Muestra los registros en tiempo real |
 | `pnpm simulator` | Arranca el [simulador](apps/simulator) de una célula que publica en el broker local |
 | `pnpm api` | Arranca la [API](apps/api) en modo desarrollo en `http://localhost:3000`, con la documentación en `/docs` |
+| `pnpm dashboard` | Arranca el [visor](apps/dashboard) en modo desarrollo en `http://localhost:4200` |
 
 | Servicio | Dirección | Credenciales |
 |---|---|---|

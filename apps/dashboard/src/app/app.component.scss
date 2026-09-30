@@ -1,0 +1,8 @@
+ion-list-header {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+ion-item.selected {
+  --color: var(--ion-color-primary);
+}

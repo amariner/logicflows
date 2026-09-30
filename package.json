@@ -29,7 +29,8 @@
     "infra:reset": "docker compose down --volumes",
     "infra:logs": "docker compose logs -f",
     "simulator": "pnpm --filter @logicflows/simulator dev",
-    "api": "pnpm --filter @logicflows/api dev"
+    "api": "pnpm --filter @logicflows/api dev",
+    "dashboard": "pnpm --filter @logicflows/dashboard dev"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

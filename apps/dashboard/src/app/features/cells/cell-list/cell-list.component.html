@@ -1,0 +1,15 @@
+@if (cells().length === 0) {
+  <p class="empty">Todavía no hay datos de ninguna célula.</p>
+} @else {
+  <ion-list>
+    @for (cell of cells(); track cell.id) {
+      <ion-item>
+        <ion-label>
+          <h2>{{ cell.cellId }}</h2>
+          <p>{{ cell.stateLabel }}</p>
+        </ion-label>
+        <ion-note slot="end">{{ cell.boxesTotal ?? '—' }} cajas</ion-note>
+      </ion-item>
+    }
+  </ion-list>
+}
