@@ -10,7 +10,7 @@ Un simulador de paletizadora publica telemetría por MQTT. Una API en NestJS la 
 
 ## Estructura
 
-Monorepo gestionado con pnpm workspaces ([ADR-0001](docs/adr/0001-gestor-de-paquetes-y-orquestacion.md)):
+Monorepo gestionado con pnpm workspaces ([ADR-0001](docs/adr/0001-gestor-de-paquetes-y-orquestacion.md)). Las aplicaciones desplegables viven en `apps/` y las librerías compartidas en `packages/`:
 
 ```text
 logicflows/
@@ -18,6 +18,8 @@ logicflows/
 │   ├── simulator/   # Simulador de la célula de paletizado
 │   ├── api/         # API NestJS: ingesta MQTT, persistencia, REST y WebSocket
 │   └── dashboard/   # Visor con Ionic, Angular y Capacitor
+├── packages/
+│   └── contract/    # Contrato de telemetría compartido: topics, tipos y validación
 ├── infra/           # Configuración de la infraestructura local
 └── docs/
     └── adr/         # Decisiones de arquitectura
