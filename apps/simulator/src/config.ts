@@ -14,6 +14,9 @@ const configSchema = z.object({
   SIMULATOR_CYCLE_VARIATION: z.coerce.number().min(0).max(0.5).default(0.1),
   SIMULATOR_PALLET_CHANGE_MS: z.coerce.number().int().nonnegative().default(8_000),
   SIMULATOR_SEED: z.coerce.number().int().optional(),
+  SIMULATOR_FAULT_RECOVERY_MS: positiveInt.default(20_000),
+  SIMULATOR_EMERGENCY_STOP_RECOVERY_MS: positiveInt.default(30_000),
+  SIMULATOR_RESTART_DELAY_MS: positiveInt.default(5_000),
   SIMULATOR_LAYERS_PER_PALLET: positiveInt.default(5),
   SIMULATOR_BOXES_PER_LAYER: positiveInt.default(8),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
@@ -29,6 +32,9 @@ export interface SimulatorConfig {
   readonly palletChangeMs: number;
   /** Semilla para repetir una simulación. Sin ella, cada ejecución varía. */
   readonly seed: number | undefined;
+  readonly faultRecoveryMs: number;
+  readonly emergencyStopRecoveryMs: number;
+  readonly restartDelayMs: number;
   readonly layersPerPallet: number;
   readonly boxesPerLayer: number;
   readonly logLevel: 'debug' | 'info' | 'warn' | 'error';
@@ -54,6 +60,9 @@ export function loadConfig(env: Record<string, string | undefined>): SimulatorCo
     cycleVariation: c.SIMULATOR_CYCLE_VARIATION,
     palletChangeMs: c.SIMULATOR_PALLET_CHANGE_MS,
     seed: c.SIMULATOR_SEED,
+    faultRecoveryMs: c.SIMULATOR_FAULT_RECOVERY_MS,
+    emergencyStopRecoveryMs: c.SIMULATOR_EMERGENCY_STOP_RECOVERY_MS,
+    restartDelayMs: c.SIMULATOR_RESTART_DELAY_MS,
     layersPerPallet: c.SIMULATOR_LAYERS_PER_PALLET,
     boxesPerLayer: c.SIMULATOR_BOXES_PER_LAYER,
     logLevel: c.LOG_LEVEL,

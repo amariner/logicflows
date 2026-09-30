@@ -13,6 +13,29 @@ Reproduce una célula de paletizado sin hardware real y publica su conexión, su
 
 Los topics, los mensajes y las transiciones se toman de `@logicflows/contract`; el simulador no los redefine.
 
+## Incidencias y alarmas
+
+El simulador reproduce los estados de ADR-0003 mediante incidencias, cada una con su alarma y su secuencia de recuperación:
+
+| Incidencia | Estado | Alarma | Recuperación |
+|---|---|---|---|
+| Colisión del robot | `FAULT` | `ROB-001` · alta | Rearme tras `SIMULATOR_FAULT_RECOVERY_MS` → `STOPPED`, y arranque tras `SIMULATOR_RESTART_DELAY_MS` |
+| Pérdida de vacío en la pinza | `FAULT` | `ROB-002` · alta | Igual que un fallo |
+| Atasco en la cinta de entrada | `FAULT` | `CONV-002` · media | Igual que un fallo |
+| Parada de emergencia | `EMERGENCY_STOP` | `SAF-001` · crítica | Liberación y rearme tras `SIMULATOR_EMERGENCY_STOP_RECOVERY_MS` → `STOPPED` (o `FAULT` si queda un fallo activo), y arranque tras `SIMULATOR_RESTART_DELAY_MS` |
+| Sin cajas en la entrada | `WAITING` (`STARVED`) | `CONV-001` · baja | Reanuda sola cuando llegan cajas |
+| Salida de pallets ocupada | `WAITING` (`BLOCKED`) | `OUT-001` · baja | Reanuda sola cuando se libera la salida |
+| Pausa del operario | `PAUSED` | — | El operario reanuda |
+
+Reglas de ADR-0003 que se cumplen:
+
+- El rearme nunca pone la célula en marcha: siempre pasa por `STOPPED` y una orden de arranque.
+- La parada de emergencia prevalece: un fallo durante ella solo añade su alarma.
+- Una incidencia no prevista en el estado actual se rechaza (por ejemplo, pausar durante el arranque).
+- En `FAULT`, solo se marca como averiado el componente afectado (robot o cinta).
+
+Los mensajes `state` incluyen las alarmas activas y se publican también cuando solo cambian las alarmas (con `event: null`). La activación de las incidencias durante la simulación se configura con los escenarios de LF-31.
+
 ## Uso
 
 Con el entorno local levantado (`pnpm infra:up`) y el fichero `.env` creado:
@@ -40,6 +63,9 @@ docker compose exec mosquitto mosquitto_sub -u api -P api-local -t 'logicflows/v
 | `SIMULATOR_CYCLE_VARIATION` | `0.1` | Variación aleatoria del ciclo, de 0 a 0,5 (0,1 = ±10 %) |
 | `SIMULATOR_PALLET_CHANGE_MS` | `8000` | Tiempo de cambio de pallet |
 | `SIMULATOR_SEED` | — | Semilla para repetir exactamente una simulación |
+| `SIMULATOR_FAULT_RECOVERY_MS` | `20000` | Tiempo hasta resolver un fallo y rearmar |
+| `SIMULATOR_EMERGENCY_STOP_RECOVERY_MS` | `30000` | Tiempo hasta liberar y rearmar una parada de emergencia |
+| `SIMULATOR_RESTART_DELAY_MS` | `5000` | Tiempo entre el rearme y la orden de arranque |
 | `SIMULATOR_STARTUP_DURATION_MS` | `3000` | Duración de la secuencia de arranque |
 | `SIMULATOR_LAYERS_PER_PALLET` | `5` | Capas de un pallet completo |
 | `SIMULATOR_BOXES_PER_LAYER` | `8` | Cajas de una capa completa |
@@ -51,9 +77,10 @@ La configuración se valida al arrancar: un valor no válido detiene el simulado
 
 | Fichero | Responsabilidad |
 |---|---|
-| `src/domain/` | Modelo de la célula: estados, producción, ciclo, ritmo, estado de los componentes y aleatoriedad con semilla. Sin dependencias de MQTT ni del reloj. |
+| `src/domain/` | Modelo de la célula: estados, alarmas, producción, ciclo, ritmo, estado de los componentes y aleatoriedad con semilla. Sin dependencias de MQTT ni del reloj. |
 | `src/messages.ts` | Construcción de los mensajes del contrato con su sesión y sus secuencias. |
-| `src/simulator.ts` | Temporizadores, transiciones y publicación. |
+| `src/simulator.ts` | Temporizadores, incidencias con su recuperación, transiciones y publicación. |
+| `src/testing/` | Simulador con conexión falsa que valida cada mensaje con el contrato. |
 | `src/mqtt/connection.ts` | Conexión MQTT 5 con reconexión automática. |
 | `src/main.ts` | Configuración, registro y arranque. |
 

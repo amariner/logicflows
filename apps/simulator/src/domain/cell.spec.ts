@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { PalletizingCell } from './cell.ts';
+import { ALARMS } from './alarms.ts';
 import { componentStates } from './components.ts';
 
 const format = { layersPerPallet: 5, boxesPerLayer: 8 };
@@ -77,11 +78,44 @@ describe('estado de los componentes', () => {
     ['WAITING', 'STARVED', 'IDLE', 'RUNNING'],
     ['WAITING', 'BLOCKED', 'IDLE', 'STOPPED'],
     ['PAUSED', null, 'IDLE', 'STOPPED'],
-    ['FAULT', null, 'FAULT', 'STOPPED'],
     ['EMERGENCY_STOP', null, 'IDLE', 'STOPPED'],
     ['STOPPED', null, 'IDLE', 'STOPPED'],
   ] as const)('en %s (%s): robot %s y cinta %s', (state, waitingReason, robot, conveyor) => {
     const status = { state, waitingReason, previousState: null, event: null, sinceMs: 0 };
     expect(componentStates(status)).toEqual({ robot, conveyor });
+  });
+  it.each([
+    ['sin alarmas', [], 'IDLE', 'STOPPED'],
+    ['un fallo del robot', [ALARMS.robotCollision], 'FAULT', 'STOPPED'],
+    ['un atasco de la cinta', [ALARMS.conveyorJam], 'IDLE', 'FAULT'],
+  ] as const)('en FAULT con %s: robot %s y cinta %s', (_case, alarms, robot, conveyor) => {
+    const status = {
+      state: 'FAULT',
+      waitingReason: null,
+      previousState: null,
+      event: null,
+      sinceMs: 0,
+    } as const;
+    const active = alarms.map((alarm) => ({ ...alarm, raisedAtMs: 0 }));
+    expect(componentStates(status, active)).toEqual({ robot, conveyor });
+  });
+});
+
+describe('alarmas de la célula', () => {
+  it('conserva el momento en que se activó una alarma repetida', () => {
+    const cell = new PalletizingCell(format, 0);
+    cell.raiseAlarm(ALARMS.conveyorJam, 1_000);
+    cell.raiseAlarm(ALARMS.conveyorJam, 2_000);
+    expect(cell.alarms).toEqual([{ ...ALARMS.conveyorJam, raisedAtMs: 1_000 }]);
+  });
+
+  it('distingue los fallos de la célula de las esperas externas', () => {
+    const cell = new PalletizingCell(format, 0);
+    cell.raiseAlarm(ALARMS.starved, 0);
+    expect(cell.hasActiveFault()).toBe(false);
+    cell.raiseAlarm(ALARMS.gripperVacuumLoss, 0);
+    expect(cell.hasActiveFault()).toBe(true);
+    cell.clearAlarmsFrom('robot');
+    expect(cell.alarms.map((alarm) => alarm.code)).toEqual(['CONV-001']);
   });
 });

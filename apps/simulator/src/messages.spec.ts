@@ -2,6 +2,7 @@ import { messageSchemas } from '@logicflows/contract';
 import { testUuid } from '@logicflows/contract/testing';
 import { describe, expect, it } from 'vitest';
 
+import { ALARMS } from './domain/alarms.ts';
 import { PalletizingCell } from './domain/cell.ts';
 import { componentStates } from './domain/components.ts';
 import { MessageFactory } from './messages.ts';
@@ -26,7 +27,7 @@ describe('mensajes del simulador', () => {
     cell.processBox(2_000);
 
     const status = factory.status(true, 2_000);
-    const state = factory.state(cell.status, 2_000);
+    const state = factory.state(cell.status, [], 2_000);
     const telemetry = factory.telemetry(
       cell.production(2_000),
       cell.format,
@@ -49,10 +50,28 @@ describe('mensajes del simulador', () => {
     const { factory, cell } = setup();
     const production = cell.production(0);
     const components = componentStates(cell.status);
-    expect(factory.state(cell.status, 0).seq).toBe(0);
-    expect(factory.state(cell.status, 0).seq).toBe(1);
+    expect(factory.state(cell.status, [], 0).seq).toBe(0);
+    expect(factory.state(cell.status, [], 0).seq).toBe(1);
     expect(factory.telemetry(production, cell.format, components, 0).seq).toBe(0);
-    expect(factory.state(cell.status, 0).seq).toBe(2);
+    expect(factory.state(cell.status, [], 0).seq).toBe(2);
+  });
+
+  it('incluye las alarmas activas y marca las actualizaciones que solo cambian alarmas', () => {
+    const { factory, cell } = setup();
+    const alarms = [{ ...ALARMS.emergencyStop, raisedAtMs: 1_000 }];
+    const message = factory.state(cell.status, alarms, 2_000, true);
+    expect(messageSchemas.state.parse(message)).toEqual(message);
+    expect(message).toMatchObject({
+      event: null,
+      activeAlarms: [
+        {
+          code: 'SAF-001',
+          severity: 'CRITICAL',
+          message: 'Parada de emergencia activada',
+          raisedAt: '1970-01-01T00:00:01.000Z',
+        },
+      ],
+    });
   });
 
   it('usa un identificador distinto en cada mensaje y la misma sesión', () => {
