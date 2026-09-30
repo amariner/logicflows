@@ -3,10 +3,15 @@ import { HealthCheck, HealthCheckService } from '@nestjs/terminus';
 import type { HealthCheckResult } from '@nestjs/terminus';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
+import { MqttHealthIndicator } from '../ingestion/mqtt.health.ts';
+
 @ApiTags('Salud')
 @Controller('health')
 export class HealthController {
-  constructor(private readonly health: HealthCheckService) {}
+  constructor(
+    private readonly health: HealthCheckService,
+    private readonly mqtt: MqttHealthIndicator,
+  ) {}
 
   @Get('live')
   @HealthCheck()
@@ -23,9 +28,9 @@ export class HealthController {
   @ApiOperation({
     summary: 'Disponibilidad',
     description:
-      'Indica que la API puede atender peticiones: comprobará el broker MQTT y PostgreSQL cuando se incorporen.',
+      'Indica que la API puede atender peticiones: está conectada al broker MQTT. Comprobará PostgreSQL cuando se incorpore.',
   })
   ready(): Promise<HealthCheckResult> {
-    return this.health.check([]);
+    return this.health.check([() => this.mqtt.check()]);
   }
 }

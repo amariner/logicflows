@@ -5,6 +5,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { validateConfig } from './config/config.ts';
 import type { AppConfig } from './config/config.ts';
 import { HealthModule } from './health/health.module.ts';
+import { IngestionModule } from './ingestion/ingestion.module.ts';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { HealthModule } from './health/health.module.ts';
       }),
     }),
     HealthModule,
+    IngestionModule,
   ],
 })
 export class AppModule {}
