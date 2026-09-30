@@ -1,5 +1,4 @@
 import type { INestApplication } from '@nestjs/common';
-import { WsAdapter } from '@nestjs/platform-ws';
 import { Test } from '@nestjs/testing';
 
 /**
@@ -10,11 +9,10 @@ import { Test } from '@nestjs/testing';
 export async function createApp(env: Record<string, string>): Promise<INestApplication> {
   Object.assign(process.env, { LOG_LEVEL: 'warn', ...env });
   const { AppModule } = await import('../app.module.ts');
-  const { setupOpenApi } = await import('../openapi.ts');
+  const { configureApp } = await import('../setup.ts');
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
   const app = moduleRef.createNestApplication({ logger: false });
-  app.useWebSocketAdapter(new WsAdapter(app));
-  setupOpenApi(app);
+  await configureApp(app);
   await app.init();
   return app;
 }

@@ -9,6 +9,17 @@ const configSchema = z.object({
   /** Identificador estable: el broker conserva la sesión persistente asociada a él. */
   MQTT_CLIENT_ID: z.string().min(1).default('logicflows-api'),
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+  /** Orígenes autorizados a llamar a la API desde el navegador, separados por comas. */
+  CORS_ORIGINS: z
+    .string()
+    .default('http://localhost:4200')
+    .transform((value) =>
+      value
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter((origin) => origin.length > 0),
+    )
+    .pipe(z.array(z.url())),
 });
 
 export type AppConfig = z.infer<typeof configSchema>;

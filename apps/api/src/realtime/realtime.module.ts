@@ -8,5 +8,6 @@ import { RealtimeGateway } from './realtime.gateway.ts';
 @Module({
   imports: [IngestionModule, PersistenceModule],
   providers: [CellStateStore, RealtimeGateway],
+  exports: [CellStateStore],
 })
 export class RealtimeModule {}
