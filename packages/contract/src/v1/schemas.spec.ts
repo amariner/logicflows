@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { messageSchemas } from './messages.js';
-import { MESSAGE_KINDS } from './topics.js';
+import { messageSchemas } from './messages.ts';
+import { MESSAGE_KINDS } from './topics.ts';
 
 // Guardia de compatibilidad: el JSON Schema de cada mensaje se versiona en
 // schemas/v1. Cualquier cambio en el contrato hace fallar esta prueba hasta

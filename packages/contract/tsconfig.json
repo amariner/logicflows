@@ -5,7 +5,9 @@
     "moduleResolution": "nodenext",
     "verbatimModuleSyntax": true,
     "types": ["node"],
-    "noEmit": true
+    "noEmit": true,
+    "erasableSyntaxOnly": true,
+    "rewriteRelativeImportExtensions": true
   },
   "include": ["src", "vitest.config.ts"]
 }

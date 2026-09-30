@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildStateMessage, buildTelemetryMessage } from '../testing/index.js';
-import { decodeMessage } from './decode.js';
+import { buildStateMessage, buildTelemetryMessage } from '../testing/index.ts';
+import { decodeMessage } from './decode.ts';
 
 const stateTopic = 'logicflows/v1/demo/cell-01/state';
 

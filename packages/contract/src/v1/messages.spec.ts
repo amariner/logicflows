@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { buildStateMessage, buildStatusMessage, buildTelemetryMessage } from '../testing/index.js';
-import { messageSchemas, stateMessageSchema, telemetryMessageSchema } from './messages.js';
+import { buildStateMessage, buildStatusMessage, buildTelemetryMessage } from '../testing/index.ts';
+import { messageSchemas, stateMessageSchema, telemetryMessageSchema } from './messages.ts';
 
 const adr = readFileSync(
   new URL('../../../../docs/adr/0004-mensajes-de-telemetria-y-topics-mqtt.md', import.meta.url),

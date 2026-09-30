@@ -6,9 +6,9 @@ import {
   siteIdSchema,
   timestampSchema,
   uuidV7Schema,
-} from './primitives.js';
-import { cellEventSchema, cellStateSchema, waitingReasonSchema } from './states.js';
-import type { MessageKind } from './topics.js';
+} from './primitives.ts';
+import { cellEventSchema, cellStateSchema, waitingReasonSchema } from './states.ts';
+import type { MessageKind } from './topics.ts';
 
 /**
  * Versión del esquema que emiten los publicadores. Todas las versiones de la

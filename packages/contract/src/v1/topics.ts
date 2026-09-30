@@ -1,4 +1,4 @@
-import { IDENTIFIER_PATTERN } from './primitives.js';
+import { IDENTIFIER_PATTERN } from './primitives.ts';
 
 /** Prefijo de todos los topics de la versión mayor 1 del contrato. */
 export const TOPIC_PREFIX = 'logicflows/v1';

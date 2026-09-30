@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { CELL_STATES, isExpectedTransition, targetStates } from './states.js';
-import type { CellEvent, CellState } from './states.js';
+import { CELL_STATES, isExpectedTransition, targetStates } from './states.ts';
+import type { CellEvent, CellState } from './states.ts';
 
 // Tabla de transiciones de ADR-0003, fila a fila.
 const adrTable: [CellEvent, CellState[], CellState[]][] = [

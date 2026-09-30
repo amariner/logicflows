@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
-import { messageSchemas } from './messages.js';
-import type { MessageByKind } from './messages.js';
-import { parseTopic } from './topics.js';
-import type { MessageKind, TopicAddress } from './topics.js';
+import { messageSchemas } from './messages.ts';
+import type { MessageByKind } from './messages.ts';
+import { parseTopic } from './topics.ts';
+import type { MessageKind, TopicAddress } from './topics.ts';
 
 export type DecodeFailureReason =
   /** El topic no pertenece a la versión 1 del contrato. */
