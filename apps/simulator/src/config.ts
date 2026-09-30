@@ -11,6 +11,9 @@ const configSchema = z.object({
   SIMULATOR_CELL_ID: cellIdSchema.default('cell-01'),
   SIMULATOR_BOX_INTERVAL_MS: positiveInt.default(4_000),
   SIMULATOR_STARTUP_DURATION_MS: positiveInt.default(3_000),
+  SIMULATOR_CYCLE_VARIATION: z.coerce.number().min(0).max(0.5).default(0.1),
+  SIMULATOR_PALLET_CHANGE_MS: z.coerce.number().int().nonnegative().default(8_000),
+  SIMULATOR_SEED: z.coerce.number().int().optional(),
   SIMULATOR_LAYERS_PER_PALLET: positiveInt.default(5),
   SIMULATOR_BOXES_PER_LAYER: positiveInt.default(8),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
@@ -22,6 +25,10 @@ export interface SimulatorConfig {
   readonly cellId: string;
   readonly boxIntervalMs: number;
   readonly startupDurationMs: number;
+  readonly cycleVariation: number;
+  readonly palletChangeMs: number;
+  /** Semilla para repetir una simulación. Sin ella, cada ejecución varía. */
+  readonly seed: number | undefined;
   readonly layersPerPallet: number;
   readonly boxesPerLayer: number;
   readonly logLevel: 'debug' | 'info' | 'warn' | 'error';
@@ -44,6 +51,9 @@ export function loadConfig(env: Record<string, string | undefined>): SimulatorCo
     cellId: c.SIMULATOR_CELL_ID,
     boxIntervalMs: c.SIMULATOR_BOX_INTERVAL_MS,
     startupDurationMs: c.SIMULATOR_STARTUP_DURATION_MS,
+    cycleVariation: c.SIMULATOR_CYCLE_VARIATION,
+    palletChangeMs: c.SIMULATOR_PALLET_CHANGE_MS,
+    seed: c.SIMULATOR_SEED,
     layersPerPallet: c.SIMULATOR_LAYERS_PER_PALLET,
     boxesPerLayer: c.SIMULATOR_BOXES_PER_LAYER,
     logLevel: c.LOG_LEVEL,

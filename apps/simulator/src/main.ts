@@ -2,6 +2,7 @@ import { pino } from 'pino';
 import { v7 as uuidv7 } from 'uuid';
 
 import { loadConfig } from './config.ts';
+import { createRandom } from './domain/random.ts';
 import { MessageFactory } from './messages.ts';
 import { connectToBroker } from './mqtt/connection.ts';
 import { Simulator } from './simulator.ts';
@@ -36,13 +37,15 @@ const simulator = new Simulator(
   {
     format: { layersPerPallet: config.layersPerPallet, boxesPerLayer: config.boxesPerLayer },
     boxIntervalMs: config.boxIntervalMs,
+    cycleVariation: config.cycleVariation,
+    palletChangeMs: config.palletChangeMs,
     startupDurationMs: config.startupDurationMs,
     heartbeatMs: HEARTBEAT_MS,
   },
-  { connection, messages, logger },
+  { connection, messages, logger, random: createRandom(config.seed) },
 );
 
-logger.info({ sessionId, broker: config.mqtt.url }, 'Simulador iniciado');
+logger.info({ sessionId, broker: config.mqtt.url, seed: config.seed }, 'Simulador iniciado');
 simulator.start();
 
 const shutdown = (signal: string) => {

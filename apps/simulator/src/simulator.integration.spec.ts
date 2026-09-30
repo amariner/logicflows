@@ -120,6 +120,8 @@ describe('simulador con un broker real', () => {
       {
         format: { layersPerPallet: 5, boxesPerLayer: 8 },
         boxIntervalMs: 100,
+        cycleVariation: 0.1,
+        palletChangeMs: 200,
         startupDurationMs: 100,
         heartbeatMs: 10_000,
       },

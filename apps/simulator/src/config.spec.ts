@@ -10,6 +10,9 @@ describe('configuración', () => {
       cellId: 'cell-01',
       boxIntervalMs: 4_000,
       startupDurationMs: 3_000,
+      cycleVariation: 0.1,
+      palletChangeMs: 8_000,
+      seed: undefined,
       layersPerPallet: 5,
       boxesPerLayer: 8,
       logLevel: 'info',
@@ -26,6 +29,10 @@ describe('configuración', () => {
     [
       'con un intervalo no numérico',
       { MQTT_SIMULATOR_PASSWORD: 'x', SIMULATOR_BOX_INTERVAL_MS: 'rápido' },
+    ],
+    [
+      'con una variación del ciclo excesiva',
+      { MQTT_SIMULATOR_PASSWORD: 'x', SIMULATOR_CYCLE_VARIATION: '0.9' },
     ],
     ['con una célula no válida', { MQTT_SIMULATOR_PASSWORD: 'x', SIMULATOR_CELL_ID: 'Célula 1' }],
     [
