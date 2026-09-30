@@ -8,6 +8,7 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import { TelemetryStream } from '../ingestion/telemetry-stream.ts';
+import type { TelemetryRepository } from '../persistence/telemetry.repository.ts';
 import { CellStateStore } from './cell-state.store.ts';
 
 const decode = (kind: string, message: { cellId?: string }): DecodedMessage => {
@@ -21,10 +22,11 @@ const decode = (kind: string, message: { cellId?: string }): DecodedMessage => {
   return result;
 };
 
-const setup = () => {
+const setup = async (saved: CellSnapshot[] = []) => {
   const stream = new TelemetryStream();
-  const store = new CellStateStore(stream);
-  store.onModuleInit();
+  const repository = { latestSnapshots: () => Promise.resolve(saved) };
+  const store = new CellStateStore(stream, repository as unknown as TelemetryRepository);
+  await store.onModuleInit();
   const updates: CellSnapshot[] = [];
   store.updates$.subscribe((cell) => updates.push(cell));
   const ingest = (decoded: DecodedMessage) => {
@@ -34,12 +36,12 @@ const setup = () => {
 };
 
 describe('información de las células', () => {
-  it('está vacía hasta recibir mensajes', () => {
-    expect(setup().store.snapshot()).toEqual([]);
+  it('está vacía hasta recibir mensajes', async () => {
+    expect((await setup()).store.snapshot()).toEqual([]);
   });
 
-  it('combina la conexión, el estado y la telemetría de cada célula', () => {
-    const { store, ingest } = setup();
+  it('combina la conexión, el estado y la telemetría de cada célula', async () => {
+    const { store, ingest } = await setup();
     ingest(decode('status', buildStatusMessage()));
     ingest(decode('state', buildStateMessage({ state: 'RUNNING' })));
     ingest(decode('telemetry', buildTelemetryMessage({ boxesTotal: 7 })));
@@ -54,16 +56,16 @@ describe('información de las células', () => {
     });
   });
 
-  it('conserva solo el último mensaje de cada tipo', () => {
-    const { store, ingest } = setup();
+  it('conserva solo el último mensaje de cada tipo', async () => {
+    const { store, ingest } = await setup();
     ingest(decode('telemetry', buildTelemetryMessage({ seq: 1, boxesTotal: 1 })));
     ingest(decode('telemetry', buildTelemetryMessage({ seq: 2, boxesTotal: 2 })));
     expect(store.snapshot()[0]?.telemetry?.boxesTotal).toBe(2);
     expect(store.snapshot()[0]?.state).toBeNull();
   });
 
-  it('emite la información actualizada de la célula que cambia', () => {
-    const { updates, ingest } = setup();
+  it('emite la información actualizada de la célula que cambia', async () => {
+    const { updates, ingest } = await setup();
     ingest(
       decode(
         'state',
@@ -74,10 +76,34 @@ describe('información de las células', () => {
     expect(updates[0]).toMatchObject({ cellId: 'cell-01', state: { state: 'PAUSED' } });
   });
 
-  it('separa las células y las ordena', () => {
-    const { store, ingest } = setup();
+  it('separa las células y las ordena', async () => {
+    const { store, ingest } = await setup();
     ingest(decode('state', buildStateMessage({ cellId: 'cell-02' })));
     ingest(decode('state', buildStateMessage({ cellId: 'cell-01' })));
     expect(store.snapshot().map((cell) => cell.cellId)).toEqual(['cell-01', 'cell-02']);
   });
+
+  it('recupera al arrancar la información guardada de cada célula', async () => {
+    const saved: CellSnapshot = {
+      siteId: 'demo',
+      cellId: 'cell-09',
+      status: null,
+      state: buildStateMessage({ cellId: 'cell-09', state: 'FAULT' }),
+      telemetry: null,
+    };
+    const { store } = await setup([saved]);
+    expect(store.snapshot()).toEqual([saved]);
+  });
+
+  it('no sobrescribe con datos guardados la información más reciente de la ingesta', () => {
+    const stream = new TelemetryStream();
+    const store = new CellStateStore(stream, {} as TelemetryRepository);
+    store.apply(decode('state', buildStateMessage({ state: 'RUNNING' })));
+    store.seed([{ ...empty(), state: buildStateMessage({ state: 'STOPPED' }) }]);
+    expect(store.snapshot()[0]?.state?.state).toBe('RUNNING');
+  });
 });
+
+function empty(): CellSnapshot {
+  return { siteId: 'demo', cellId: 'cell-01', status: null, state: null, telemetry: null };
+}

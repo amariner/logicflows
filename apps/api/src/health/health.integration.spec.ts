@@ -5,21 +5,29 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createApp } from '../testing/app.ts';
+import { startDatabase } from '../testing/database.ts';
 import { API_PASSWORD, eventually, startBroker } from '../testing/broker.ts';
 import type { TestBroker } from '../testing/broker.ts';
 
 describe('API HTTP con el broker disponible', () => {
+  let database: Awaited<ReturnType<typeof startDatabase>>;
   let broker: TestBroker;
   let app: INestApplication;
   const http = () => request(app.getHttpServer() as Server);
 
   beforeAll(async () => {
     broker = await startBroker();
-    app = await createApp({ MQTT_URL: broker.url, MQTT_API_PASSWORD: API_PASSWORD });
+    database = await startDatabase();
+    app = await createApp({
+      DATABASE_URL: database.getConnectionUri(),
+      MQTT_URL: broker.url,
+      MQTT_API_PASSWORD: API_PASSWORD,
+    });
   });
 
   afterAll(async () => {
     await app.close();
+    await database.stop();
     await broker.container.stop();
   });
 

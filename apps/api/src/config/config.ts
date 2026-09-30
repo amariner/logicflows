@@ -8,6 +8,7 @@ const configSchema = z.object({
   MQTT_API_PASSWORD: z.string().min(1),
   /** Identificador estable: el broker conserva la sesión persistente asociada a él. */
   MQTT_CLIENT_ID: z.string().min(1).default('logicflows-api'),
+  DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
 });
 
 export type AppConfig = z.infer<typeof configSchema>;

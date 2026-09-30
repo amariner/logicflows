@@ -5,6 +5,7 @@ import type { MqttClient } from 'mqtt';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createApp } from '../testing/app.ts';
+import { startDatabase } from '../testing/database.ts';
 import { API_PASSWORD, SIMULATOR_PASSWORD, startBroker, waitFor } from '../testing/broker.ts';
 import type { TestBroker } from '../testing/broker.ts';
 import { MqttIngestionService } from './mqtt-ingestion.service.ts';
@@ -14,6 +15,7 @@ import type { IngestedMessage } from './telemetry-stream.ts';
 const topic = (kind: string, cellId = 'cell-01') => `logicflows/v1/demo/${cellId}/${kind}`;
 
 describe('ingesta de telemetría con un broker real', () => {
+  let database: Awaited<ReturnType<typeof startDatabase>>;
   let broker: TestBroker;
   let app: INestApplication;
   let publisher: MqttClient;
@@ -30,7 +32,12 @@ describe('ingesta de telemetría con un broker real', () => {
 
   beforeAll(async () => {
     broker = await startBroker();
-    app = await createApp({ MQTT_URL: broker.url, MQTT_API_PASSWORD: API_PASSWORD });
+    database = await startDatabase();
+    app = await createApp({
+      DATABASE_URL: database.getConnectionUri(),
+      MQTT_URL: broker.url,
+      MQTT_API_PASSWORD: API_PASSWORD,
+    });
     app.get(TelemetryStream).messages$.subscribe((message) => received.push(message));
     const ingestion = app.get(MqttIngestionService);
     await waitFor(() => ingestion.connected);
@@ -45,6 +52,7 @@ describe('ingesta de telemetría con un broker real', () => {
   afterAll(async () => {
     await publisher.endAsync();
     await app.close();
+    await database.stop();
     await broker.container.stop();
   });
 

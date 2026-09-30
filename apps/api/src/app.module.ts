@@ -3,9 +3,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 
 import { validateConfig } from './config/config.ts';
+import { DatabaseModule } from './database/database.module.ts';
 import type { AppConfig } from './config/config.ts';
 import { HealthModule } from './health/health.module.ts';
 import { IngestionModule } from './ingestion/ingestion.module.ts';
+import { PersistenceModule } from './persistence/persistence.module.ts';
 import { RealtimeModule } from './realtime/realtime.module.ts';
 
 @Module({
@@ -23,8 +25,10 @@ import { RealtimeModule } from './realtime/realtime.module.ts';
         },
       }),
     }),
+    DatabaseModule,
     HealthModule,
     IngestionModule,
+    PersistenceModule,
     RealtimeModule,
   ],
 })

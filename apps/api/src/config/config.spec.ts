@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import { validateConfig } from './config.ts';
 
-const required = { MQTT_API_PASSWORD: 'secreto' };
+const required = {
+  MQTT_API_PASSWORD: 'secreto',
+  DATABASE_URL: 'postgres://logicflows:secreto@127.0.0.1:5432/logicflows',
+};
 
 describe('configuración de la API', () => {
   it('aplica los valores por defecto', () => {
@@ -13,6 +16,7 @@ describe('configuración de la API', () => {
       MQTT_API_USERNAME: 'api',
       MQTT_API_PASSWORD: 'secreto',
       MQTT_CLIENT_ID: 'logicflows-api',
+      DATABASE_URL: 'postgres://logicflows:secreto@127.0.0.1:5432/logicflows',
     });
   });
 
@@ -21,7 +25,9 @@ describe('configuración de la API', () => {
   });
 
   it.each([
-    ['sin contraseña del broker', {}],
+    ['sin contraseña del broker', { DATABASE_URL: required.DATABASE_URL }],
+    ['sin base de datos', { MQTT_API_PASSWORD: 'secreto' }],
+    ['una base de datos que no es PostgreSQL', { ...required, DATABASE_URL: 'mysql://db/x' }],
     ['un puerto no numérico', { ...required, API_PORT: 'http' }],
     ['un puerto fuera de rango', { ...required, API_PORT: '70000' }],
     ['un nivel de registro desconocido', { ...required, LOG_LEVEL: 'verbose' }],

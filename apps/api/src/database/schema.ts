@@ -1,0 +1,113 @@
+import { CELL_EVENTS, CELL_STATES, WAITING_REASONS } from '@logicflows/contract';
+import type { Alarm } from '@logicflows/contract';
+import {
+  bigserial,
+  boolean,
+  doublePrecision,
+  index,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from 'drizzle-orm/pg-core';
+
+// Los valores de los enumerados vienen del contrato: un estado nuevo exige
+// una migración, como cualquier otro cambio del contrato.
+export const cellStateEnum = pgEnum('cell_state', CELL_STATES);
+export const cellEventEnum = pgEnum('cell_event', CELL_EVENTS);
+export const waitingReasonEnum = pgEnum('waiting_reason', WAITING_REASONS);
+export const robotStateEnum = pgEnum('robot_state', ['IDLE', 'MOVING', 'FAULT']);
+export const conveyorStateEnum = pgEnum('conveyor_state', ['STOPPED', 'RUNNING', 'FAULT']);
+
+const instant = (name: string) => timestamp(name, { withTimezone: true, precision: 3 });
+
+/** Campos comunes de los mensajes de ADR-0004. */
+const messageColumns = () => ({
+  id: bigserial('id', { mode: 'number' }).primaryKey(),
+  siteId: text('site_id').notNull(),
+  cellId: text('cell_id').notNull(),
+  sessionId: uuid('session_id').notNull(),
+  messageId: uuid('message_id').notNull(),
+  schemaVersion: integer('schema_version').notNull(),
+  /** Momento en el que se generó el dato en la célula. */
+  sourceTimestamp: instant('source_timestamp').notNull(),
+  /** Momento en el que la API recibió el mensaje. */
+  receivedAt: instant('received_at').notNull(),
+});
+
+/** Cambios de conexión de cada célula. */
+export const cellStatusEvents = pgTable(
+  'cell_status_events',
+  {
+    ...messageColumns(),
+    online: boolean('online').notNull(),
+  },
+  (table) => [
+    // status no lleva secuencia: el mismo mensaje reenviado tiene la misma
+    // sesión, conexión y marca de tiempo.
+    uniqueIndex('cell_status_events_message_uq').on(
+      table.siteId,
+      table.cellId,
+      table.sessionId,
+      table.online,
+      table.sourceTimestamp,
+    ),
+    index('cell_status_events_cell_time_idx').on(table.siteId, table.cellId, table.sourceTimestamp),
+  ],
+);
+
+/** Historial de estados de cada célula (ADR-0003) con sus alarmas activas. */
+export const cellStateChanges = pgTable(
+  'cell_state_changes',
+  {
+    ...messageColumns(),
+    seq: integer('seq').notNull(),
+    state: cellStateEnum('state').notNull(),
+    previousState: cellStateEnum('previous_state'),
+    event: cellEventEnum('event'),
+    waitingReason: waitingReasonEnum('waiting_reason'),
+    since: instant('since').notNull(),
+    activeAlarms: jsonb('active_alarms').$type<Alarm[]>().notNull(),
+  },
+  (table) => [
+    uniqueIndex('cell_state_changes_message_uq').on(
+      table.siteId,
+      table.cellId,
+      table.sessionId,
+      table.seq,
+    ),
+    index('cell_state_changes_cell_time_idx').on(table.siteId, table.cellId, table.sourceTimestamp),
+  ],
+);
+
+/** Cada telemetría recibida, con los contadores acumulados de la célula. */
+export const telemetrySamples = pgTable(
+  'telemetry_samples',
+  {
+    ...messageColumns(),
+    seq: integer('seq').notNull(),
+    boxesTotal: integer('boxes_total').notNull(),
+    palletsTotal: integer('pallets_total').notNull(),
+    currentLayer: integer('current_layer').notNull(),
+    layersPerPallet: integer('layers_per_pallet').notNull(),
+    boxesInLayer: integer('boxes_in_layer').notNull(),
+    boxesPerLayer: integer('boxes_per_layer').notNull(),
+    cycleTimeMs: integer('cycle_time_ms'),
+    throughputBoxesPerHour: doublePrecision('throughput_boxes_per_hour').notNull(),
+    robotState: robotStateEnum('robot_state').notNull(),
+    conveyorState: conveyorStateEnum('conveyor_state').notNull(),
+  },
+  (table) => [
+    uniqueIndex('telemetry_samples_message_uq').on(
+      table.siteId,
+      table.cellId,
+      table.sessionId,
+      table.seq,
+    ),
+    index('telemetry_samples_cell_time_idx').on(table.siteId, table.cellId, table.sourceTimestamp),
+  ],
+);
