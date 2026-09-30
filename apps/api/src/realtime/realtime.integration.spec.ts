@@ -12,6 +12,7 @@ import { WebSocket } from 'ws';
 
 import { MqttIngestionService } from '../ingestion/mqtt-ingestion.service.ts';
 import { createApp } from '../testing/app.ts';
+import { startDatabase } from '../testing/database.ts';
 import { API_PASSWORD, SIMULATOR_PASSWORD, startBroker, waitFor } from '../testing/broker.ts';
 import type { TestBroker } from '../testing/broker.ts';
 
@@ -21,6 +22,7 @@ interface RealtimeClient {
 }
 
 describe('canal de tiempo real con un broker real', () => {
+  let database: Awaited<ReturnType<typeof startDatabase>>;
   let broker: TestBroker;
   let app: INestApplication;
   let publisher: MqttClient;
@@ -50,7 +52,12 @@ describe('canal de tiempo real con un broker real', () => {
 
   beforeAll(async () => {
     broker = await startBroker();
-    app = await createApp({ MQTT_URL: broker.url, MQTT_API_PASSWORD: API_PASSWORD });
+    database = await startDatabase();
+    app = await createApp({
+      DATABASE_URL: database.getConnectionUri(),
+      MQTT_URL: broker.url,
+      MQTT_API_PASSWORD: API_PASSWORD,
+    });
     await app.listen(0);
     const { port } = (app.getHttpServer() as Server).address() as AddressInfo;
     url = `ws://127.0.0.1:${String(port)}${REALTIME_PATH}`;
@@ -69,6 +76,7 @@ describe('canal de tiempo real con un broker real', () => {
     }
     await publisher.endAsync();
     await app.close();
+    await database.stop();
     await broker.container.stop();
   });
 

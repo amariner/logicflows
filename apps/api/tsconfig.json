@@ -10,5 +10,5 @@
     "types": ["node"],
     "noEmit": true
   },
-  "include": ["src", "vitest.config.ts", "vitest.integration.config.ts"]
+  "include": ["src", "vitest.config.ts", "vitest.integration.config.ts", "drizzle.config.ts"]
 }

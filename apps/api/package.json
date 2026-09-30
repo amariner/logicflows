@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run --coverage",
-    "test:integration": "vitest run --config vitest.integration.config.ts"
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "db:generate": "pnpm --filter @logicflows/contract build && drizzle-kit generate"
   },
   "dependencies": {
     "@logicflows/contract": "workspace:*",
@@ -23,8 +24,10 @@
     "@nestjs/swagger": "^12.0.2",
     "@nestjs/terminus": "^12.1.0",
     "@nestjs/websockets": "^12.1.1",
+    "drizzle-orm": "^0.45.3",
     "mqtt": "^5.16.0",
     "nestjs-pino": "^5.2.1",
+    "pg": "^8.23.0",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
     "reflect-metadata": "^0.2.2",
@@ -35,11 +38,14 @@
   "devDependencies": {
     "@nestjs/cli": "^12.0.8",
     "@nestjs/testing": "^12.1.1",
+    "@testcontainers/postgresql": "^12.2.0",
     "@types/express": "^5.0.6",
     "@types/node": "^24.19.0",
+    "@types/pg": "^8.23.1",
     "@types/supertest": "^7.2.1",
     "@types/ws": "^8.18.2",
     "@vitest/coverage-v8": "^5.0.2",
+    "drizzle-kit": "^0.31.11",
     "supertest": "^7.3.0",
     "testcontainers": "^12.2.0",
     "vitest": "^5.0.2"

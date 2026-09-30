@@ -6,12 +6,12 @@ NestJS 12 sobre Node.js, con módulos ES y TypeScript estricto.
 
 ## Estado actual
 
-Esqueleto operativo (LF-23), ingesta de telemetría (LF-26) y canal de tiempo real (LF-27). La persistencia (LF-32) se construye sobre ellos.
+Esqueleto operativo (LF-23), ingesta de telemetría (LF-26), canal de tiempo real (LF-27) y persistencia en PostgreSQL (LF-32).
 
 | Ruta | Contenido |
 |---|---|
 | `GET /health/live` | Vivacidad: el proceso responde. Si falla, el orquestador reinicia la API. |
-| `GET /health/ready` | Disponibilidad: la API está conectada al broker MQTT. Responde `503` si no lo está. Comprobará PostgreSQL cuando se incorpore. |
+| `GET /health/ready` | Disponibilidad: la API está conectada al broker MQTT y a PostgreSQL. Responde `503` si falta alguno. |
 | `GET /docs` | Documentación OpenAPI interactiva. |
 | `GET /docs/openapi.json` | Documento OpenAPI. |
 | `WS /realtime` | Canal de tiempo real hacia el visor ([ADR-0006](../../docs/adr/0006-canal-de-tiempo-real.md)). |
@@ -25,6 +25,27 @@ Esqueleto operativo (LF-23), ingesta de telemetría (LF-26) y canal de tiempo re
 3. **Publicación** en `TelemetryStream`, un flujo interno (RxJS) del que leen el tiempo real y la persistencia sin depender de MQTT.
 
 La conexión no bloquea el arranque: si el broker no está disponible, la API arranca, `/health/ready` lo indica y se reconecta sola.
+
+## Persistencia
+
+Acceso a datos con Drizzle ORM sobre `pg` ([ADR-0007](../../docs/adr/0007-acceso-a-datos-y-migraciones.md)). `PersistenceService` guarda en orden cada mensaje aceptado por la ingesta:
+
+| Tabla | Contenido |
+|---|---|
+| `cell_status_events` | Cambios de conexión de cada célula |
+| `cell_state_changes` | Historial de estados con sus alarmas activas |
+| `telemetry_samples` | Cada telemetría recibida, con sus contadores acumulados |
+
+- **Idempotencia:** cada tabla tiene una restricción única sobre la identidad del mensaje (planta, célula, sesión y secuencia) y se inserta con `ON CONFLICT DO NOTHING`. Un duplicado no se guarda dos veces aunque la API se reinicie.
+- **Producción por periodo:** `TelemetryRepository.production()` suma las diferencias entre muestras consecutivas de cada sesión con funciones de ventana. La primera muestra de una sesión y los reinicios de contadores cuentan desde cero.
+- **Recuperación:** al arrancar, la información de tiempo real de cada célula se recupera de la base de datos.
+- **Migraciones:** SQL versionado en `drizzle/`, generado a partir de `src/database/schema.ts` y aplicado automáticamente al arrancar. Para crear una migración tras cambiar el esquema:
+
+  ```sh
+  pnpm --filter @logicflows/api db:generate --name descripcion-del-cambio
+  ```
+
+  Una migración ya fusionada no se modifica: se añade otra.
 
 ## Tiempo real
 
@@ -63,6 +84,7 @@ Se valida al arrancar; un valor no válido detiene la API indicando qué variabl
 | `MQTT_API_USERNAME` | `api` | Usuario del broker |
 | `MQTT_API_PASSWORD` | — | Contraseña del broker (obligatoria) |
 | `MQTT_CLIENT_ID` | `logicflows-api` | Identificador del cliente; el broker asocia a él la sesión persistente |
+| `DATABASE_URL` | — | Conexión con PostgreSQL (obligatoria) |
 
 ## Registro
 
@@ -77,7 +99,10 @@ Los logs se emiten en JSON con pino (`nestjs-pino`): una línea por evento con e
 | `src/config/` | Validación de la configuración con Zod |
 | `src/health/` | Comprobaciones de salud con `@nestjs/terminus` |
 | `src/ingestion/` | Suscripción MQTT, guardia de secuencia, indicador de salud del broker y flujo interno |
+| `src/database/` | Esquema, conexión, migraciones e indicador de salud de PostgreSQL |
+| `src/persistence/` | Guardado de los mensajes, consultas de producción y recuperación del estado |
 | `src/realtime/` | Información de cada célula y canal WebSocket hacia el visor |
+| `drizzle/` | Migraciones SQL versionadas |
 | `src/testing/` | Ayudantes de las pruebas de integración: broker con Testcontainers y aplicación completa |
 | `src/openapi.ts` | Documentación OpenAPI con `@nestjs/swagger` |
 
@@ -88,4 +113,5 @@ Los logs se emiten en JSON con pino (`nestjs-pino`): una línea por evento con e
 | `dev` | Compila y reinicia al cambiar (`nest start --watch`), con el `.env` de la raíz |
 | `build` · `start` | Compila a `dist` y ejecuta la versión compilada |
 | `test` | Pruebas unitarias con cobertura |
-| `test:integration` | Pruebas con un broker real (Testcontainers): salud con y sin broker, ingesta, descarte de mensajes, reconexión y tiempo real con varios clientes |
+| `test:integration` | Pruebas con Mosquitto y PostgreSQL reales (Testcontainers): salud, ingesta, descarte de mensajes, reconexión, tiempo real, persistencia, idempotencia, producción y recuperación tras reiniciar |
+| `db:generate` | Genera una migración a partir de los cambios del esquema |

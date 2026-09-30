@@ -5,20 +5,28 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { createApp } from '../testing/app.ts';
+import { startDatabase } from '../testing/database.ts';
 import { freePort } from '../testing/broker.ts';
 
 describe('API HTTP sin broker', () => {
+  let database: Awaited<ReturnType<typeof startDatabase>>;
   let app: INestApplication;
   const http = () => request(app.getHttpServer() as Server);
 
   beforeAll(async () => {
     // Un puerto libre en el que nadie escucha: el broker no está disponible.
     const port = await freePort();
-    app = await createApp({ MQTT_URL: `mqtt://127.0.0.1:${String(port)}`, MQTT_API_PASSWORD: 'x' });
+    database = await startDatabase();
+    app = await createApp({
+      DATABASE_URL: database.getConnectionUri(),
+      MQTT_URL: `mqtt://127.0.0.1:${String(port)}`,
+      MQTT_API_PASSWORD: 'x',
+    });
   });
 
   afterAll(async () => {
     await app.close();
+    await database.stop();
   });
 
   it('arranca igualmente y sigue viva', async () => {

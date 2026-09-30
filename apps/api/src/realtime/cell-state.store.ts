@@ -5,6 +5,7 @@ import { Subject } from 'rxjs';
 import type { Observable, Subscription } from 'rxjs';
 
 import { TelemetryStream } from '../ingestion/telemetry-stream.ts';
+import { TelemetryRepository } from '../persistence/telemetry.repository.ts';
 
 const emptySnapshot = (siteId: string, cellId: string): CellSnapshot => ({
   siteId,
@@ -16,8 +17,8 @@ const emptySnapshot = (siteId: string, cellId: string): CellSnapshot => ({
 
 /**
  * Última información conocida de cada célula, construida a partir de los
- * mensajes aceptados por la ingesta. Tras reiniciar la API se reconstruye con
- * los mensajes retenidos del broker.
+ * mensajes aceptados por la ingesta. Al arrancar se recupera de la base de
+ * datos, así que no depende de que el broker conserve los retenidos.
  */
 @Injectable()
 export class CellStateStore implements OnModuleInit, OnModuleDestroy {
@@ -25,17 +26,33 @@ export class CellStateStore implements OnModuleInit, OnModuleDestroy {
   readonly #updates = new Subject<CellSnapshot>();
   #subscription: Subscription | undefined;
 
-  constructor(private readonly stream: TelemetryStream) {}
+  constructor(
+    private readonly stream: TelemetryStream,
+    private readonly repository: TelemetryRepository,
+  ) {}
 
   /** Emite la información de una célula cada vez que cambia. */
   get updates$(): Observable<CellSnapshot> {
     return this.#updates.asObservable();
   }
 
-  onModuleInit(): void {
+  async onModuleInit(): Promise<void> {
+    // Primero se escucha la ingesta y después se recupera la base de datos:
+    // lo que llegue mientras tanto es más reciente y no se sobrescribe.
     this.#subscription = this.stream.messages$.subscribe(({ decoded }) => {
       this.apply(decoded);
     });
+    this.seed(await this.repository.latestSnapshots());
+  }
+
+  /** Añade la información guardada de las células que aún no se conocen. */
+  seed(snapshots: readonly CellSnapshot[]): void {
+    for (const snapshot of snapshots) {
+      const key = `${snapshot.siteId}/${snapshot.cellId}`;
+      if (!this.#cells.has(key)) {
+        this.#cells.set(key, snapshot);
+      }
+    }
   }
 
   onModuleDestroy(): void {
