@@ -49,6 +49,24 @@ jobs:
       - name: Build
         run: pnpm build
 
+  integration:
+    name: Integración
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      # Testcontainers levanta Mosquitto y PostgreSQL reales con Docker.
+      - name: Pruebas de integración
+        run: pnpm test:integration
+
   infra:
     name: Entorno local
     runs-on: ubuntu-24.04
