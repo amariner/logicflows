@@ -10,13 +10,6 @@ import {
 import { cellEventSchema, cellStateSchema, waitingReasonSchema } from './states.ts';
 import type { MessageKind } from './topics.ts';
 
-/**
- * Versión del esquema que emiten los publicadores. Todas las versiones de la
- * versión mayor 1 son compatibles: los consumidores aceptan cualquier
- * `schemaVersion` ≥ 1 e ignoran los campos que no conocen (ADR-0004).
- */
-export const CURRENT_SCHEMA_VERSION = 1;
-
 // Los esquemas no son estrictos: los campos desconocidos se descartan al
 // validar para que un consumidor acepte versiones compatibles posteriores.
 const envelope = {

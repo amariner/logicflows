@@ -3,7 +3,7 @@
  * mensaje que cumple el contrato y permite sobrescribir solo los campos
  * relevantes para cada caso.
  */
-import { CURRENT_SCHEMA_VERSION } from '../v1/messages.ts';
+import { CURRENT_SCHEMA_VERSION } from '../v1/version.ts';
 import type { StateMessage, StatusMessage, TelemetryMessage } from '../v1/messages.ts';
 
 export const TEST_SITE_ID = 'demo';
