@@ -42,6 +42,10 @@ Cada paquete expone los mismos scripts (`typecheck`, `lint`, `test` y `build`) a
 
 Las dependencias con scripts de instalación (`postinstall`) no los ejecutan salvo que se autoricen en `allowBuilds` de `pnpm-workspace.yaml`. Cada autorización se decide al revisar la pull request que añade la dependencia.
 
+## Integración continua
+
+Cada pull request contra `main` y cada cambio en `main` ejecutan el workflow [CI](.github/workflows/ci.yml) en GitHub Actions: instalación con `--frozen-lockfile`, formato, tipos, lint, pruebas y build. Cada comprobación es un paso independiente para identificar de un vistazo qué ha fallado. El trabajo tiene un límite de 10 minutos y una nueva ejecución en la misma rama cancela la anterior.
+
 ## Calidad del código
 
 La configuración de calidad es común a todo el monorepo y cada paquete la hereda:
