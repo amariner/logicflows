@@ -1,6 +1,9 @@
 import { cellIdSchema, siteIdSchema } from '@logicflows/contract';
 import { z } from 'zod';
 
+import { SCENARIO_NAMES } from './scenarios.ts';
+import type { ScenarioName } from './scenarios.ts';
+
 const positiveInt = z.coerce.number().int().positive();
 
 const configSchema = z.object({
@@ -14,6 +17,7 @@ const configSchema = z.object({
   SIMULATOR_CYCLE_VARIATION: z.coerce.number().min(0).max(0.5).default(0.1),
   SIMULATOR_PALLET_CHANGE_MS: z.coerce.number().int().nonnegative().default(8_000),
   SIMULATOR_SEED: z.coerce.number().int().optional(),
+  SIMULATOR_SCENARIO: z.enum(SCENARIO_NAMES).default('normal'),
   SIMULATOR_FAULT_RECOVERY_MS: positiveInt.default(20_000),
   SIMULATOR_EMERGENCY_STOP_RECOVERY_MS: positiveInt.default(30_000),
   SIMULATOR_RESTART_DELAY_MS: positiveInt.default(5_000),
@@ -32,6 +36,7 @@ export interface SimulatorConfig {
   readonly palletChangeMs: number;
   /** Semilla para repetir una simulación. Sin ella, cada ejecución varía. */
   readonly seed: number | undefined;
+  readonly scenario: ScenarioName;
   readonly faultRecoveryMs: number;
   readonly emergencyStopRecoveryMs: number;
   readonly restartDelayMs: number;
@@ -60,6 +65,7 @@ export function loadConfig(env: Record<string, string | undefined>): SimulatorCo
     cycleVariation: c.SIMULATOR_CYCLE_VARIATION,
     palletChangeMs: c.SIMULATOR_PALLET_CHANGE_MS,
     seed: c.SIMULATOR_SEED,
+    scenario: c.SIMULATOR_SCENARIO,
     faultRecoveryMs: c.SIMULATOR_FAULT_RECOVERY_MS,
     emergencyStopRecoveryMs: c.SIMULATOR_EMERGENCY_STOP_RECOVERY_MS,
     restartDelayMs: c.SIMULATOR_RESTART_DELAY_MS,

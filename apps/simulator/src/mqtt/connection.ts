@@ -1,6 +1,7 @@
 import mqtt from 'mqtt';
 
 import type { BrokerConnection, Logger, PublishOptions } from '../broker.ts';
+import type { Interruptible } from '../incident-generator.ts';
 
 export interface MqttConnectionOptions {
   readonly url: string;
@@ -14,7 +15,7 @@ export interface MqttConnectionOptions {
 }
 
 /** Conexión MQTT 5 con reconexión automática. */
-export function connectToBroker(options: MqttConnectionOptions): BrokerConnection {
+export function connectToBroker(options: MqttConnectionOptions): BrokerConnection & Interruptible {
   const client = mqtt.connect(options.url, {
     protocolVersion: 5,
     clientId: options.clientId,
@@ -44,6 +45,18 @@ export function connectToBroker(options: MqttConnectionOptions): BrokerConnectio
     },
     onConnect(listener: () => void) {
       client.on('connect', listener);
+    },
+    /**
+     * Corta la conexión de forma abrupta, sin desconexión limpia: el broker
+     * publica el Last Will. Tras `durationMs` vuelve a conectar.
+     */
+    interrupt(durationMs: number) {
+      options.logger.warn({ durationMs }, 'Cortando la conexión con el broker');
+      client.end(true, () => {
+        setTimeout(() => {
+          client.reconnect();
+        }, durationMs);
+      });
     },
     async close() {
       await client.endAsync();

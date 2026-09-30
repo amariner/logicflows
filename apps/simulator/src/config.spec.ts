@@ -13,6 +13,7 @@ describe('configuración', () => {
       cycleVariation: 0.1,
       palletChangeMs: 8_000,
       seed: undefined,
+      scenario: 'normal',
       faultRecoveryMs: 20_000,
       emergencyStopRecoveryMs: 30_000,
       restartDelayMs: 5_000,
@@ -37,6 +38,7 @@ describe('configuración', () => {
       'con una variación del ciclo excesiva',
       { MQTT_SIMULATOR_PASSWORD: 'x', SIMULATOR_CYCLE_VARIATION: '0.9' },
     ],
+    ['con un escenario desconocido', { MQTT_SIMULATOR_PASSWORD: 'x', SIMULATOR_SCENARIO: 'caos' }],
     ['con una célula no válida', { MQTT_SIMULATOR_PASSWORD: 'x', SIMULATOR_CELL_ID: 'Célula 1' }],
     [
       'con un protocolo que no es MQTT',
