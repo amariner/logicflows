@@ -38,6 +38,7 @@ logicflows/
 | `pnpm check` | Verificación completa: formato, tipos, lint, pruebas y build de todos los paquetes |
 | `pnpm format` | Aplica el formato común (Prettier) a todo el repositorio |
 | `pnpm format:check` · `pnpm typecheck` · `pnpm lint` · `pnpm test` · `pnpm build` | Cada comprobación por separado |
+| `pnpm test:integration` | Pruebas de integración con contenedores reales; necesita Docker ([estrategia de pruebas](docs/estrategia-de-pruebas.md)) |
 | `pnpm --filter @logicflows/api <script>` | Ejecuta un script en un único paquete |
 
 Cada paquete expone los mismos scripts (`typecheck`, `lint`, `test` y `build`) a medida que se implementa; los comandos de la raíz omiten los paquetes que aún no los definen. pnpm los ejecuta en orden topológico: un paquete se procesa después de aquellos de los que depende.
@@ -112,3 +113,4 @@ TypeScript está fijado en la versión 6.0 porque Angular 22 y typescript-eslint
 
 - [Decisiones de arquitectura (ADR)](docs/adr/README.md)
 - [Guía de contribución y Definition of Done](CONTRIBUTING.md)
+- [Estrategia de pruebas](docs/estrategia-de-pruebas.md)

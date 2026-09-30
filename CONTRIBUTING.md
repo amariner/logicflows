@@ -74,7 +74,7 @@ Se descartan la fusión con commit de fusión, porque ensucia el historial con c
 Una tarea está terminada cuando se cumple todo lo que le aplica:
 
 - [ ] Los **criterios de aceptación** de la tarea de Jira se cumplen.
-- [ ] El código nuevo tiene **pruebas automatizadas** proporcionales a su riesgo, y las comprobaciones del repositorio (tipos, lint, formato y pruebas) pasan.
+- [ ] El código nuevo tiene **pruebas automatizadas** proporcionales a su riesgo, según la [estrategia de pruebas](docs/estrategia-de-pruebas.md), y las comprobaciones del repositorio (tipos, lint, formato y pruebas) pasan.
 - [ ] La **integración continua** está en verde.
 - [ ] El **Tech Lead ha aprobado** la pull request.
 - [ ] La **documentación** está actualizada: `README` o documentación técnica si cambia el uso, un ADR si se ha tomado una decisión de arquitectura y Confluence si afecta al producto o al equipo.
