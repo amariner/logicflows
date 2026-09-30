@@ -6,7 +6,7 @@ NestJS 12 sobre Node.js, con módulos ES y TypeScript estricto.
 
 ## Estado actual
 
-Esqueleto operativo (LF-23) e ingesta de telemetría (LF-26). El tiempo real (LF-27) y la persistencia (LF-32) se construyen sobre ellos.
+Esqueleto operativo (LF-23), ingesta de telemetría (LF-26) y canal de tiempo real (LF-27). La persistencia (LF-32) se construye sobre ellos.
 
 | Ruta | Contenido |
 |---|---|
@@ -14,6 +14,7 @@ Esqueleto operativo (LF-23) e ingesta de telemetría (LF-26). El tiempo real (LF
 | `GET /health/ready` | Disponibilidad: la API está conectada al broker MQTT. Responde `503` si no lo está. Comprobará PostgreSQL cuando se incorpore. |
 | `GET /docs` | Documentación OpenAPI interactiva. |
 | `GET /docs/openapi.json` | Documento OpenAPI. |
+| `WS /realtime` | Canal de tiempo real hacia el visor ([ADR-0006](../../docs/adr/0006-canal-de-tiempo-real.md)). |
 
 ## Ingesta de telemetría
 
@@ -24,6 +25,23 @@ Esqueleto operativo (LF-23) e ingesta de telemetría (LF-26). El tiempo real (LF
 3. **Publicación** en `TelemetryStream`, un flujo interno (RxJS) del que leen el tiempo real y la persistencia sin depender de MQTT.
 
 La conexión no bloquea el arranque: si el broker no está disponible, la API arranca, `/health/ready` lo indica y se reconecta sola.
+
+## Tiempo real
+
+`CellStateStore` guarda la última conexión, estado y telemetría de cada célula a partir del flujo de la ingesta. `RealtimeGateway` expone un WebSocket nativo en `/realtime` que envía mensajes JSON tipados en `@logicflows/contract` (`RealtimeMessage`):
+
+| Mensaje | Cuándo | Contenido |
+|---|---|---|
+| `{ "type": "snapshot", "cells": [...] }` | Al conectar | Información de todas las células conocidas |
+| `{ "type": "cell", "cell": {...} }` | En cada mensaje aceptado por la ingesta | Información actualizada de esa célula |
+
+Cada `cell` incluye `siteId`, `cellId` y los últimos mensajes `status`, `state` y `telemetry` recibidos (`null` si aún no ha llegado ninguno). El servidor envía un *ping* cada 30 segundos y cierra las conexiones que no responden. El cliente reconecta por su cuenta y recibe una instantánea nueva.
+
+Para observar el canal con la API en marcha:
+
+```sh
+pnpm dlx wscat -c ws://localhost:3000/realtime
+```
 
 ## Uso
 
@@ -59,6 +77,7 @@ Los logs se emiten en JSON con pino (`nestjs-pino`): una línea por evento con e
 | `src/config/` | Validación de la configuración con Zod |
 | `src/health/` | Comprobaciones de salud con `@nestjs/terminus` |
 | `src/ingestion/` | Suscripción MQTT, guardia de secuencia, indicador de salud del broker y flujo interno |
+| `src/realtime/` | Información de cada célula y canal WebSocket hacia el visor |
 | `src/testing/` | Ayudantes de las pruebas de integración: broker con Testcontainers y aplicación completa |
 | `src/openapi.ts` | Documentación OpenAPI con `@nestjs/swagger` |
 
@@ -69,4 +88,4 @@ Los logs se emiten en JSON con pino (`nestjs-pino`): una línea por evento con e
 | `dev` | Compila y reinicia al cambiar (`nest start --watch`), con el `.env` de la raíz |
 | `build` · `start` | Compila a `dist` y ejecuta la versión compilada |
 | `test` | Pruebas unitarias con cobertura |
-| `test:integration` | Pruebas con un broker real (Testcontainers): salud con y sin broker, ingesta, descarte de mensajes y reconexión |
+| `test:integration` | Pruebas con un broker real (Testcontainers): salud con y sin broker, ingesta, descarte de mensajes, reconexión y tiempo real con varios clientes |

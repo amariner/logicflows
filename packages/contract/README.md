@@ -26,6 +26,7 @@ if (!result.ok) {
 | `decodeMessage` | Validación completa de un mensaje recibido: topic, JSON, esquema y coherencia con el topic |
 | `CELL_STATES`, `TRANSITIONS`, `isExpectedTransition`, `targetStates` | Estados y transiciones previstas de ADR-0003 |
 | `CURRENT_SCHEMA_VERSION` | Versión del esquema que emiten los publicadores |
+| `REALTIME_PATH`, `RealtimeMessage`, `CellSnapshot` | Mensajes del WebSocket entre la API y el visor ([ADR-0006](../../docs/adr/0006-canal-de-tiempo-real.md)) |
 | `@logicflows/contract/testing` | Constructores de mensajes válidos para pruebas |
 
 El JSON Schema de cada mensaje está en [`schemas/v1`](schemas/v1) para consumidores escritos en otros lenguajes.

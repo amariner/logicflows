@@ -1,4 +1,5 @@
 import type { INestApplication } from '@nestjs/common';
+import { WsAdapter } from '@nestjs/platform-ws';
 import { Test } from '@nestjs/testing';
 
 /**
@@ -12,6 +13,7 @@ export async function createApp(env: Record<string, string>): Promise<INestAppli
   const { setupOpenApi } = await import('../openapi.ts');
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
   const app = moduleRef.createNestApplication({ logger: false });
+  app.useWebSocketAdapter(new WsAdapter(app));
   setupOpenApi(app);
   await app.init();
   return app;
