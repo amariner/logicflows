@@ -59,7 +59,7 @@ class FakeConnection implements BrokerConnection {
 
 const silentLogger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
 
-const setup = (startupDurationMs = 2_000) => {
+const setup = (startupDurationMs = 2_000, random: () => number = () => 0.5) => {
   let id = 0;
   const connection = new FakeConnection();
   const messages = new MessageFactory({
@@ -72,10 +72,12 @@ const setup = (startupDurationMs = 2_000) => {
     {
       format: { layersPerPallet: 2, boxesPerLayer: 2 },
       boxIntervalMs: 1_000,
+      cycleVariation: 0.1,
+      palletChangeMs: 5_000,
       startupDurationMs,
       heartbeatMs: 10_000,
     },
-    { connection, messages, logger: silentLogger },
+    { connection, messages, logger: silentLogger, random },
   );
   return { connection, simulator };
 };
@@ -144,6 +146,35 @@ describe('simulador', () => {
     expect(connection.ofKind('telemetry')).toHaveLength(initial + 1);
     vi.advanceTimersByTime(10_000);
     expect(connection.ofKind('telemetry')).toHaveLength(initial + 2);
+  });
+
+  it('tras completar un pallet espera el cambio de pallet antes de la siguiente caja', () => {
+    const { connection, simulator } = setup();
+    simulator.start();
+    connection.connect();
+    // Arranque de 2 s y una caja por segundo: el pallet de 2 × 2 se completa a los 6 s.
+    vi.advanceTimersByTime(6_000);
+    expect(connection.ofKind('telemetry').at(-1)).toMatchObject({ boxesTotal: 4, palletsTotal: 1 });
+
+    // Cambio de pallet de 5 s más un ciclo: la siguiente caja llega a los 12 s.
+    vi.advanceTimersByTime(5_999);
+    expect(simulator.cell.production(Date.now()).boxesTotal).toBe(4);
+    vi.advanceTimersByTime(1);
+    expect(simulator.cell.production(Date.now()).boxesTotal).toBe(5);
+    expect(connection.ofKind('telemetry').at(-1)?.cycleTimeMs).toBe(6_000);
+  });
+
+  it('varía el tiempo de ciclo según la fuente aleatoria', () => {
+    const { connection, simulator } = setup(2_000, () => 1);
+    simulator.start();
+    connection.connect();
+    // Con el aleatorio al máximo cada ciclo dura un 10 % más: 1.100 ms.
+    vi.advanceTimersByTime(2_000 + 1_099);
+    expect(simulator.cell.production(Date.now()).boxesTotal).toBe(0);
+    vi.advanceTimersByTime(1);
+    expect(simulator.cell.production(Date.now()).boxesTotal).toBe(1);
+    vi.advanceTimersByTime(1_100);
+    expect(connection.ofKind('telemetry').at(-1)?.cycleTimeMs).toBe(1_100);
   });
 
   it('las secuencias de state y telemetry crecen sin repetirse', () => {

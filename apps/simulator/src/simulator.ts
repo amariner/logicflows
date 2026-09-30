@@ -3,13 +3,19 @@ import type { CellEvent } from '@logicflows/contract';
 import type { BrokerConnection, Logger, PublishOptions } from './broker.ts';
 import { PalletizingCell } from './domain/cell.ts';
 import { componentStates } from './domain/components.ts';
+import { cycleDurationMs } from './domain/cycle.ts';
 import type { PalletFormat } from './domain/production.ts';
+import type { Random } from './domain/random.ts';
 import type { MessageFactory } from './messages.ts';
 
 export interface SimulatorOptions {
   readonly format: PalletFormat;
-  /** Tiempo entre cajas mientras la célula produce. */
+  /** Tiempo nominal entre cajas mientras la célula produce. */
   readonly boxIntervalMs: number;
+  /** Variación aleatoria del tiempo de ciclo: 0,1 = ±10 %. */
+  readonly cycleVariation: number;
+  /** Tiempo para retirar un pallet completo y colocar uno vacío. */
+  readonly palletChangeMs: number;
   /** Duración de la secuencia de arranque. */
   readonly startupDurationMs: number;
   /** Intervalo máximo entre dos mensajes de telemetría (ADR-0004). */
@@ -21,13 +27,16 @@ export interface SimulatorDependencies {
   readonly messages: MessageFactory;
   readonly logger: Logger;
   readonly now?: () => number;
+  readonly random?: Random;
 }
 
 const RETAINED_QOS1: PublishOptions = { qos: 1, retain: true };
 const RETAINED_QOS0: PublishOptions = { qos: 0, retain: true };
 
 /**
- * Simula una célula que arranca, paletiza una caja cada `boxIntervalMs` y
+ * Simula una célula que arranca, paletiza una caja por ciclo (con una
+ * variación aleatoria del tiempo y una pausa para cambiar cada pallet
+ * completo) y
  * publica su conexión, su estado y su telemetría según ADR-0004. Tras cada
  * conexión o reconexión con el broker vuelve a publicar su situación actual.
  */
@@ -37,6 +46,7 @@ export class Simulator {
   readonly #messages: MessageFactory;
   readonly #logger: Logger;
   readonly #now: () => number;
+  readonly #random: Random;
   readonly #cell: PalletizingCell;
   readonly #timers: NodeJS.Timeout[] = [];
   #boxTimer: NodeJS.Timeout | undefined;
@@ -48,6 +58,7 @@ export class Simulator {
     this.#messages = dependencies.messages;
     this.#logger = dependencies.logger;
     this.#now = dependencies.now ?? Date.now;
+    this.#random = dependencies.random ?? Math.random;
     this.#cell = new PalletizingCell(options.format, this.#now());
   }
 
@@ -78,7 +89,7 @@ export class Simulator {
       clearTimeout(timer);
     }
     this.#timers.length = 0;
-    clearInterval(this.#boxTimer);
+    clearTimeout(this.#boxTimer);
     this.#boxTimer = undefined;
     if (this.#cell.accepts('stop')) {
       this.#transition('stop');
@@ -89,9 +100,16 @@ export class Simulator {
   }
 
   #processBox(): void {
+    const palletsBefore = this.#cell.production(this.#now()).palletsTotal;
     const production = this.#cell.processBox(this.#now());
     this.#logger.debug({ boxesTotal: production.boxesTotal }, 'Caja paletizada');
     this.#publishTelemetry();
+
+    const palletCompleted = production.palletsTotal > palletsBefore;
+    if (palletCompleted) {
+      this.#logger.info({ palletsTotal: production.palletsTotal }, 'Pallet completado');
+    }
+    this.#scheduleNextBox(palletCompleted ? this.#options.palletChangeMs : 0);
   }
 
   #heartbeat(): void {
@@ -108,17 +126,28 @@ export class Simulator {
     this.#publishTelemetry();
   }
 
-  /** Las cajas llegan cada `boxIntervalMs` solo mientras la célula produce. */
+  /** Las cajas solo llegan mientras la célula produce. */
   #updateBoxTimer(): void {
     const running = this.#cell.status.state === 'RUNNING';
     if (running && this.#boxTimer === undefined) {
-      this.#boxTimer = setInterval(() => {
-        this.#processBox();
-      }, this.#options.boxIntervalMs);
+      this.#scheduleNextBox(0);
     } else if (!running && this.#boxTimer !== undefined) {
-      clearInterval(this.#boxTimer);
+      clearTimeout(this.#boxTimer);
       this.#boxTimer = undefined;
     }
+  }
+
+  /** Programa la siguiente caja tras un ciclo, más una espera adicional. */
+  #scheduleNextBox(extraDelayMs: number): void {
+    const cycle = cycleDurationMs(
+      this.#options.boxIntervalMs,
+      this.#options.cycleVariation,
+      this.#random,
+    );
+    this.#boxTimer = setTimeout(() => {
+      this.#boxTimer = undefined;
+      this.#processBox();
+    }, extraDelayMs + cycle);
   }
 
   #publishSnapshot(): void {
