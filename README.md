@@ -126,3 +126,4 @@ TypeScript está fijado en la versión 6.0 porque Angular 22 y typescript-eslint
 - [Decisiones de arquitectura (ADR)](docs/adr/README.md)
 - [Guía de contribución y Definition of Done](CONTRIBUTING.md)
 - [Estrategia de pruebas](docs/estrategia-de-pruebas.md)
+- [Diseño del visor](docs/diseno-del-visor.md)
