@@ -6,6 +6,8 @@ pnpm-lock.yaml
 **/www/
 **/.angular/
 **/android/
+# JSON Schema generado por las pruebas del contrato
+packages/contract/schemas/
 
 # La documentación en Markdown no se formatea automáticamente: Prettier
 # alinea las tablas y reescribiría documentos ya aceptados, como los ADR,
