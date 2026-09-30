@@ -1,6 +1,29 @@
 {
   "name": "@logicflows/simulator",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
-  "description": "Simulador de la célula de paletizado: reproduce el ciclo, los estados y los fallos, y publica la telemetría por MQTT."
+  "description": "Simulador de la célula de paletizado: reproduce el ciclo, los estados y los fallos, y publica la telemetría por MQTT.",
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file-if-exists=../../.env --conditions=@logicflows/source --watch src/main.ts",
+    "start": "node dist/main.js",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run --coverage",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.0",
+    "@vitest/coverage-v8": "^5.0.2",
+    "testcontainers": "^12.2.0",
+    "vitest": "^5.0.2"
+  },
+  "dependencies": {
+    "@logicflows/contract": "workspace:*",
+    "mqtt": "^5.16.0",
+    "pino": "^10.3.1",
+    "uuid": "^14.0.2",
+    "zod": "^4.6.5"
+  }
 }

@@ -27,7 +27,8 @@
     "infra:up": "docker compose up -d --wait",
     "infra:down": "docker compose down",
     "infra:reset": "docker compose down --volumes",
-    "infra:logs": "docker compose logs -f"
+    "infra:logs": "docker compose logs -f",
+    "simulator": "pnpm --filter @logicflows/simulator dev"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -69,6 +69,7 @@ pnpm infra:up          # arranca y espera a que ambos servicios estén sanos
 | `pnpm infra:down` | Detiene los servicios conservando los datos |
 | `pnpm infra:reset` | Detiene los servicios y **elimina los datos**: mensajes retenidos, sesiones y base de datos |
 | `pnpm infra:logs` | Muestra los registros en tiempo real |
+| `pnpm simulator` | Arranca el [simulador](apps/simulator) de una célula que publica en el broker local |
 
 | Servicio | Dirección | Credenciales |
 |---|---|---|
@@ -85,7 +86,7 @@ docker compose exec mosquitto mosquitto_sub -u api -P api-local -t 'logicflows/v
 
 ## Integración continua
 
-Cada pull request contra `main` y cada cambio en `main` ejecutan el workflow [CI](.github/workflows/ci.yml) en GitHub Actions: instalación con `--frozen-lockfile`, formato, tipos, lint, pruebas y build, y en paralelo el arranque del entorno local con Docker Compose. Cada comprobación es un paso independiente para identificar de un vistazo qué ha fallado. El trabajo tiene un límite de 10 minutos y una nueva ejecución en la misma rama cancela la anterior.
+Cada pull request contra `main` y cada cambio en `main` ejecutan el workflow [CI](.github/workflows/ci.yml) en GitHub Actions: instalación con `--frozen-lockfile`, formato, tipos, lint, pruebas y build; en paralelo, las pruebas de integración con Testcontainers y el arranque del entorno local con Docker Compose. Cada comprobación es un paso independiente para identificar de un vistazo qué ha fallado. El trabajo tiene un límite de 10 minutos y una nueva ejecución en la misma rama cancela la anterior.
 
 ## Calidad del código
 

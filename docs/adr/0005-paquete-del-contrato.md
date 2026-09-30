@@ -37,7 +37,7 @@ Requisitos:
 
 1. El contrato es el paquete **`@logicflows/contract`** en `packages/contract`. El workspace distingue las aplicaciones desplegables (`apps/*`) de las librerías compartidas (`packages/*`).
 2. Los mensajes se definen con **Zod 4**. Los tipos se infieren de los esquemas (`z.infer`), así que no pueden divergir de la validación.
-3. El paquete se compila a **ESM con declaraciones de tipos** en `dist`. Sus exportaciones incluyen la condición **`@logicflows/source`**, que apunta al código fuente: los consumidores la activan en TypeScript (`customConditions`) y en Vitest (`resolve.conditions`). En ejecución se usa `dist`, que `pnpm build` genera antes que los consumidores por el orden topológico del workspace.
+3. El paquete se compila a **ESM con declaraciones de tipos** en `dist`. Sus exportaciones incluyen la condición **`@logicflows/source`**, que apunta al código fuente: los consumidores la activan en TypeScript (`customConditions`) y en la configuración de resolución de Vitest. En ejecución se usa `dist`, que `pnpm build` genera antes que los consumidores por el orden topológico del workspace.
 4. Contenido del paquete:
    - Topics: construcción, interpretación y filtros de suscripción.
    - Esquemas y tipos de `status`, `state` y `telemetry`.
@@ -84,7 +84,7 @@ Requisitos:
 
 **Costes y riesgos:**
 
-- Cada consumidor debe configurar la condición `@logicflows/source` en TypeScript y Vitest.
+- Cada consumidor debe configurar la condición `@logicflows/source` en TypeScript y Vitest, como indica el README del paquete.
 - Antes de ejecutar una aplicación hay que compilar el contrato. `pnpm build` lo hace en orden; los comandos de desarrollo de cada aplicación deben hacerlo también.
 - Zod añade unos kilobytes al bundle del visor si este valida datos en tiempo de ejecución.
 - La guardia de JSON Schema exige regenerar los ficheros en cada cambio del contrato, también en los compatibles. Es intencionado: obliga a revisarlos.
