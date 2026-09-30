@@ -1,0 +1,13 @@
+# Generados
+pnpm-lock.yaml
+**/dist/
+**/build/
+**/coverage/
+**/www/
+**/.angular/
+**/android/
+
+# La documentación en Markdown no se formatea automáticamente: Prettier
+# alinea las tablas y reescribiría documentos ya aceptados, como los ADR,
+# con cambios que solo afectan al formato.
+*.md
