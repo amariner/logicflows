@@ -4,6 +4,7 @@
   "private": true,
   "description": "Contrato de telemetría de LogicFlows: topics MQTT, tipos y validación de los mensajes (ADR-0004).",
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": {
       "@logicflows/source": "./src/index.ts",
