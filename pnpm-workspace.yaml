@@ -1,0 +1,8 @@
+packages:
+  - apps/*
+
+# pnpm no ejecuta los scripts de instalación de las dependencias salvo que
+# se autoricen aquí. Cada entrada se decide en la revisión de la pull
+# request que añade la dependencia: true para permitirlo, false para
+# denegarlo cuando el paquete funciona sin él.
+allowBuilds: {}

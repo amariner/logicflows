@@ -1,0 +1,6 @@
+{
+  "name": "@logicflows/simulator",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Simulador de la célula de paletizado: reproduce el ciclo, los estados y los fallos, y publica la telemetría por MQTT."
+}

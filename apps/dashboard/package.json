@@ -1,0 +1,6 @@
+{
+  "name": "@logicflows/dashboard",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Visor multiplataforma de LogicFlows para web, PWA y Android, con Ionic, Angular y Capacitor."
+}

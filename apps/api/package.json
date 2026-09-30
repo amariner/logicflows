@@ -1,0 +1,6 @@
+{
+  "name": "@logicflows/api",
+  "version": "0.0.0",
+  "private": true,
+  "description": "API de LogicFlows: ingesta y validación de la telemetría MQTT, persistencia en PostgreSQL, REST y WebSocket."
+}
