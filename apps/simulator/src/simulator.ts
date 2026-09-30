@@ -1,6 +1,8 @@
-import type { CellEvent } from '@logicflows/contract';
+import type { CellEvent, CellState, WaitingReason } from '@logicflows/contract';
 
 import type { BrokerConnection, Logger, PublishOptions } from './broker.ts';
+import { ALARMS } from './domain/alarms.ts';
+import type { AlarmDefinition } from './domain/alarms.ts';
 import { PalletizingCell } from './domain/cell.ts';
 import { componentStates } from './domain/components.ts';
 import { cycleDurationMs } from './domain/cycle.ts';
@@ -18,6 +20,12 @@ export interface SimulatorOptions {
   readonly palletChangeMs: number;
   /** Duración de la secuencia de arranque. */
   readonly startupDurationMs: number;
+  /** Tiempo hasta que el operario resuelve un fallo y rearma la célula. */
+  readonly faultRecoveryMs: number;
+  /** Tiempo hasta que se libera la parada de emergencia y se rearma la seguridad. */
+  readonly emergencyStopRecoveryMs: number;
+  /** Tiempo entre el rearme y la orden de arranque del operario. */
+  readonly restartDelayMs: number;
   /** Intervalo máximo entre dos mensajes de telemetría (ADR-0004). */
   readonly heartbeatMs: number;
 }
@@ -33,12 +41,21 @@ export interface SimulatorDependencies {
 const RETAINED_QOS1: PublishOptions = { qos: 1, retain: true };
 const RETAINED_QOS0: PublishOptions = { qos: 0, retain: true };
 
+const SUPPLY_ALARMS: Readonly<Record<WaitingReason, AlarmDefinition>> = {
+  STARVED: ALARMS.starved,
+  BLOCKED: ALARMS.blocked,
+};
+
 /**
- * Simula una célula que arranca, paletiza una caja por ciclo (con una
- * variación aleatoria del tiempo y una pausa para cambiar cada pallet
- * completo) y
- * publica su conexión, su estado y su telemetría según ADR-0004. Tras cada
- * conexión o reconexión con el broker vuelve a publicar su situación actual.
+ * Simula una célula de paletizado y publica su conexión, su estado y su
+ * telemetría según ADR-0004.
+ *
+ * La célula arranca y paletiza una caja por ciclo (con una variación
+ * aleatoria del tiempo y una pausa para cambiar cada pallet completo). Admite
+ * incidencias (fallos, parada de emergencia, esperas y pausas) que siguen las
+ * transiciones y el rearme de ADR-0003: tras un fallo o una parada de
+ * emergencia la célula vuelve a STOPPED y el operario da la orden de arranque.
+ * Las incidencias no previstas en el estado actual se rechazan.
  */
 export class Simulator {
   readonly #options: SimulatorOptions;
@@ -48,8 +65,9 @@ export class Simulator {
   readonly #now: () => number;
   readonly #random: Random;
   readonly #cell: PalletizingCell;
-  readonly #timers: NodeJS.Timeout[] = [];
+  readonly #timers = new Set<NodeJS.Timeout>();
   #boxTimer: NodeJS.Timeout | undefined;
+  #heartbeatTimer: NodeJS.Timeout | undefined;
   #lastTelemetryAtMs = Number.NEGATIVE_INFINITY;
 
   constructor(options: SimulatorOptions, dependencies: SimulatorDependencies) {
@@ -71,16 +89,10 @@ export class Simulator {
       this.#logger.info({}, 'Conectado al broker');
       this.#publishSnapshot();
     });
-
-    this.#transition('start');
-    this.#timers.push(
-      setTimeout(() => {
-        this.#transition('started');
-      }, this.#options.startupDurationMs),
-      setInterval(() => {
-        this.#heartbeat();
-      }, this.#options.heartbeatMs),
-    );
+    this.#heartbeatTimer = setInterval(() => {
+      this.#heartbeat();
+    }, this.#options.heartbeatMs);
+    this.#startSequence();
   }
 
   /** Detiene la célula de forma controlada y anuncia la desconexión. */
@@ -88,7 +100,8 @@ export class Simulator {
     for (const timer of this.#timers) {
       clearTimeout(timer);
     }
-    this.#timers.length = 0;
+    this.#timers.clear();
+    clearInterval(this.#heartbeatTimer);
     clearTimeout(this.#boxTimer);
     this.#boxTimer = undefined;
     if (this.#cell.accepts('stop')) {
@@ -97,6 +110,144 @@ export class Simulator {
     // Una desconexión limpia no dispara el Last Will: se publica explícitamente.
     await this.#publish('status', this.#messages.status(false, this.#now()), RETAINED_QOS1);
     await this.#connection.close();
+  }
+
+  /**
+   * Fallo de la célula: pasa a FAULT con su alarma. Tras `faultRecoveryMs` el
+   * operario lo resuelve y rearma, y tras `restartDelayMs` da la orden de
+   * arranque. Durante una parada de emergencia solo se registra la alarma.
+   */
+  fault(alarm: AlarmDefinition): boolean {
+    const state = this.#cell.status.state;
+    if (state === 'EMERGENCY_STOP') {
+      this.#cell.raiseAlarm(alarm, this.#now());
+      this.#publishState(true);
+      this.#afterDelay(this.#options.faultRecoveryMs, () => {
+        this.#recoverFromFault(alarm);
+      });
+      return true;
+    }
+    if (!this.#cell.accepts('fault')) {
+      return this.#reject('fault');
+    }
+    this.#cell.clearAlarmsFrom('supply');
+    this.#cell.raiseAlarm(alarm, this.#now());
+    this.#transition('fault');
+    this.#afterDelay(this.#options.faultRecoveryMs, () => {
+      this.#recoverFromFault(alarm);
+    });
+    return true;
+  }
+
+  /**
+   * Parada de emergencia desde cualquier estado. Tras
+   * `emergencyStopRecoveryMs` se libera y se rearma: la célula vuelve a
+   * STOPPED, o a FAULT si hay fallos activos.
+   */
+  emergencyStop(): boolean {
+    if (!this.#cell.accepts('emergencyStop')) {
+      return this.#reject('emergencyStop');
+    }
+    this.#cell.clearAlarmsFrom('supply');
+    this.#cell.raiseAlarm(ALARMS.emergencyStop, this.#now());
+    this.#transition('emergencyStop');
+    this.#afterDelay(this.#options.emergencyStopRecoveryMs, () => {
+      this.#cell.clearAlarm(ALARMS.emergencyStop.code);
+      const target: CellState = this.#cell.hasActiveFault() ? 'FAULT' : 'STOPPED';
+      this.#transition('reset', target);
+      if (target === 'STOPPED') {
+        this.#afterDelay(this.#options.restartDelayMs, () => {
+          this.#startSequence();
+        });
+      }
+    });
+    return true;
+  }
+
+  /**
+   * Espera por una causa externa: sin cajas a la entrada (STARVED) o con la
+   * salida ocupada (BLOCKED). La célula reanuda sola tras `durationMs`.
+   */
+  supplyInterruption(reason: WaitingReason, durationMs: number): boolean {
+    const event: CellEvent = reason === 'STARVED' ? 'starved' : 'blocked';
+    if (!this.#cell.accepts(event)) {
+      return this.#reject(event);
+    }
+    const alarm = SUPPLY_ALARMS[reason];
+    this.#cell.raiseAlarm(alarm, this.#now());
+    this.#transition(event);
+    this.#afterDelay(durationMs, () => {
+      if (!this.#cell.alarms.some((active) => active.code === alarm.code)) {
+        return;
+      }
+      this.#cell.clearAlarm(alarm.code);
+      if (this.#cell.accepts('supplyRestored')) {
+        this.#transition('supplyRestored');
+      } else {
+        this.#publishState(true);
+      }
+    });
+    return true;
+  }
+
+  /** Pausa del operario, que reanuda la producción tras `durationMs`. */
+  pause(durationMs: number): boolean {
+    if (!this.#cell.accepts('pause')) {
+      return this.#reject('pause');
+    }
+    this.#cell.clearAlarmsFrom('supply');
+    this.#transition('pause');
+    this.#afterDelay(durationMs, () => {
+      if (this.#cell.accepts('resume')) {
+        this.#transition('resume');
+      }
+    });
+    return true;
+  }
+
+  #recoverFromFault(alarm: AlarmDefinition): void {
+    this.#cell.clearAlarm(alarm.code);
+    if (this.#cell.status.state !== 'FAULT') {
+      // Resuelto durante una parada de emergencia: su rearme decide el estado.
+      this.#publishState(true);
+      return;
+    }
+    if (this.#cell.hasActiveFault()) {
+      this.#publishState(true);
+      return;
+    }
+    this.#transition('reset');
+    this.#afterDelay(this.#options.restartDelayMs, () => {
+      this.#startSequence();
+    });
+  }
+
+  #startSequence(): void {
+    if (!this.#cell.accepts('start')) {
+      return;
+    }
+    this.#transition('start');
+    this.#afterDelay(this.#options.startupDurationMs, () => {
+      if (this.#cell.accepts('started')) {
+        this.#transition('started');
+      }
+    });
+  }
+
+  #reject(event: CellEvent): false {
+    this.#logger.debug(
+      { event, state: this.#cell.status.state },
+      'Incidencia no prevista en el estado actual',
+    );
+    return false;
+  }
+
+  #afterDelay(delayMs: number, action: () => void): void {
+    const timer = setTimeout(() => {
+      this.#timers.delete(timer);
+      action();
+    }, delayMs);
+    this.#timers.add(timer);
   }
 
   #processBox(): void {
@@ -118,11 +269,14 @@ export class Simulator {
     }
   }
 
-  #transition(event: CellEvent): void {
-    const status = this.#cell.apply(event, this.#now());
-    this.#logger.info({ event, state: status.state }, 'Cambio de estado');
+  #transition(event: CellEvent, to?: CellState): void {
+    const status = this.#cell.apply(event, this.#now(), to);
+    this.#logger.info(
+      { event, state: status.state, alarms: this.#cell.alarms.map((alarm) => alarm.code) },
+      'Cambio de estado',
+    );
     this.#updateBoxTimer();
-    void this.#publish('state', this.#messages.state(status, this.#now()), RETAINED_QOS1);
+    this.#publishState(false);
     this.#publishTelemetry();
   }
 
@@ -151,10 +305,19 @@ export class Simulator {
   }
 
   #publishSnapshot(): void {
-    const now = this.#now();
-    void this.#publish('status', this.#messages.status(true, now), RETAINED_QOS1);
-    void this.#publish('state', this.#messages.state(this.#cell.status, now), RETAINED_QOS1);
+    void this.#publish('status', this.#messages.status(true, this.#now()), RETAINED_QOS1);
+    this.#publishState(false);
     this.#publishTelemetry();
+  }
+
+  #publishState(alarmsOnly: boolean): void {
+    const message = this.#messages.state(
+      this.#cell.status,
+      this.#cell.alarms,
+      this.#now(),
+      alarmsOnly,
+    );
+    void this.#publish('state', message, RETAINED_QOS1);
   }
 
   #publishTelemetry(): void {
@@ -163,7 +326,7 @@ export class Simulator {
     const message = this.#messages.telemetry(
       this.#cell.production(now),
       this.#cell.format,
-      componentStates(this.#cell.status),
+      componentStates(this.#cell.status, this.#cell.alarms),
       now,
     );
     void this.#publish('telemetry', message, RETAINED_QOS0);

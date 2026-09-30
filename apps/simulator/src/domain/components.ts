@@ -1,3 +1,4 @@
+import type { ActiveAlarm } from './alarms.ts';
 import type { CellStatus } from './cell.ts';
 
 export type RobotState = 'IDLE' | 'MOVING' | 'FAULT';
@@ -8,8 +9,15 @@ export interface ComponentStates {
   readonly conveyor: ConveyorState;
 }
 
-/** Estado del robot y de la cinta que corresponde al estado de la célula. */
-export function componentStates({ state, waitingReason }: CellStatus): ComponentStates {
+/**
+ * Estado del robot y de la cinta que corresponde al estado de la célula y a
+ * sus alarmas activas: en FAULT solo marca como averiado el componente que ha
+ * fallado.
+ */
+export function componentStates(
+  { state, waitingReason }: CellStatus,
+  alarms: readonly ActiveAlarm[] = [],
+): ComponentStates {
   switch (state) {
     case 'STARTING':
       return { robot: 'MOVING', conveyor: 'STOPPED' };
@@ -19,7 +27,10 @@ export function componentStates({ state, waitingReason }: CellStatus): Component
       // Sin cajas la cinta sigue en marcha esperando; con la salida ocupada se detiene.
       return { robot: 'IDLE', conveyor: waitingReason === 'STARVED' ? 'RUNNING' : 'STOPPED' };
     case 'FAULT':
-      return { robot: 'FAULT', conveyor: 'STOPPED' };
+      return {
+        robot: alarms.some((alarm) => alarm.source === 'robot') ? 'FAULT' : 'IDLE',
+        conveyor: alarms.some((alarm) => alarm.source === 'conveyor') ? 'FAULT' : 'STOPPED',
+      };
     case 'STOPPED':
     case 'PAUSED':
     case 'EMERGENCY_STOP':

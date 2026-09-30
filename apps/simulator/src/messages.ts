@@ -6,6 +6,7 @@ import type {
   TelemetryMessage,
 } from '@logicflows/contract';
 
+import type { ActiveAlarm } from './domain/alarms.ts';
 import type { CellProduction, CellStatus } from './domain/cell.ts';
 import type { ComponentStates } from './domain/components.ts';
 import type { PalletFormat } from './domain/production.ts';
@@ -42,16 +43,30 @@ export class MessageFactory {
     return { ...this.#envelope(atMs), online };
   }
 
-  state(status: CellStatus, atMs: number): StateMessage {
+  /**
+   * Mensaje de estado. `alarmsOnly` indica que el mensaje solo actualiza las
+   * alarmas activas, sin una transición: su evento es `null` (ADR-0004).
+   */
+  state(
+    status: CellStatus,
+    alarms: readonly ActiveAlarm[],
+    atMs: number,
+    alarmsOnly = false,
+  ): StateMessage {
     return {
       ...this.#envelope(atMs),
       seq: this.#stateSeq++,
       state: status.state,
       previousState: status.previousState,
-      event: status.event,
+      event: alarmsOnly ? null : status.event,
       waitingReason: status.waitingReason,
       since: toIso(status.sinceMs),
-      activeAlarms: [],
+      activeAlarms: alarms.map((alarm) => ({
+        code: alarm.code,
+        severity: alarm.severity,
+        message: alarm.message,
+        raisedAt: toIso(alarm.raisedAtMs),
+      })),
     };
   }
 

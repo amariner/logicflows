@@ -1,6 +1,8 @@
 import { targetStates } from '@logicflows/contract';
 import type { CellEvent, CellState, WaitingReason } from '@logicflows/contract';
 
+import { isFaultAlarm } from './alarms.ts';
+import type { ActiveAlarm, AlarmDefinition, AlarmSource } from './alarms.ts';
 import { INITIAL_COUNTERS, placeBox } from './production.ts';
 import type { PalletFormat, ProductionCounters } from './production.ts';
 import { ThroughputMeter } from './throughput.ts';
@@ -35,6 +37,7 @@ export class PalletizingCell {
   #counters: ProductionCounters = INITIAL_COUNTERS;
   #lastBoxAtMs: number | null = null;
   #cycleTimeMs: number | null = null;
+  readonly #alarms = new Map<string, ActiveAlarm>();
 
   constructor(format: PalletFormat, startedAtMs: number) {
     this.#format = format;
@@ -90,6 +93,35 @@ export class PalletizingCell {
     this.#counters = placeBox(this.#counters, this.#format);
     this.#throughput.record(atMs);
     return this.production(atMs);
+  }
+
+  /** Alarmas activas, en el orden en que se activaron. */
+  get alarms(): readonly ActiveAlarm[] {
+    return [...this.#alarms.values()];
+  }
+
+  /** Activa una alarma. Si ya estaba activa, conserva el momento original. */
+  raiseAlarm(alarm: AlarmDefinition, atMs: number): void {
+    if (!this.#alarms.has(alarm.code)) {
+      this.#alarms.set(alarm.code, { ...alarm, raisedAtMs: atMs });
+    }
+  }
+
+  clearAlarm(code: string): void {
+    this.#alarms.delete(code);
+  }
+
+  clearAlarmsFrom(source: AlarmSource): void {
+    for (const alarm of this.#alarms.values()) {
+      if (alarm.source === source) {
+        this.#alarms.delete(alarm.code);
+      }
+    }
+  }
+
+  /** Indica si hay algún fallo de la propia célula activo. */
+  hasActiveFault(): boolean {
+    return this.alarms.some(isFaultAlarm);
   }
 
   production(atMs: number): CellProduction {
