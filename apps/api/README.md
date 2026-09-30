@@ -6,12 +6,15 @@ NestJS 12 sobre Node.js, con módulos ES y TypeScript estricto.
 
 ## Estado actual
 
-Esqueleto operativo (LF-23), ingesta de telemetría (LF-26), canal de tiempo real (LF-27) y persistencia en PostgreSQL (LF-32).
+Esqueleto operativo (LF-23), ingesta de telemetría (LF-26), canal de tiempo real (LF-27), persistencia en PostgreSQL (LF-32) y API REST (LF-33).
 
 | Ruta | Contenido |
 |---|---|
 | `GET /health/live` | Vivacidad: el proceso responde. Si falla, el orquestador reinicia la API. |
 | `GET /health/ready` | Disponibilidad: la API está conectada al broker MQTT y a PostgreSQL. Responde `503` si falta alguno. |
+| `GET /api/v1/cells` | Estado actual de todas las células. |
+| `GET /api/v1/sites/{siteId}/cells/{cellId}` | Estado actual de una célula. |
+| `GET /api/v1/sites/{siteId}/cells/{cellId}/production?from&to` | Cajas y pallets producidos en un periodo. |
 | `GET /docs` | Documentación OpenAPI interactiva. |
 | `GET /docs/openapi.json` | Documento OpenAPI. |
 | `WS /realtime` | Canal de tiempo real hacia el visor ([ADR-0006](../../docs/adr/0006-canal-de-tiempo-real.md)). |
@@ -25,6 +28,21 @@ Esqueleto operativo (LF-23), ingesta de telemetría (LF-26), canal de tiempo rea
 3. **Publicación** en `TelemetryStream`, un flujo interno (RxJS) del que leen el tiempo real y la persistencia sin depender de MQTT.
 
 La conexión no bloquea el arranque: si el broker no está disponible, la API arranca, `/health/ready` lo indica y se reconecta sola.
+
+## API REST
+
+Consultas bajo `/api/v1`: la versión mayor forma parte de la ruta.
+
+- **Estado actual:** la misma información que envía el canal de tiempo real (conexión, estado con alarmas y telemetría de cada célula).
+- **Producción:** cajas y pallets producidos en `[from, to)`, calculados por diferencias de contadores. `from` y `to` son fechas ISO 8601 con zona horaria; sin ellas, las últimas 24 horas. El rango máximo es de 31 días.
+- **Validación** con Zod: la planta y la célula siguen el formato del contrato y el rango se comprueba antes de consultar la base de datos.
+- **Errores** con el formato de RFC 9457 (*Problem Details*, `application/problem+json`) en toda la API: `type`, `title`, `status`, `detail`, `instance` y, en los errores de validación, `errors` con cada campo incorrecto. Los errores inesperados se registran y se responden sin detalles internos. Las comprobaciones de salud conservan el formato estándar de Terminus.
+- **OpenAPI:** los esquemas de respuesta se generan a partir del contrato, así que la documentación no puede divergir de los tipos.
+- **CORS:** solo los orígenes de `CORS_ORIGINS` pueden llamar a la API desde el navegador, y solo con `GET`.
+
+```sh
+curl 'http://localhost:3000/api/v1/sites/demo/cells/cell-01/production?from=2026-10-05T06:00:00Z&to=2026-10-05T14:00:00Z'
+```
 
 ## Persistencia
 
@@ -85,6 +103,7 @@ Se valida al arrancar; un valor no válido detiene la API indicando qué variabl
 | `MQTT_API_PASSWORD` | — | Contraseña del broker (obligatoria) |
 | `MQTT_CLIENT_ID` | `logicflows-api` | Identificador del cliente; el broker asocia a él la sesión persistente |
 | `DATABASE_URL` | — | Conexión con PostgreSQL (obligatoria) |
+| `CORS_ORIGINS` | `http://localhost:4200` | Orígenes autorizados desde el navegador, separados por comas |
 
 ## Registro
 
@@ -94,7 +113,10 @@ Los logs se emiten en JSON con pino (`nestjs-pino`): una línea por evento con e
 
 | Ruta | Responsabilidad |
 |---|---|
-| `src/main.ts` | Arranque: logger, cierre ordenado, OpenAPI y puerto |
+| `src/main.ts` | Arranque: logger, cierre ordenado y puerto |
+| `src/setup.ts` | Configuración común del arranque y de las pruebas: prefijo REST, CORS, errores, WebSocket y OpenAPI |
+| `src/cells/` | API REST de células: controladores, validación y esquemas OpenAPI |
+| `src/common/` | Formato de errores (RFC 9457) y validación con Zod |
 | `src/app.module.ts` | Módulo raíz: configuración, registro y módulos funcionales |
 | `src/config/` | Validación de la configuración con Zod |
 | `src/health/` | Comprobaciones de salud con `@nestjs/terminus` |
@@ -113,5 +135,5 @@ Los logs se emiten en JSON con pino (`nestjs-pino`): una línea por evento con e
 | `dev` | Compila y reinicia al cambiar (`nest start --watch`), con el `.env` de la raíz |
 | `build` · `start` | Compila a `dist` y ejecuta la versión compilada |
 | `test` | Pruebas unitarias con cobertura |
-| `test:integration` | Pruebas con Mosquitto y PostgreSQL reales (Testcontainers): salud, ingesta, descarte de mensajes, reconexión, tiempo real, persistencia, idempotencia, producción y recuperación tras reiniciar |
+| `test:integration` | Pruebas con Mosquitto y PostgreSQL reales (Testcontainers): salud, ingesta, descarte de mensajes, reconexión, tiempo real, persistencia, idempotencia, producción, recuperación tras reiniciar y API REST |
 | `db:generate` | Genera una migración a partir de los cambios del esquema |
