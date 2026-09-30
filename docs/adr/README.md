@@ -9,6 +9,7 @@ Un ADR aceptado no se reescribe. Si la decisión cambia, se crea un ADR nuevo qu
 | ADR | Decisión | Estado |
 |---|---|---|
 | [0001](0001-gestor-de-paquetes-y-orquestacion.md) | Gestor de paquetes y orquestación del monorepo | Aceptado |
+| [0002](0002-visor-multiplataforma.md) | Visor multiplataforma con Ionic, Angular y Capacitor | Aceptado |
 
 ## Estados
 
