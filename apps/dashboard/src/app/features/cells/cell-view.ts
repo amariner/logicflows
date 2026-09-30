@@ -16,6 +16,8 @@ export const WAITING_REASON_LABELS: Readonly<Record<WaitingReason, string>> = {
   BLOCKED: 'salida ocupada',
 };
 
+const numberFormat = new Intl.NumberFormat('es-ES');
+
 /** Datos de una célula preparados para la interfaz. */
 export interface CellView {
   readonly id: string;
@@ -26,17 +28,28 @@ export interface CellView {
   readonly state: CellState | null;
   readonly stateLabel: string;
   readonly boxesTotal: number | null;
+  readonly boxesLabel: string;
   readonly palletsTotal: number | null;
+  readonly palletLabel: string;
 }
 
 export function toCellView(snapshot: CellSnapshot): CellView {
   const { siteId, cellId, status, state, telemetry } = snapshot;
+
   let stateLabel = 'Sin datos';
   if (state !== null) {
     const reason =
       state.waitingReason === null ? '' : ` · ${WAITING_REASON_LABELS[state.waitingReason]}`;
     stateLabel = `${STATE_LABELS[state.state]}${reason}`;
   }
+
+  let palletLabel = 'Sin datos de producción';
+  if (telemetry !== null) {
+    const { currentLayer, layersPerPallet } = telemetry.pallet;
+    const pallets = `${numberFormat.format(telemetry.palletsTotal)} ${telemetry.palletsTotal === 1 ? 'pallet' : 'pallets'}`;
+    palletLabel = `${pallets} · capa ${String(currentLayer)} de ${String(layersPerPallet)}`;
+  }
+
   return {
     id: `${siteId}/${cellId}`,
     siteId,
@@ -45,6 +58,8 @@ export function toCellView(snapshot: CellSnapshot): CellView {
     state: state?.state ?? null,
     stateLabel,
     boxesTotal: telemetry?.boxesTotal ?? null,
+    boxesLabel: telemetry === null ? '—' : numberFormat.format(telemetry.boxesTotal),
     palletsTotal: telemetry?.palletsTotal ?? null,
+    palletLabel,
   };
 }

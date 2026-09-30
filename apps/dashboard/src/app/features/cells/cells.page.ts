@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import {
   IonButtons,
   IonContent,
@@ -8,16 +8,19 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 
-import type { CellView } from './cell-view';
+import { ConnectionStatusComponent } from '../../core/connection-status/connection-status.component';
+import { RealtimeService } from '../../core/realtime/realtime.service';
 import { CellListComponent } from './cell-list/cell-list.component';
+import { toCellView } from './cell-view';
 
-/** Página de las células. Los datos en tiempo real llegan con LF-28. */
+/** Página de las células con su producción en tiempo real. */
 @Component({
   selector: 'app-cells',
   templateUrl: './cells.page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CellListComponent,
+    ConnectionStatusComponent,
     IonButtons,
     IonContent,
     IonHeader,
@@ -27,5 +30,7 @@ import { CellListComponent } from './cell-list/cell-list.component';
   ],
 })
 export class CellsPage {
-  protected readonly cells = signal<readonly CellView[]>([]);
+  readonly #realtime = inject(RealtimeService);
+  protected readonly connection = this.#realtime.connection;
+  protected readonly cells = computed(() => this.#realtime.cells().map(toCellView));
 }

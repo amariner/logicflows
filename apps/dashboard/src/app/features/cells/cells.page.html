@@ -4,6 +4,9 @@
       <ion-menu-button />
     </ion-buttons>
     <ion-title>Células</ion-title>
+    <ion-buttons slot="end">
+      <app-connection-status [state]="connection()" />
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 

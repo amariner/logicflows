@@ -1,4 +1,9 @@
 import type { CellSnapshot } from '@logicflows/contract';
+import {
+  buildStateMessage,
+  buildStatusMessage,
+  buildTelemetryMessage,
+} from '@logicflows/contract/testing';
 import { describe, expect, it } from 'vitest';
 
 import { STATE_LABELS, toCellView } from './cell-view';
@@ -21,7 +26,9 @@ describe('vista de una célula', () => {
       state: null,
       stateLabel: 'Sin datos',
       boxesTotal: null,
+      boxesLabel: '—',
       palletsTotal: null,
+      palletLabel: 'Sin datos de producción',
     });
   });
 
@@ -31,19 +38,22 @@ describe('vista de una célula', () => {
   });
 
   it('añade la causa de la espera', () => {
-    const view = toCellView({
-      ...empty,
-      state: { state: 'WAITING', waitingReason: 'STARVED' } as CellSnapshot['state'],
-    });
-    expect(view.stateLabel).toBe('En espera · sin cajas');
+    const state = buildStateMessage({ state: 'WAITING', waitingReason: 'STARVED' });
+    expect(toCellView({ ...empty, state }).stateLabel).toBe('En espera · sin cajas');
   });
 
-  it('toma la conexión y los contadores de los últimos mensajes', () => {
-    const view = toCellView({
-      ...empty,
-      status: { online: false } as CellSnapshot['status'],
-      telemetry: { boxesTotal: 120, palletsTotal: 3 } as CellSnapshot['telemetry'],
+  it('muestra la producción con separador de miles y el pallet en curso', () => {
+    const telemetry = buildTelemetryMessage({
+      boxesTotal: 15234,
+      palletsTotal: 1,
+      pallet: { currentLayer: 3, layersPerPallet: 5, boxesInLayer: 2, boxesPerLayer: 8 },
     });
-    expect(view).toMatchObject({ online: false, boxesTotal: 120, palletsTotal: 3 });
+    const view = toCellView({ ...empty, telemetry, status: buildStatusMessage({ online: false }) });
+    expect(view).toMatchObject({
+      online: false,
+      boxesTotal: 15234,
+      boxesLabel: '15.234',
+      palletLabel: '1 pallet · capa 3 de 5',
+    });
   });
 });
