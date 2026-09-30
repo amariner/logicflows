@@ -13,7 +13,9 @@ const cell: CellView = {
   state: 'RUNNING',
   stateLabel: 'Produciendo',
   boxesTotal: 42,
+  boxesLabel: '42',
   palletsTotal: 1,
+  palletLabel: '1 pallet · capa 2 de 5',
 };
 
 const render = async (cells: readonly CellView[]) => {
@@ -26,14 +28,19 @@ const render = async (cells: readonly CellView[]) => {
 
 describe('lista de células', () => {
   it('indica que todavía no hay datos', async () => {
-    const page = await render([]);
-    expect(page.textContent).toContain('Todavía no hay datos de ninguna célula.');
+    const list = await render([]);
+    expect(list.textContent).toContain('Todavía no hay datos de ninguna célula.');
   });
 
-  it('muestra el estado y las cajas de cada célula', async () => {
-    const page = await render([cell]);
-    expect(page.textContent).toContain('cell-01');
-    expect(page.textContent).toContain('Produciendo');
-    expect(page.textContent).toContain('42 cajas');
+  it('destaca el contador de cajas de cada célula', async () => {
+    const list = await render([cell]);
+    expect(list.querySelector('[data-testid="boxes"]')?.textContent).toBe('42');
+    expect(list.textContent).toContain('Produciendo');
+    expect(list.textContent).toContain('1 pallet · capa 2 de 5');
+  });
+
+  it('avisa de que una célula desconectada muestra su último dato', async () => {
+    const list = await render([{ ...cell, online: false }]);
+    expect(list.textContent).toContain('Célula desconectada');
   });
 });

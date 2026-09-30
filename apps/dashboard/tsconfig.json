@@ -14,7 +14,8 @@
     // El empaquetador de Angular no admite condiciones de exportación propias:
     // el visor lee el código fuente del contrato mediante paths (ADR-0005).
     "paths": {
-      "@logicflows/contract": ["../../packages/contract/src/index.ts"]
+      "@logicflows/contract": ["../../packages/contract/src/index.ts"],
+      "@logicflows/contract/testing": ["../../packages/contract/src/testing/index.ts"]
     },
     // El contrato importa sus módulos con la extensión .ts.
     "rewriteRelativeImportExtensions": true

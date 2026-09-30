@@ -4,11 +4,19 @@ Muestra el estado, las alarmas y los indicadores de las células en tiempo real.
 
 ## Estado actual
 
-Esqueleto (LF-24): estructura con menú lateral fijo en escritorio y desplegable en móvil (`ion-split-pane`), modo visual `md` en todas las plataformas, página de células y configuración en tiempo de ejecución. Los datos en tiempo real llegan con LF-28.
+Esqueleto (LF-24) y producción en tiempo real (LF-28): estructura con menú lateral fijo en escritorio y desplegable en móvil (`ion-split-pane`), modo visual `md` en todas las plataformas y página de células con el contador de cajas de cada célula, que se actualiza en cuanto la API recibe una caja.
+
+## Tiempo real
+
+`RealtimeService` abre al arrancar el WebSocket de la API ([ADR-0006](../../docs/adr/0006-canal-de-tiempo-real.md)) y expone como *signals* el estado de la conexión y las células. Aplica la instantánea inicial y cada cambio, y si la conexión se pierde reconecta con espera exponencial (de 1 a 30 segundos) y una variación aleatoria que evita que todos los visores reconecten a la vez. Al reconectar recibe una instantánea nueva, así que no pierde información.
+
+El indicador de la barra superior combina icono, texto y color (**En directo**, **Conectando…**, **Sin conexión**) y anuncia los cambios a los lectores de pantalla. Si una célula se desconecta, su tarjeta lo indica y muestra el último dato conocido.
+
+Latencia medida en local desde que el simulador publica una caja hasta que cambia el número en pantalla: menos de 10 ms.
 
 ## Uso
 
-Con la API en marcha (`pnpm api`):
+Con el entorno local, la API y el simulador en marcha (`pnpm infra:up`, `pnpm api` y `pnpm simulator`):
 
 ```sh
 pnpm dashboard
@@ -32,8 +40,9 @@ Organizada por funcionalidades:
 
 | Ruta | Contenido |
 |---|---|
-| `src/app/core/` | Servicios transversales: configuración de ejecución |
-| `src/app/features/cells/` | Funcionalidad de células: página, lista y modelo de vista |
+| `src/app/core/` | Servicios transversales: configuración de ejecución, canal de tiempo real e indicador de conexión |
+| `src/app/features/cells/` | Funcionalidad de células: página, tarjetas y modelo de vista |
+| `src/testing/` | Ayudantes de pruebas: WebSocket falso y proveedores comunes |
 | `src/app/app.component.*` | Estructura de la aplicación y menú |
 | `src/app/app.routes.ts` | Rutas, con carga diferida de cada página |
 

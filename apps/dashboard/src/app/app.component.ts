@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import {
   IonApp,
@@ -16,6 +16,8 @@ import {
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { gridSharp } from 'ionicons/icons';
+
+import { RealtimeService } from './core/realtime/realtime.service';
 
 interface MenuEntry {
   readonly title: string;
@@ -56,5 +58,7 @@ export class AppComponent {
 
   constructor() {
     addIcons({ gridSharp });
+    // El canal de tiempo real se abre al arrancar, una vez cargada la configuración.
+    inject(RealtimeService).start();
   }
 }
