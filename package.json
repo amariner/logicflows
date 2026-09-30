@@ -1,0 +1,25 @@
+{
+  "name": "logicflows",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Plataforma IIoT para monitorizar en tiempo real células robotizadas de paletizado.",
+  "packageManager": "pnpm@11.10.0",
+  "engines": {
+    "node": ">=24.15.0 <25"
+  },
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": "24.21.0",
+      "onFail": "download"
+    }
+  },
+  "scripts": {
+    "typecheck": "pnpm -r --if-present run typecheck",
+    "lint": "pnpm -r --if-present run lint",
+    "test": "pnpm -r --if-present run test",
+    "build": "pnpm -r --if-present run build",
+    "check": "pnpm typecheck && pnpm lint && pnpm test && pnpm build"
+  },
+  "devDependencies": {}
+}
