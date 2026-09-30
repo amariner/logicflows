@@ -1,0 +1,52 @@
+# Infraestructura local de LogicFlows: broker MQTT y base de datos.
+# Uso: pnpm infra:up · pnpm infra:down · pnpm infra:reset
+name: logicflows
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.1.2-alpine
+    command: ['/bin/sh', '/mosquitto/init/init.sh']
+    environment:
+      MQTT_API_PASSWORD: ${MQTT_API_PASSWORD:?Define MQTT_API_PASSWORD en .env}
+      MQTT_SIMULATOR_PASSWORD: ${MQTT_SIMULATOR_PASSWORD:?Define MQTT_SIMULATOR_PASSWORD en .env}
+    ports:
+      # Solo accesible desde el propio equipo.
+      - '127.0.0.1:${MQTT_PORT:-1883}:1883'
+    volumes:
+      - ./infra/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./infra/mosquitto/acl:/mosquitto/config/acl:ro
+      - ./infra/mosquitto/init.sh:/mosquitto/init/init.sh:ro
+      - mosquitto-data:/mosquitto/data
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'mosquitto_sub -h localhost -u api -P "$$MQTT_API_PASSWORD" -t ''$$SYS/broker/uptime'' -C 1 -W 3',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:18.6
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Define POSTGRES_USER en .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env}
+      POSTGRES_DB: ${POSTGRES_DB:?Define POSTGRES_DB en .env}
+    ports:
+      - '127.0.0.1:${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  mosquitto-data:
+  postgres-data:

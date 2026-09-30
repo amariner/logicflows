@@ -1,0 +1,11 @@
+# Permisos por usuario sobre los topics de LogicFlows (ADR-0004).
+
+# API: lee la telemetría de todas las células y las estadísticas del broker,
+# que también usa la comprobación de salud del contenedor.
+user api
+topic read logicflows/v1/#
+topic read $SYS/#
+
+# Simulador: publica la telemetría de las células simuladas.
+user simulator
+topic write logicflows/v1/#

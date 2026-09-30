@@ -22,7 +22,11 @@
     "format:check": "prettier --check .",
     "test": "pnpm -r --if-present run test",
     "build": "pnpm -r --if-present run build",
-    "check": "pnpm format:check && pnpm typecheck && pnpm lint && pnpm test && pnpm build"
+    "check": "pnpm format:check && pnpm typecheck && pnpm lint && pnpm test && pnpm build",
+    "infra:up": "docker compose up -d --wait",
+    "infra:down": "docker compose down",
+    "infra:reset": "docker compose down --volumes",
+    "infra:logs": "docker compose logs -f"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
