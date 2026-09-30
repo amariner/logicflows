@@ -1,0 +1,25 @@
+# Dependencias
+node_modules/
+
+# Resultados de compilación y cobertura
+dist/
+build/
+coverage/
+.angular/
+www/
+
+# Registros
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Variables de entorno y secretos locales
+.env
+.env.*
+!.env.example
+
+# Editores y sistema operativo
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
