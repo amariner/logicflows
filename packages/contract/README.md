@@ -41,9 +41,10 @@ El JSON Schema de cada mensaje está en [`schemas/v1`](schemas/v1) para consumid
      ```ts
      ssr: { resolve: { conditions: ['@logicflows/source', 'module', 'node', 'development|production'] } }
      ```
-3. En ejecución se usa la versión compilada de `dist`. `pnpm build` compila el contrato antes que sus consumidores. En desarrollo, Node.js también puede ejecutar el código fuente directamente con `node --conditions=@logicflows/source`.
+3. El visor (Angular) no puede usar condiciones de exportación propias: lee el código fuente mediante `paths` en su `tsconfig.json`.
+4. En ejecución se usa la versión compilada de `dist`. `pnpm build` compila el contrato antes que sus consumidores. En desarrollo, Node.js también puede ejecutar el código fuente directamente con `node --conditions=@logicflows/source`.
 
-El código del contrato no depende de Node.js para poder usarse también en el navegador. Las importaciones relativas usan la extensión `.ts` y solo sintaxis que Node.js puede ejecutar sin compilar (`erasableSyntaxOnly`); `tsc` las reescribe a `.js` al compilar.
+El código del contrato no depende de Node.js para poder usarse también en el navegador, y se declara sin efectos secundarios (`sideEffects: false`) para que los empaquetadores eliminen lo que no se usa: el visor no incluye Zod si solo importa tipos y constantes. Las importaciones relativas usan la extensión `.ts` y solo sintaxis que Node.js puede ejecutar sin compilar (`erasableSyntaxOnly`); `tsc` las reescribe a `.js` al compilar.
 
 ## Cambios en el contrato
 
