@@ -7,3 +7,7 @@ Plataforma IIoT para monitorizar en tiempo real células robotizadas de paletiza
 ## Arquitectura
 
 Un simulador de paletizadora publica telemetría por MQTT. Una API en NestJS la valida, la persiste en PostgreSQL y la expone por REST y WebSocket a un visor multiplataforma construido con Ionic y Angular.
+
+## Documentación
+
+- [Decisiones de arquitectura (ADR)](docs/adr/README.md)
