@@ -13,6 +13,7 @@ Un ADR aceptado no se reescribe. Si la decisión cambia, se crea un ADR nuevo qu
 | [0003](0003-estados-de-la-paletizadora.md) | Estados y transiciones de la paletizadora | Aceptado |
 | [0004](0004-mensajes-de-telemetria-y-topics-mqtt.md) | Mensajes de telemetría, topics MQTT y broker | Aceptado |
 | [0005](0005-paquete-del-contrato.md) | Paquete compartido del contrato de telemetría | Aceptado |
+| [0006](0006-canal-de-tiempo-real.md) | Canal de tiempo real entre la API y el visor | Aceptado |
 
 ## Estados
 
