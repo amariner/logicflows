@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildTopic, parseTopic, subscriptionFilter } from './topics.js';
+import { buildTopic, parseTopic, subscriptionFilter } from './topics.ts';
 
 describe('topics', () => {
   it('construye el topic de un mensaje', () => {

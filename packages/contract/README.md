@@ -36,9 +36,9 @@ El JSON Schema de cada mensaje está en [`schemas/v1`](schemas/v1) para consumid
 2. Para que TypeScript y Vitest lean el código fuente sin compilar el contrato, añadir la condición de exportación `@logicflows/source`:
    - `tsconfig.json`: `"customConditions": ["@logicflows/source"]`.
    - Configuración de Vitest: añadir `@logicflows/source` a `resolve.conditions`.
-3. En ejecución (Node.js o el bundle del visor) se usa la versión compilada de `dist`. `pnpm build` compila el contrato antes que sus consumidores.
+3. En ejecución se usa la versión compilada de `dist`. `pnpm build` compila el contrato antes que sus consumidores. En desarrollo, Node.js también puede ejecutar el código fuente directamente con `node --conditions=@logicflows/source`.
 
-El código del contrato no depende de Node.js para poder usarse también en el navegador.
+El código del contrato no depende de Node.js para poder usarse también en el navegador. Las importaciones relativas usan la extensión `.ts` y solo sintaxis que Node.js puede ejecutar sin compilar (`erasableSyntaxOnly`); `tsc` las reescribe a `.js` al compilar.
 
 ## Cambios en el contrato
 
