@@ -18,12 +18,14 @@ logicflows/
 │   ├── simulator/   # Simulador de la célula de paletizado
 │   ├── api/         # API NestJS: ingesta MQTT, persistencia, REST y WebSocket
 │   └── dashboard/   # Visor con Ionic, Angular y Capacitor
+├── infra/           # Configuración de la infraestructura local
 └── docs/
     └── adr/         # Decisiones de arquitectura
 ```
 
 ## Requisitos
 
+- **Docker** con Docker Compose, para la infraestructura local.
 - **pnpm 11.** La versión exacta está fijada en el campo `packageManager` de `package.json`. Con Corepack, incluido en Node.js, basta con ejecutar `corepack enable`.
 - **Node.js.** No hace falta instalar una versión concreta: pnpm descarga y usa la fijada en `devEngines.runtime` (24.21.0). El fichero `.nvmrc` la declara también para editores y gestores de versiones.
 
@@ -42,9 +44,38 @@ Cada paquete expone los mismos scripts (`typecheck`, `lint`, `test` y `build`) a
 
 Las dependencias con scripts de instalación (`postinstall`) no los ejecutan salvo que se autoricen en `allowBuilds` de `pnpm-workspace.yaml`. Cada autorización se decide al revisar la pull request que añade la dependencia.
 
+## Entorno local
+
+Docker Compose levanta la infraestructura que necesitan las aplicaciones: el broker MQTT (Eclipse Mosquitto) y PostgreSQL, ambos accesibles solo desde el propio equipo.
+
+```sh
+cp .env.example .env   # una sola vez; ajustar si hace falta
+pnpm infra:up          # arranca y espera a que ambos servicios estén sanos
+```
+
+| Comando | Qué hace |
+|---|---|
+| `pnpm infra:up` | Arranca el broker y la base de datos y espera a que superen sus comprobaciones de salud |
+| `pnpm infra:down` | Detiene los servicios conservando los datos |
+| `pnpm infra:reset` | Detiene los servicios y **elimina los datos**: mensajes retenidos, sesiones y base de datos |
+| `pnpm infra:logs` | Muestra los registros en tiempo real |
+
+| Servicio | Dirección | Credenciales |
+|---|---|---|
+| Mosquitto (MQTT 5) | `mqtt://127.0.0.1:1883` | Usuarios `api` (lectura) y `simulator` (escritura); contraseñas en `.env` |
+| PostgreSQL 18 | `postgres://127.0.0.1:5432` | Usuario, contraseña y base de datos en `.env` |
+
+La configuración del broker está en [`infra/mosquitto`](infra/mosquitto): no admite clientes anónimos y una lista de control de acceso limita lo que puede hacer cada usuario ([ADR-0004](docs/adr/0004-mensajes-de-telemetria-y-topics-mqtt.md)). Los datos se conservan en volúmenes de Docker entre reinicios.
+
+Para inspeccionar los mensajes publicados:
+
+```sh
+docker compose exec mosquitto mosquitto_sub -u api -P api-local -t 'logicflows/v1/#' -v
+```
+
 ## Integración continua
 
-Cada pull request contra `main` y cada cambio en `main` ejecutan el workflow [CI](.github/workflows/ci.yml) en GitHub Actions: instalación con `--frozen-lockfile`, formato, tipos, lint, pruebas y build. Cada comprobación es un paso independiente para identificar de un vistazo qué ha fallado. El trabajo tiene un límite de 10 minutos y una nueva ejecución en la misma rama cancela la anterior.
+Cada pull request contra `main` y cada cambio en `main` ejecutan el workflow [CI](.github/workflows/ci.yml) en GitHub Actions: instalación con `--frozen-lockfile`, formato, tipos, lint, pruebas y build, y en paralelo el arranque del entorno local con Docker Compose. Cada comprobación es un paso independiente para identificar de un vistazo qué ha fallado. El trabajo tiene un límite de 10 minutos y una nueva ejecución en la misma rama cancela la anterior.
 
 ## Calidad del código
 

@@ -48,3 +48,29 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  infra:
+    name: Entorno local
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      # Comprueba que la infraestructura local arranca y supera sus
+      # comprobaciones de salud con la configuración de ejemplo.
+      - name: Levantar broker y base de datos
+        run: |
+          cp .env.example .env
+          docker compose up -d --wait
+
+      - name: Estado de los servicios
+        if: always()
+        run: docker compose ps
+
+      - name: Registros si falla
+        if: failure()
+        run: docker compose logs
+
+      - name: Detener y eliminar los datos
+        if: always()
+        run: docker compose down --volumes
