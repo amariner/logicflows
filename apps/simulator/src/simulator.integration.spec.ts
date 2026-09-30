@@ -144,6 +144,15 @@ describe('simulador con un broker real', () => {
     await waitFor(() => (received.telemetry.at(-1)?.boxesTotal ?? 0) > boxesBeforeRestart + 3);
     expect(received.status.at(-1)).toMatchObject({ online: true });
 
+    // Corte abrupto de la red: el broker publica el Last Will y la célula
+    // vuelve a anunciarse al reconectar.
+    const statusBeforeCut = received.status.length;
+    connection.interrupt(500);
+    await waitFor(() => received.status.length > statusBeforeCut);
+    expect(received.status.at(-1)).toMatchObject({ online: false });
+    await waitFor(() => received.status.at(-1)?.online === true);
+    expect(received.status.at(-1)?.sessionId).toBe(received.status[0]?.sessionId);
+
     await simulator.stop();
     await waitFor(() => received.status.at(-1)?.online === false);
     await consumer.endAsync();

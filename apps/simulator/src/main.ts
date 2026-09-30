@@ -3,8 +3,11 @@ import { v7 as uuidv7 } from 'uuid';
 
 import { loadConfig } from './config.ts';
 import { createRandom } from './domain/random.ts';
+import { IncidentGenerator } from './incident-generator.ts';
 import { MessageFactory } from './messages.ts';
+import { withNetworkChaos } from './mqtt/chaos-connection.ts';
 import { connectToBroker } from './mqtt/connection.ts';
+import { SCENARIOS } from './scenarios.ts';
 import { Simulator } from './simulator.ts';
 
 const HEARTBEAT_MS = 10_000;
@@ -23,7 +26,10 @@ const messages = new MessageFactory({
   newId: uuidv7,
 });
 
-const connection = connectToBroker({
+const random = createRandom(config.seed);
+const scenario = SCENARIOS[config.scenario];
+
+const brokerConnection = connectToBroker({
   ...config.mqtt,
   clientId: `simulator-${config.siteId}-${config.cellId}`,
   will: {
@@ -32,6 +38,10 @@ const connection = connectToBroker({
   },
   logger,
 });
+const connection =
+  scenario.network === null
+    ? brokerConnection
+    : withNetworkChaos(brokerConnection, scenario.network, random, logger);
 
 const simulator = new Simulator(
   {
@@ -45,14 +55,27 @@ const simulator = new Simulator(
     restartDelayMs: config.restartDelayMs,
     heartbeatMs: HEARTBEAT_MS,
   },
-  { connection, messages, logger, random: createRandom(config.seed) },
+  { connection, messages, logger, random },
 );
 
-logger.info({ sessionId, broker: config.mqtt.url, seed: config.seed }, 'Simulador iniciado');
+const incidents = new IncidentGenerator({
+  target: simulator,
+  rates: scenario.incidents,
+  network: scenario.network === null ? null : { ...scenario.network, connection },
+  random,
+  logger,
+});
+
+logger.info(
+  { sessionId, broker: config.mqtt.url, scenario: config.scenario, seed: config.seed },
+  'Simulador iniciado',
+);
 simulator.start();
+incidents.start();
 
 const shutdown = (signal: string) => {
   logger.info({ signal }, 'Deteniendo el simulador');
+  incidents.stop();
   simulator.stop().then(
     () => process.exit(0),
     (error: unknown) => {

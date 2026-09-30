@@ -34,7 +34,33 @@ Reglas de ADR-0003 que se cumplen:
 - Una incidencia no prevista en el estado actual se rechaza (por ejemplo, pausar durante el arranque).
 - En `FAULT`, solo se marca como averiado el componente afectado (robot o cinta).
 
-Los mensajes `state` incluyen las alarmas activas y se publican también cuando solo cambian las alarmas (con `event: null`). La activación de las incidencias durante la simulación se configura con los escenarios de LF-31.
+Los mensajes `state` incluyen las alarmas activas y se publican también cuando solo cambian las alarmas (con `event: null`). La activación de las incidencias durante la simulación se configura con los escenarios.
+
+## Escenarios
+
+`SIMULATOR_SCENARIO` elige qué incidencias y problemas de red se producen durante la simulación. Cada segundo, cada incidencia ocurre con una probabilidad que corresponde a su frecuencia por hora; con `SIMULATOR_SEED` la secuencia se repite exactamente.
+
+| Escenario | Para qué sirve | Incidencias por hora | Red |
+|---|---|---|---|
+| `normal` (por defecto) | Desarrollo y pruebas del flujo básico | Ninguna | Sin problemas |
+| `turno` | Ver cómo se comporta el sistema en un turno realista | 4 sin cajas y 2 salida ocupada (30 s – 3 min), 1 pausa, 1 fallo y una parada de emergencia cada 5 horas | Sin problemas |
+| `averias` | Probar la monitorización de una célula problemática | 12 fallos, 3 paradas de emergencia, 6 sin cajas y 6 salida ocupada, 1 pausa | Sin problemas |
+| `red-inestable` | Comprobar que la API aplica las reglas de ADR-0004 | Ninguna | 6 cortes por hora (5-30 s), 10 % de mensajes duplicados y 5 % retrasados para que lleguen desordenados |
+| `demo` | Enseñar todos los estados en pocos minutos | 30 fallos, 10 paradas de emergencia, 30 sin cajas y 20 salida ocupada (10-30 s), 10 pausas | 4 cortes por hora (5-15 s), 5 % duplicados y 2 % desordenados |
+
+La velocidad se ajusta con `SIMULATOR_BOX_INTERVAL_MS` y los tiempos de recuperación con sus variables. Para una demostración ágil:
+
+```sh
+SIMULATOR_SCENARIO=demo SIMULATOR_BOX_INTERVAL_MS=1000 SIMULATOR_FAULT_RECOVERY_MS=5000 SIMULATOR_EMERGENCY_STOP_RECOVERY_MS=8000 pnpm simulator
+```
+
+**Problemas de red simulados:**
+
+- **Cortes:** la conexión se cierra de forma abrupta, sin desconexión limpia, así que el broker publica el *Last Will* (`online: false`). Al reconectar, la célula vuelve a publicar su conexión, su estado y su telemetría.
+- **Duplicados:** un mensaje se envía dos veces, como ocurre con los reintentos de QoS 1. La API los descarta sin aviso.
+- **Desorden:** un mensaje se retrasa unos segundos y llega después de otros más recientes. La API lo descarta, avisa y registra la pérdida aparente de los mensajes intermedios.
+
+Con `red-inestable` o `demo`, los descartes aparecen en el log de la API con los motivos `DUPLICATE` y `OUT_OF_ORDER`.
 
 ## Uso
 
@@ -62,6 +88,7 @@ docker compose exec mosquitto mosquitto_sub -u api -P api-local -t 'logicflows/v
 | `SIMULATOR_BOX_INTERVAL_MS` | `4000` | Tiempo nominal entre cajas mientras produce |
 | `SIMULATOR_CYCLE_VARIATION` | `0.1` | Variación aleatoria del ciclo, de 0 a 0,5 (0,1 = ±10 %) |
 | `SIMULATOR_PALLET_CHANGE_MS` | `8000` | Tiempo de cambio de pallet |
+| `SIMULATOR_SCENARIO` | `normal` | Escenario de incidencias y red: `normal`, `turno`, `averias`, `red-inestable` o `demo` |
 | `SIMULATOR_SEED` | — | Semilla para repetir exactamente una simulación |
 | `SIMULATOR_FAULT_RECOVERY_MS` | `20000` | Tiempo hasta resolver un fallo y rearmar |
 | `SIMULATOR_EMERGENCY_STOP_RECOVERY_MS` | `30000` | Tiempo hasta liberar y rearmar una parada de emergencia |
@@ -81,7 +108,10 @@ La configuración se valida al arrancar: un valor no válido detiene el simulado
 | `src/messages.ts` | Construcción de los mensajes del contrato con su sesión y sus secuencias. |
 | `src/simulator.ts` | Temporizadores, incidencias con su recuperación, transiciones y publicación. |
 | `src/testing/` | Simulador con conexión falsa que valida cada mensaje con el contrato. |
-| `src/mqtt/connection.ts` | Conexión MQTT 5 con reconexión automática. |
+| `src/scenarios.ts` | Definición de los escenarios. |
+| `src/incident-generator.ts` | Generador de incidencias y cortes de red según el escenario. |
+| `src/mqtt/connection.ts` | Conexión MQTT 5 con reconexión automática y cortes abruptos simulados. |
+| `src/mqtt/chaos-connection.ts` | Red poco fiable: mensajes duplicados y retrasados. |
 | `src/main.ts` | Configuración, registro y arranque. |
 
 ## Scripts
@@ -91,4 +121,4 @@ La configuración se valida al arrancar: un valor no válido detiene el simulado
 | `dev` | Ejecuta el código fuente con Node.js y lo reinicia al cambiar, sin compilar |
 | `build` · `start` | Compila a `dist` y ejecuta la versión compilada |
 | `test` | Pruebas unitarias con cobertura |
-| `test:integration` | Prueba con un broker real que se reinicia a mitad de la prueba (necesita Docker) |
+| `test:integration` | Prueba con un broker real que se reinicia a mitad de la prueba y un corte abrupto de red que dispara el *Last Will* (necesita Docker) |
