@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 
+import { AuthModule } from './auth/auth.module.ts';
 import { CellsModule } from './cells/cells.module.ts';
 import { validateConfig } from './config/config.ts';
 import { DatabaseModule } from './database/database.module.ts';
@@ -26,6 +27,7 @@ import { RealtimeModule } from './realtime/realtime.module.ts';
         },
       }),
     }),
+    AuthModule,
     CellsModule,
     DatabaseModule,
     HealthModule,

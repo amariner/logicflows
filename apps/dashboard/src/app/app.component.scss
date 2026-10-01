@@ -6,3 +6,13 @@ ion-list-header {
 ion-item.selected {
   --color: var(--ion-color-primary);
 }
+
+.session {
+  padding: 0.5rem;
+
+  ion-note {
+    display: block;
+    padding: 0 0.5rem 0.25rem;
+    color: var(--lf-tone-neutral);
+  }
+}

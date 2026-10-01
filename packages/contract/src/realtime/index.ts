@@ -7,6 +7,16 @@ import type { StateMessage, StatusMessage, TelemetryMessage } from '../v1/messag
 /** Ruta del WebSocket de la API. */
 export const REALTIME_PATH = '/realtime';
 
+/** Ruta REST, bajo `/api/v1`, que entrega los tiques para conectar (ADR-0009). */
+export const REALTIME_TICKETS_PATH = '/realtime/tickets';
+
+/**
+ * Código de cierre cuando la conexión no está autorizada: falta el tique, no
+ * es válido o ha caducado el token con el que se obtuvo. El visor pide un
+ * tique nuevo y vuelve a conectar (ADR-0009).
+ */
+export const REALTIME_UNAUTHORIZED_CLOSE_CODE = 4401;
+
 /** Última información conocida de una célula. `null` si aún no se ha recibido. */
 export interface CellSnapshot {
   readonly siteId: string;

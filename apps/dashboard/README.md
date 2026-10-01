@@ -39,7 +39,17 @@ Con el entorno local, la API y el simulador en marcha (`pnpm infra:up`, `pnpm ap
 pnpm dashboard
 ```
 
-El visor se sirve en `http://localhost:4200`.
+El visor se sirve en `http://localhost:4200` y pide iniciar sesión en Keycloak con un usuario de pruebas de [`infra/keycloak`](../../infra/keycloak), por ejemplo `operario` / `operario-local`.
+
+## Inicio de sesión
+
+Con `auth` en `config.json`, el visor usa OpenID Connect con Authorization Code y PKCE ([ADR-0009](../../docs/adr/0009-autenticacion-y-autorizacion.md)), con la librería certificada `angular-auth-oidc-client`:
+
+- **Sesión.** Una guarda comprueba la sesión antes de mostrar las vistas. Sin sesión, lleva al inicio de sesión del proveedor, que devuelve al usuario a `/cells`.
+- **Renovación.** El token de acceso dura 5 minutos y se renueva 30 segundos antes de caducar con el token de refresco.
+- **Token solo hacia la API.** Se añade a las peticiones a `apiUrl` y a ninguna otra.
+- **Tiempo real.** Cada conexión pide antes un tique a la API. Si la API la cierra con el código `4401`, el visor pide otro tique y reconecta.
+- **Menú.** Muestra el nombre del usuario y el botón **Cerrar sesión**, que también cierra la sesión en el proveedor.
 
 ## Configuración
 
@@ -48,6 +58,12 @@ La configuración que depende del entorno se lee **al arrancar** desde `config.j
 | Campo | Ejemplo | Descripción |
 |---|---|---|
 | `apiUrl` | `http://localhost:3000` | URL base de la API. El canal de tiempo real se deriva de ella (`ws://…/realtime`, o `wss://` con `https`). |
+| `auth.issuer` | `http://localhost:8180/realms/logicflows` | Emisor OpenID Connect ([ADR-0009](../../docs/adr/0009-autenticacion-y-autorizacion.md)). |
+| `auth.clientId` | `logicflows-visor` | Cliente público del visor en el proveedor. |
+
+Sin `auth`, el visor no pide sesión. Solo tiene sentido con una API simulada, como en las pruebas de accesibilidad: la API real rechaza las peticiones sin token.
+
+En la imagen Docker, `config.json` se genera al arrancar a partir de `API_URL`, `AUTH_ISSUER` y `AUTH_CLIENT_ID`.
 
 El fichero de desarrollo está en `public/config.json`. Un valor no válido detiene el arranque con un mensaje que indica el problema.
 

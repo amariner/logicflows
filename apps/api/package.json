@@ -29,6 +29,7 @@
     "@nestjs/terminus": "^12.1.0",
     "@nestjs/websockets": "^12.1.1",
     "drizzle-orm": "^0.45.3",
+    "jose": "^6.2.12",
     "mqtt": "^5.16.0",
     "nestjs-pino": "^5.2.1",
     "pg": "^8.23.0",

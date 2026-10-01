@@ -1,0 +1,83 @@
+{
+  "realm": "logicflows",
+  "displayName": "LogicFlows",
+  "enabled": true,
+  "sslRequired": "external",
+  "internationalizationEnabled": true,
+  "supportedLocales": ["es", "en"],
+  "defaultLocale": "es",
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 28800,
+  "revokeRefreshToken": true,
+  "refreshTokenMaxReuse": 0,
+  "bruteForceProtected": true,
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "roles": {
+    "realm": [
+      {
+        "name": "viewer",
+        "description": "Consulta el estado, la producción y las alarmas"
+      },
+      {
+        "name": "admin",
+        "description": "Administra la plataforma; incluye todo lo de viewer",
+        "composite": true,
+        "composites": { "realm": ["viewer"] }
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "logicflows-visor",
+      "name": "Visor de LogicFlows",
+      "enabled": true,
+      "publicClient": true,
+      "protocol": "openid-connect",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://localhost:4200/*", "http://localhost:8100/*"],
+      "webOrigins": ["+"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:4200/*##http://localhost:8100/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "audiencia-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "logicflows-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "operario",
+      "firstName": "Operario",
+      "lastName": "de pruebas",
+      "email": "operario@logicflows.local",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "operario-local", "temporary": false }],
+      "realmRoles": ["viewer"]
+    },
+    {
+      "username": "administrador",
+      "firstName": "Administrador",
+      "lastName": "de pruebas",
+      "email": "administrador@logicflows.local",
+      "emailVerified": true,
+      "enabled": true,
+      "credentials": [{ "type": "password", "value": "administrador-local", "temporary": false }],
+      "realmRoles": ["admin"]
+    }
+  ]
+}

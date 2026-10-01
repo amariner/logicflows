@@ -12,6 +12,7 @@ import { WebSocket } from 'ws';
 
 import { MqttIngestionService } from '../ingestion/mqtt-ingestion.service.ts';
 import { createApp } from '../testing/app.ts';
+import { testIssuer } from '../testing/auth.ts';
 import { startDatabase } from '../testing/database.ts';
 import { API_PASSWORD, SIMULATOR_PASSWORD, startBroker, waitFor } from '../testing/broker.ts';
 import type { TestBroker } from '../testing/broker.ts';
@@ -27,10 +28,16 @@ describe('canal de tiempo real con un broker real', () => {
   let app: INestApplication;
   let publisher: MqttClient;
   let url: string;
+  let apiUrl: string;
   const clients: RealtimeClient[] = [];
 
   const connect = async (): Promise<RealtimeClient> => {
-    const socket = new WebSocket(url);
+    const response = await fetch(`${apiUrl}/api/v1/realtime/tickets`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${await (await testIssuer()).token()}` },
+    });
+    const { ticket } = (await response.json()) as { ticket: string };
+    const socket = new WebSocket(`${url}?ticket=${encodeURIComponent(ticket)}`);
     const client: RealtimeClient = { socket, received: [] };
     socket.on('message', (data: Buffer) => {
       client.received.push(JSON.parse(data.toString('utf8')) as RealtimeMessage);
@@ -61,6 +68,7 @@ describe('canal de tiempo real con un broker real', () => {
     await app.listen(0);
     const { port } = (app.getHttpServer() as Server).address() as AddressInfo;
     url = `ws://127.0.0.1:${String(port)}${REALTIME_PATH}`;
+    apiUrl = `http://127.0.0.1:${String(port)}`;
     const ingestion = app.get(MqttIngestionService);
     await waitFor(() => ingestion.connected);
     publisher = await mqtt.connectAsync(broker.url, {

@@ -30,8 +30,9 @@ export class FakeWebSocket extends EventTarget {
     this.dispatchEvent(new MessageEvent('message', { data: JSON.stringify(message) }));
   }
 
-  drop(): void {
-    this.dispatchEvent(new Event('close'));
+  /** El servidor cierra la conexión, opcionalmente con un código de cierre. */
+  drop(code = 1006): void {
+    this.dispatchEvent(Object.assign(new Event('close'), { code }));
   }
 
   close(): void {

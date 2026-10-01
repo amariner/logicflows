@@ -2,6 +2,9 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import {
   IonApp,
+  IonButton,
+  IonFooter,
+  IonNote,
   IonContent,
   IonIcon,
   IonItem,
@@ -15,8 +18,9 @@ import {
   IonSplitPane,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { gridSharp } from 'ionicons/icons';
+import { gridSharp, logOutSharp } from 'ionicons/icons';
 
+import { AuthService } from './core/auth/auth';
 import { RealtimeService } from './core/realtime/realtime.service';
 
 interface MenuEntry {
@@ -35,6 +39,9 @@ interface MenuEntry {
   styleUrl: 'app.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    IonButton,
+    IonFooter,
+    IonNote,
     RouterLink,
     RouterLinkActive,
     IonApp,
@@ -52,13 +59,20 @@ interface MenuEntry {
   ],
 })
 export class AppComponent {
+  protected readonly auth = inject(AuthService);
   protected readonly menu: readonly MenuEntry[] = [
     { title: 'Células', url: '/cells', icon: 'grid-sharp' },
   ];
 
   constructor() {
-    addIcons({ gridSharp });
-    // El canal de tiempo real se abre al arrancar, una vez cargada la configuración.
-    inject(RealtimeService).start();
+    addIcons({ gridSharp, logOutSharp });
+    // El canal de tiempo real se abre al arrancar, una vez cargada la
+    // configuración y comprobada la sesión.
+    const realtime = inject(RealtimeService);
+    void this.auth.ensureSession().then((authenticated) => {
+      if (authenticated) {
+        realtime.start();
+      }
+    });
   }
 }

@@ -28,7 +28,7 @@ Abrir el visor en `http://localhost:8100` en un navegador de escritorio y, si es
 
 | Paso | Qué hacer | Qué se ve | Qué demuestra |
 |---|---|---|---|
-| 1 | Abrir el visor | La célula `cell-01` aparece «Produciendo» y el indicador superior dice «En directo» | Simulador, broker, API y visor conectados |
+| 1 | Abrir el visor e iniciar sesión con `operario` / `operario-local` | El inicio de sesión de LogicFlows y, después, la célula `cell-01` «Produciendo» con el indicador «En directo» | Inicio de sesión con OpenID Connect; simulador, broker, API y visor conectados |
 | 2 | Observar el contador | Las cajas, la capa y el avance del pallet aumentan sin recargar; al completar 40 cajas cuenta un pallet y empieza otro | Tiempo real por WebSocket, ciclo de paletizado realista |
 | 3 | Esperar una incidencia | «En espera» en ámbar, con la causa: sin cajas o salida ocupada | Estado `WAITING` de ADR-0003: la máquina está bien, el problema es externo |
 | 4 | Esperar un fallo | «Fallo» en rojo, con la alarma, su severidad y desde cuándo; la producción se detiene | Alarmas con texto, icono y color (ISA-101); nunca solo color |
@@ -38,7 +38,7 @@ Abrir el visor en `http://localhost:8100` en un navegador de escritorio y, si es
 | 8 | `docker compose start simulator` | La célula arranca y vuelve a producir, sin recargar el visor; el contador empieza desde cero | Nueva sesión del simulador: los contadores son acumulados por sesión (ADR-0004) |
 | 9 | `docker compose restart api` | El indicador pasa a «Sin conexión» o «Conectando…» y vuelve a «En directo»; los contadores se mantienen | Reconexión automática y recuperación del estado desde PostgreSQL |
 | 10 | Recargar la página | Los datos aparecen al instante | Carga inicial por REST combinada con el tiempo real |
-| 11 | Abrir `http://localhost:3000/docs` | Documentación OpenAPI; probar «Producción de una célula en un periodo» | API REST documentada; la producción del periodo suma todas las sesiones, también las anteriores al paso 8 |
+| 11 | Abrir `http://localhost:3000/docs`; pulsar «Authorize» con un token si se quiere probar desde ahí | Documentación OpenAPI; probar «Producción de una célula en un periodo» | API REST documentada; la producción del periodo suma todas las sesiones, también las anteriores al paso 8 |
 | 12 | Cambiar el tema del sistema o abrir en móvil | Tema claro u oscuro y diseño de una columna | Diseño adaptable y accesible (WCAG 2.2 AA) |
 
 Los pasos 7 a 10 se comprobaron con el sistema en contenedores: la desconexión aparece en menos de un segundo, el reinicio de la API conserva los contadores y, tras recargar, los datos aparecen en menos de 100 ms.

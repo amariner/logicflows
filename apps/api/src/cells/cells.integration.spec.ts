@@ -12,6 +12,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { MqttIngestionService } from '../ingestion/mqtt-ingestion.service.ts';
 import { TelemetryRepository } from '../persistence/telemetry.repository.ts';
 import { createApp } from '../testing/app.ts';
+import { testIssuer } from '../testing/auth.ts';
 import {
   API_PASSWORD,
   SIMULATOR_PASSWORD,
@@ -35,10 +36,13 @@ describe('API REST de células', () => {
   let database: Awaited<ReturnType<typeof startDatabase>>;
   let app: INestApplication;
   let publisher: MqttClient;
-  const http = () => request(app.getHttpServer() as Server);
+  let token: string;
+  const http = () =>
+    request.agent(app.getHttpServer() as Server).set('Authorization', `Bearer ${token}`);
 
   beforeAll(async () => {
     [broker, database] = await Promise.all([startBroker(), startDatabase()]);
+    token = await (await testIssuer()).token();
     app = await createApp({
       DATABASE_URL: database.getConnectionUri(),
       MQTT_URL: broker.url,

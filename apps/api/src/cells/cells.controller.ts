@@ -2,6 +2,9 @@ import { Controller, Get, NotFoundException, Param, Query, applyDecorators } fro
 import type { CellSnapshot } from '@logicflows/contract';
 import {
   ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiUnauthorizedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -33,6 +36,12 @@ const ApiCellParams = () =>
   );
 
 @ApiTags('Células')
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Falta el token o no es válido', schema: problemSchema })
+@ApiForbiddenResponse({
+  description: 'El usuario no tiene el rol necesario',
+  schema: problemSchema,
+})
 @ApiBadRequestResponse({ description: 'Parámetros no válidos', schema: problemSchema })
 @Controller('cells')
 export class CellsController {
@@ -47,6 +56,12 @@ export class CellsController {
 }
 
 @ApiTags('Células')
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Falta el token o no es válido', schema: problemSchema })
+@ApiForbiddenResponse({
+  description: 'El usuario no tiene el rol necesario',
+  schema: problemSchema,
+})
 @ApiBadRequestResponse({ description: 'Parámetros no válidos', schema: problemSchema })
 @ApiNotFoundResponse({ description: 'Célula desconocida', schema: problemSchema })
 @Controller('sites/:siteId/cells/:cellId')

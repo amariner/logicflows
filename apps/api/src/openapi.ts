@@ -11,6 +11,12 @@ export function setupOpenApi(app: INestApplication): void {
       .setTitle('LogicFlows API')
       .setDescription('Estado, producción y alarmas de las células de paletizado.')
       .setVersion('0.1.0')
+      .addBearerAuth({
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        description: 'Token de acceso del proveedor OpenID Connect (ADR-0009)',
+      })
       .build(),
   );
   SwaggerModule.setup(OPENAPI_PATH, app, document, {

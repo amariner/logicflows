@@ -46,7 +46,6 @@ CMD ["node", "dist/main.js"]
 # arrancar a partir de API_URL.
 FROM nginxinc/nginx-unprivileged:1.30.5-alpine AS dashboard
 COPY apps/dashboard/docker/nginx.conf /etc/nginx/conf.d/default.conf
-COPY apps/dashboard/docker/config.json.template /etc/logicflows/config.json.template
 COPY apps/dashboard/docker/40-config.sh /docker-entrypoint.d/40-config.sh
 COPY --from=build --chown=nginx:root /repo/apps/dashboard/www /usr/share/nginx/html
 ENV API_URL=http://localhost:3000

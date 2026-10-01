@@ -3,10 +3,12 @@ import { HealthCheck, HealthCheckService } from '@nestjs/terminus';
 import type { HealthCheckResult } from '@nestjs/terminus';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
+import { Public } from '../auth/decorators.ts';
 import { DatabaseHealthIndicator } from '../database/database.health.ts';
 import { MqttHealthIndicator } from '../ingestion/mqtt.health.ts';
 
 @ApiTags('Salud')
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(

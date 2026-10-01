@@ -44,7 +44,7 @@ Los contenedores usan las mismas imágenes y versiones que `compose.yaml`.
 
 Pocos flujos, los que demuestran que el producto funciona. Se ejecutan con Playwright contra el sistema completo en contenedores (`pnpm stack:up`, perfil `apps` de Compose), sin dobles de ningún tipo:
 
-- **Una caja simulada aparece en el visor** (LF-39): el visor abierto muestra la célula produciendo y, sin recargar, el contador de cajas aumenta. La caja recorre el simulador, el broker, la API y el canal en tiempo real.
+- **Una caja simulada aparece en el visor** (LF-39): el usuario inicia sesión en Keycloak y el visor muestra la célula produciendo. Sin recargar, el contador de cajas aumenta. La caja recorre el simulador, el broker, la API y el canal en tiempo real, con un token y un tique reales.
 
 Para ejecutarlas en local:
 

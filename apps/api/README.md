@@ -6,7 +6,7 @@ NestJS 12 sobre Node.js, con módulos ES y TypeScript estricto.
 
 ## Estado actual
 
-Esqueleto operativo (LF-23), ingesta de telemetría (LF-26), canal de tiempo real (LF-27), persistencia en PostgreSQL (LF-32) y API REST (LF-33).
+Esqueleto operativo (LF-23), ingesta de telemetría (LF-26), canal de tiempo real (LF-27), persistencia en PostgreSQL (LF-32), API REST (LF-33) y autenticación (LF-50).
 
 | Ruta | Contenido |
 |---|---|
@@ -15,9 +15,27 @@ Esqueleto operativo (LF-23), ingesta de telemetría (LF-26), canal de tiempo rea
 | `GET /api/v1/cells` | Estado actual de todas las células. |
 | `GET /api/v1/sites/{siteId}/cells/{cellId}` | Estado actual de una célula. |
 | `GET /api/v1/sites/{siteId}/cells/{cellId}/production?from&to` | Cajas y pallets producidos en un periodo. |
+| `POST /api/v1/realtime/tickets` | Tique de un solo uso para abrir el canal de tiempo real. |
 | `GET /docs` | Documentación OpenAPI interactiva. |
 | `GET /docs/openapi.json` | Documento OpenAPI. |
-| `WS /realtime` | Canal de tiempo real hacia el visor ([ADR-0006](../../docs/adr/0006-canal-de-tiempo-real.md)). |
+| `WS /realtime?ticket=…` | Canal de tiempo real hacia el visor ([ADR-0006](../../docs/adr/0006-canal-de-tiempo-real.md)). |
+
+Todas las rutas de `/api/v1` y el canal de tiempo real exigen autenticación; las de salud y la documentación, no.
+
+## Autenticación y autorización
+
+La API es un *resource server* de OpenID Connect ([ADR-0009](../../docs/adr/0009-autenticacion-y-autorizacion.md)):
+
+- **Tokens.** Valida el token de acceso de la cabecera `Authorization: Bearer` con las claves públicas del emisor (`AUTH_ISSUER`), que obtiene por descubrimiento o de `AUTH_JWKS_URL`. Comprueba la firma, la caducidad, el emisor y la audiencia (`AUTH_AUDIENCE`). No depende de qué proveedor emite el token: en local es Keycloak (`infra/keycloak`).
+- **Roles.** Se leen de `AUTH_ROLES_CLAIM` (por defecto `realm_access.roles`, el formato de Keycloak). Basta `viewer` para consultar; `admin` incluye `viewer`.
+- **Errores.** Sin token o con uno no válido, `401` con `WWW-Authenticate: Bearer`. Sin el rol necesario, `403`. Si no se pueden obtener las claves del emisor, `503`. Todos en formato RFC 9457.
+- **Rutas públicas.** Se marcan con `@Public()`; hoy solo las de salud.
+- **Tiempo real.** El navegador no puede enviar cabeceras al abrir un WebSocket, así que el visor pide un tique con `POST /api/v1/realtime/tickets` y conecta a `/realtime?ticket=…`:
+  - El tique caduca a los 30 segundos y una instancia no acepta el mismo dos veces.
+  - Está firmado con `REALTIME_TICKET_SECRET`, compartido por todas las instancias.
+  - Sin tique válido, la conexión se cierra con el código `4401`. También se cierra con `4401` cuando caduca el token con el que se pidió.
+
+Las pruebas usan un emisor OpenID Connect mínimo (`src/testing/auth.ts`) que firma tokens como Keycloak, sin contenedores.
 
 ## Ingesta de telemetría
 
@@ -79,7 +97,7 @@ Cada `cell` incluye `siteId`, `cellId` y los últimos mensajes `status`, `state`
 Para observar el canal con la API en marcha:
 
 ```sh
-pnpm dlx wscat -c ws://localhost:3000/realtime
+pnpm dlx wscat -c "ws://localhost:3000/realtime?ticket=$TIQUE"
 ```
 
 ## Uso
@@ -104,6 +122,11 @@ Se valida al arrancar; un valor no válido detiene la API indicando qué variabl
 | `MQTT_CLIENT_ID` | `logicflows-api-` + nombre del equipo | Identificador del cliente MQTT, distinto en cada instancia; el broker asocia a él la sesión persistente |
 | `DATABASE_URL` | — | Conexión con PostgreSQL (obligatoria) |
 | `CORS_ORIGINS` | `http://localhost:4200` | Orígenes autorizados desde el navegador, separados por comas |
+| `AUTH_ISSUER` | — | Emisor OpenID Connect de los tokens (obligatoria) |
+| `AUTH_AUDIENCE` | `logicflows-api` | Audiencia que deben incluir los tokens |
+| `AUTH_JWKS_URL` | Descubrimiento | Claves públicas del emisor, si la API llega a él por otra dirección que el navegador |
+| `AUTH_ROLES_CLAIM` | `realm_access.roles` | Ruta de los roles dentro del token |
+| `REALTIME_TICKET_SECRET` | — | Secreto de al menos 32 caracteres para firmar los tiques; el mismo en todas las instancias (obligatoria) |
 
 ## Varias instancias
 

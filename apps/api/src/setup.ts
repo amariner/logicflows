@@ -18,7 +18,11 @@ export const REST_PREFIX = 'api/v1';
 export async function configureApp(app: INestApplication): Promise<void> {
   const config = app.get<ConfigService<AppConfig, true>>(ConfigService);
   app.setGlobalPrefix(REST_PREFIX, { exclude: ['health/live', 'health/ready'] });
-  app.enableCors({ origin: config.get('CORS_ORIGINS', { infer: true }), methods: ['GET'] });
+  app.enableCors({
+    origin: config.get('CORS_ORIGINS', { infer: true }),
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Authorization', 'Content-Type'],
+  });
   app.useGlobalFilters(new ProblemDetailsFilter(await app.resolve(PinoLogger)));
   app.useWebSocketAdapter(new WsAdapter(app));
   setupOpenApi(app);
