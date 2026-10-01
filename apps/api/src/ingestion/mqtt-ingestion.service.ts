@@ -36,11 +36,12 @@ export class MqttIngestionService implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit(): void {
     const url = this.config.get('MQTT_URL', { infer: true });
+    const clientId = this.config.get('MQTT_CLIENT_ID', { infer: true });
     // La conexión no bloquea el arranque: si el broker no está disponible, la
     // API arranca, informa en /health/ready y se reconecta sola.
     const client = mqtt.connect(url, {
       protocolVersion: 5,
-      clientId: this.config.get('MQTT_CLIENT_ID', { infer: true }),
+      clientId,
       username: this.config.get('MQTT_API_USERNAME', { infer: true }),
       password: this.config.get('MQTT_API_PASSWORD', { infer: true }),
       clean: false,
@@ -51,7 +52,7 @@ export class MqttIngestionService implements OnModuleInit, OnModuleDestroy {
 
     client.on('connect', (connack) => {
       this.logger.info(
-        { broker: url, sessionPresent: connack.sessionPresent },
+        { broker: url, clientId, sessionPresent: connack.sessionPresent },
         'Conectado al broker',
       );
       client.subscribe(subscriptionFilter(), { qos: 1 }, (error) => {
