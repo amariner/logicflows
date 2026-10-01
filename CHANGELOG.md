@@ -2,6 +2,12 @@
 
 Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, [versionado semántico](https://semver.org/lang/es/). Mientras la versión mayor sea 0, el contrato y la API pueden cambiar entre versiones menores.
 
+## [Sin publicar]
+
+### Cambiado
+
+- Cada instancia de la API usa un identificador MQTT propio, derivado por defecto del nombre de su equipo o contenedor. Varias instancias pueden funcionar a la vez contra el mismo broker y la misma base de datos (LF-47).
+
 ## [0.1.0] - 2026-10-01
 
 **Hito 1 · Primera caja en pantalla.** Primera versión que monitoriza de extremo a extremo una célula robotizada de paletizado simulada: el estado de la máquina, la producción y las alarmas llegan en tiempo real a un visor web adaptable y accesible.
@@ -43,4 +49,5 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 - La API mantiene el estado en memoria y no admite aún varias réplicas: cada instancia necesitaría su propio identificador de cliente MQTT.
 - La rama `main` no tiene protección técnica: la exige una decisión pendiente sobre la visibilidad del repositorio.
 
+[Sin publicar]: https://github.com/amariner/logicflows/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/amariner/logicflows/releases/tag/v0.1.0

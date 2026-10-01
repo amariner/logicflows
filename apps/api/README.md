@@ -101,9 +101,19 @@ Se valida al arrancar; un valor no válido detiene la API indicando qué variabl
 | `MQTT_URL` | `mqtt://127.0.0.1:1883` | Dirección del broker |
 | `MQTT_API_USERNAME` | `api` | Usuario del broker |
 | `MQTT_API_PASSWORD` | — | Contraseña del broker (obligatoria) |
-| `MQTT_CLIENT_ID` | `logicflows-api` | Identificador del cliente; el broker asocia a él la sesión persistente |
+| `MQTT_CLIENT_ID` | `logicflows-api-` + nombre del equipo | Identificador del cliente MQTT, distinto en cada instancia; el broker asocia a él la sesión persistente |
 | `DATABASE_URL` | — | Conexión con PostgreSQL (obligatoria) |
 | `CORS_ORIGINS` | `http://localhost:4200` | Orígenes autorizados desde el navegador, separados por comas |
+
+## Varias instancias
+
+Se pueden ejecutar varias instancias de la API contra el mismo broker y la misma base de datos, por ejemplo durante una actualización sin corte:
+
+- **Identificador MQTT propio.** El broker desconecta a un cliente cuando otro se conecta con el mismo identificador. Por defecto, cada instancia usa `logicflows-api-` seguido del nombre de su equipo, que en un contenedor es único. Se mantiene mientras vive la instancia, así que el broker conserva su sesión persistente entre reconexiones.
+- **Todas reciben todo.** Cada instancia se suscribe a todos los topics y mantiene el estado completo para sus clientes WebSocket. No se usan suscripciones compartidas, que repartirían los mensajes entre instancias.
+- **Sin duplicados en la base de datos.** Cada instancia intenta guardar cada mensaje y las restricciones únicas de [ADR-0007](../../docs/adr/0007-acceso-a-datos-y-migraciones.md) descartan las copias.
+
+Una prueba de integración lo comprueba con dos instancias. Las sesiones de las instancias que desaparecen caducan en el broker al cabo de una hora.
 
 ## Registro
 

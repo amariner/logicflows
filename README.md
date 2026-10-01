@@ -163,7 +163,7 @@ docker compose exec mosquitto mosquitto_sub -u api -P api-local -t 'logicflows/v
 
 ### Sistema completo en contenedores
 
-`pnpm stack:up` equivale al [arranque rápido](#arranque-rápido): añade a la infraestructura las tres aplicaciones, construidas con el [`Dockerfile`](Dockerfile) de la raíz, y espera a que estén sanas. `pnpm test:e2e` ejecuta la prueba de extremo a extremo contra este sistema ([estrategia de pruebas](docs/estrategia-de-pruebas.md)) y `pnpm stack:down` lo detiene. La API en contenedor usa el mismo puerto e identificador MQTT que `pnpm api`, así que no se ejecutan las dos a la vez.
+`pnpm stack:up` equivale al [arranque rápido](#arranque-rápido): añade a la infraestructura las tres aplicaciones, construidas con el [`Dockerfile`](Dockerfile) de la raíz, y espera a que estén sanas. `pnpm test:e2e` ejecuta la prueba de extremo a extremo contra este sistema ([estrategia de pruebas](docs/estrategia-de-pruebas.md)) y `pnpm stack:down` lo detiene. La API en contenedor usa el mismo puerto que `pnpm api`, así que no se ejecutan las dos a la vez.
 
 ### Imágenes Docker
 
