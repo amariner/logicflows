@@ -70,7 +70,7 @@ Una variable sellada no se puede leer, pero sí sustituir. Para rotar un secreto
 | Base de datos de la API o de Keycloak | `ejecutar-sql.sh` con `usuarios.sql` y la contraseña nueva. Después, actualizar `DATABASE_URL` en `api` o `KC_DB_PASSWORD` en `identity`; cambiar la variable despliega el servicio. |
 | Contraseñas MQTT | Actualizar la variable en `broker` y en el cliente (`api` o `simulator`) sin desplegar (`--skip-deploys`). Después desplegar `broker` y, a continuación, el cliente. Los clientes reconectan solos. |
 | `REALTIME_TICKET_SECRET` | Actualizar la variable en `api`. Los tiques en circulación, de 30 segundos, dejan de ser válidos y el visor pide uno nuevo al reconectar. |
-| Administrador de Keycloak | Desde la consola de administración de Keycloak. `KC_BOOTSTRAP_ADMIN_*` solo crea el administrador inicial. |
+| Administrador de Keycloak | Desde la consola de administración de Keycloak. `KC_BOOTSTRAP_ADMIN_*` solo crea el administrador inicial (ver «Particularidades»). |
 
 **Probado en producción el 1 de octubre de 2026** con la contraseña de la base de datos de la API: `/health/ready` siguió en `up` durante el cambio y después del despliegue.
 
@@ -80,6 +80,10 @@ Una variable sellada no se puede leer, pero sí sustituir. Para rotar un secreto
 
 - **Las referencias se resuelven al guardar la variable.** Una referencia a un servicio que todavía no existe queda vacía. Si se crean servicios que se referencian entre sí, hay que volver a definir esas variables al final.
 - **El realm de Keycloak solo se importa la primera vez** ([ADR-0010](adr/0010-imagenes-de-la-infraestructura.md)). Si `identity` arranca con una configuración incorrecta, hay que vaciar su base de datos y volver a desplegar. Mientras no tenga usuarios, basta con ejecutar `DROP DATABASE keycloak WITH (FORCE)` y después `usuarios.sql`.
+- **El administrador inicial de Keycloak solo se crea con el realm `master`.** `KC_BOOTSTRAP_ADMIN_USERNAME` y `KC_BOOTSTRAP_ADMIN_PASSWORD` solo se usan en el primer arranque. Si se definen después, Keycloak las ignora y el inicio de sesión falla con `user_not_found`. Para crear un administrador temporal en un `master` existente, con `identity` detenido (`railway down --service identity`):
+  1. Fijar como comando de inicio `/bin/bash -c "/opt/keycloak/bin/kc.sh bootstrap-admin user --username:env KC_BOOTSTRAP_ADMIN_USERNAME --password:env KC_BOOTSTRAP_ADMIN_PASSWORD --optimized; exec /opt/keycloak/bin/kc.sh start --optimized --import-realm"` y desplegar. Railway sustituye el `ENTRYPOINT` de la imagen por el comando de inicio.
+  2. Comprobar en el registro `Created temporary admin user`.
+  3. Vaciar el comando de inicio (`startCommand: ""`) y volver a desplegar.
 - **La región por defecto es `us-west`.** Cada servicio nuevo se mueve a Ámsterdam: `railway service scale --service <servicio> europe-west4-drams3a=1 sfo=0`.
 - **Sellar una variable solo es posible desde la web**, no con la CLI ni con la API.
 - **Aviso de dominio público:** Railway marca las variables que usan `RAILWAY_PUBLIC_DOMAIN` porque el tráfico entre servicios que sale por Internet se factura como salida de red. En `KC_HOSTNAME`, `LOGICFLOWS_VISOR_URL`, `CORS_ORIGINS` y la configuración del visor es lo correcto: es la dirección que ve el navegador. La API descarga por la dirección pública las claves de Keycloak con las que valida los tokens; son pocos kilobytes y se guardan en caché.
