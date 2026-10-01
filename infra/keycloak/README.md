@@ -15,7 +15,7 @@ Estos usuarios y contraseñas son **solo para desarrollo, pruebas y previsualiza
 
 La consola de administración está en `http://localhost:8180/admin`, con el usuario y la contraseña de `KEYCLOAK_ADMIN_USERNAME` y `KEYCLOAK_ADMIN_PASSWORD` en `.env`.
 
-Cambiar el *realm* desde la consola no modifica este fichero: los cambios que deban perdurar se hacen aquí y se aplican con `pnpm infra:reset`.
+En desarrollo, cambiar el *realm* desde la consola no modifica este fichero: los cambios que deban reproducirse se hacen aquí y se aplican con `pnpm infra:reset`. Este reinicio es del entorno local; no se usa para resolver problemas de acceso en producción.
 
 ## Imagen de producción
 
@@ -37,3 +37,44 @@ Prueba de la imagen contra un PostgreSQL efímero (la ejecuta la CI en cada pull
 docker build --target identity -t logicflows-identity:local .
 infra/keycloak/comprobar-produccion.sh
 ```
+
+## Alta y primer acceso en producción (LF-48)
+
+La consola se abre en la dirección pública de `identity`, añadiendo `/admin/`. Las cuentas se crean en el realm correspondiente:
+
+| Realm | Cuenta | Permisos |
+|---|---|---|
+| `master` | Administrador de Keycloak | Administra el proveedor de identidad |
+| `logicflows` | Usuario del visor | `viewer` para consultar; `admin` para administrar la aplicación, con `viewer` incluido |
+
+El rol `admin` de `logicflows` no concede administración de Keycloak. Una cuenta creada en `master` no sirve para entrar en el visor.
+
+### Crear un usuario del visor
+
+1. Entrar en la consola con un administrador. Abrir **Manage realms → logicflows** y comprobar que **Current realm** muestra **LogicFlows**.
+2. Abrir **Users** y comprobar si la cuenta ya existe. Si existe, continuar sobre ella; si no, pulsar **Create new user**.
+3. Completar **Username**, **Email**, **First name** y **Last name**, y pulsar **Create**. Usar el email indicado por su titular; **Email verified** solo debe marcarse cuando se haya verificado.
+4. En **Credentials → Set password**, introducir y confirmar la contraseña. Para una cuenta personal cuya contraseña definitiva está estableciendo su titular, desactivar **Temporary** y guardar. Si se entrega una contraseña provisional a otra persona, mantener **Temporary** para exigir el cambio al entrar.
+5. En **Role mapping → Assign role → Realm roles**, seleccionar el permiso acordado (`viewer` o `admin`) y pulsar **Assign**. Si se asigna `admin`, desmarcar **Hide inherited roles** para comprobar que `viewer` aparece con **Inherited: True**.
+6. Abrir la dirección base del visor e iniciar sesión con la cuenta de `logicflows`.
+7. Si aparece **Actualiza la información de tu cuenta**, completar los campos obligatorios y pulsar **Enviar**. En el primer acceso comprobado en producción, la falta de email activó este paso (`VERIFY_PROFILE`) después de aceptar la contraseña.
+8. Verificar que el navegador vuelve a `/cells`, muestra la sesión del usuario, la célula y sus datos. Comprobar también **En directo** y que los contadores se actualizan con la simulación en marcha.
+
+La comprobación de salud de la API no sustituye esta prueba: una API sana no demuestra que un usuario pueda autenticarse y consultar los datos. Tampoco basta con que Keycloak acepte la contraseña si quedan acciones de perfil pendientes.
+
+### Si caduca el intento de inicio de sesión
+
+Ante **«Ha tardado demasiado en identificarse. Inicie de nuevo la identificación.»**, volver a abrir la dirección base del visor e iniciar sesión otra vez. Si vuelve a pedir completar el perfil, rellenar los campos y enviar el formulario.
+
+Caduca el intento de identificación, no la cuenta ni sus roles o contraseña. No hace falta crear otro usuario, restablecer la contraseña ni reiniciar los servicios. No reutilizar como enlace de entrada la URL intermedia de Keycloak: contiene parámetros temporales del flujo. No guardar esas URL, contraseñas ni tokens en documentación o incidencias.
+
+### Sustituir el administrador temporal
+
+El alta del usuario del visor no sustituye al administrador temporal de `master`. Para completar la administración permanente:
+
+1. En `master`, crear una cuenta permanente con un nombre que permita distinguirla de la cuenta del visor.
+2. Establecer su contraseña, asignar el rol de realm `admin` de `master` y añadir la acción requerida **Configure OTP**.
+3. Probar esa cuenta en una sesión separada, completar el OTP y comprobar que puede administrar los realms. Mantener la sesión temporal hasta terminar esta verificación.
+4. Desde la sesión permanente ya comprobada, eliminar la cuenta temporal. Después, retirar de `identity` las variables `KC_BOOTSTRAP_ADMIN_USERNAME` y `KC_BOOTSTRAP_ADMIN_PASSWORD`, coordinando el redespliegue que provoque ese cambio.
+
+La recuperación si se pierde el acceso administrativo está en [Particularidades de Railway](../../docs/despliegue.md#particularidades-de-railway). Las contraseñas y los secretos de OTP se conservan fuera del repositorio.
