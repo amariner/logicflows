@@ -32,7 +32,7 @@ El simulador arranca la célula `cell-01` de la planta `demo` y empieza a paleti
 
 Para detenerlo todo: `docker compose --profile apps down` (añadir `--volumes` para borrar también los datos).
 
-Si el puerto 3000 o el 8100 están ocupados, se cambian con `API_PORT` y `DASHBOARD_PORT` en `.env`.
+Si el puerto 3000 o el 8100 están ocupados, se cambian con `API_PORT` y `DASHBOARD_PORT` en `.env`. Con Colima, el repositorio debe estar dentro de la carpeta personal: es la única que comparte por defecto con Docker, y fuera de ella el broker no encuentra su configuración.
 
 ## Arquitectura
 
