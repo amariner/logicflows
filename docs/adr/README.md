@@ -15,6 +15,7 @@ Un ADR aceptado no se reescribe. Si la decisión cambia, se crea un ADR nuevo qu
 | [0005](0005-paquete-del-contrato.md) | Paquete compartido del contrato de telemetría | Aceptado |
 | [0006](0006-canal-de-tiempo-real.md) | Canal de tiempo real entre la API y el visor | Aceptado |
 | [0007](0007-acceso-a-datos-y-migraciones.md) | Acceso a datos y migraciones | Aceptado |
+| [0009](0009-autenticacion-y-autorizacion.md) | Autenticación y autorización | Aceptado |
 
 ## Estados
 

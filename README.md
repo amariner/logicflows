@@ -80,6 +80,7 @@ Las decisiones relevantes se registran como ADR en [`docs/adr`](docs/adr/README.
 | [0005](docs/adr/0005-paquete-del-contrato.md) | Contrato compartido con Zod y JSON Schema |
 | [0006](docs/adr/0006-canal-de-tiempo-real.md) | WebSocket nativo para el tiempo real entre la API y el visor |
 | [0007](docs/adr/0007-acceso-a-datos-y-migraciones.md) | Drizzle ORM sobre PostgreSQL con migraciones SQL versionadas |
+| [0009](docs/adr/0009-autenticacion-y-autorizacion.md) | OpenID Connect con Keycloak; tiques para el WebSocket y credenciales MQTT por célula |
 
 ## Estructura
 
