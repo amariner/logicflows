@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ProblemDetailsFilter, ValidationProblem } from './problem-details.ts';
 
 const respond = (exception: unknown, url = '/api/v1/cells') => {
-  const logger = { setContext: vi.fn(), error: vi.fn() };
+  const logger = { setContext: vi.fn(), error: vi.fn(), warn: vi.fn() };
   const response = {
     status: vi.fn().mockReturnThis(),
     type: vi.fn().mockReturnThis(),
@@ -61,5 +61,33 @@ describe('formato de errores (RFC 9457)', () => {
     const { response } = respond(new ServiceUnavailableException(health), '/health/ready');
     expect(response.status).toHaveBeenCalledWith(503);
     expect(response.json).toHaveBeenCalledWith(health);
+  });
+
+  it.each([
+    [413, 'La petición supera el tamaño máximo'],
+    [400, 'La petición no es válida'],
+  ])(
+    'responde %i a los errores de cliente de los middlewares sin registrarlos',
+    (status, detail) => {
+      const error = Object.assign(new Error('detalle interno'), { status, expose: true });
+      const { response, logger } = respond(error);
+      expect(response.status).toHaveBeenCalledWith(status);
+      expect(response.json).toHaveBeenCalledWith(expect.objectContaining({ status, detail }));
+      expect(logger.error).not.toHaveBeenCalled();
+    },
+  );
+
+  it('un error con estado pero no publicable se trata como inesperado', () => {
+    const { response } = respond(Object.assign(new Error('x'), { status: 400, expose: false }));
+    expect(response.status).toHaveBeenCalledWith(500);
+  });
+
+  it('registra como aviso un 503 controlado, sin ocultar su detalle', () => {
+    const { response, logger } = respond(new ServiceUnavailableException('Emisor no disponible'));
+    expect(response.json).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 503, detail: 'Emisor no disponible' }),
+    );
+    expect(logger.warn).toHaveBeenCalledOnce();
+    expect(logger.error).not.toHaveBeenCalled();
   });
 });

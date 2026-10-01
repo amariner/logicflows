@@ -40,6 +40,11 @@ jobs:
       - name: Tipos
         run: pnpm typecheck
 
+      # Falla con vulnerabilidades conocidas de severidad alta o crítica en
+      # cualquier dependencia (LF-52).
+      - name: Auditoría de dependencias
+        run: pnpm audit --audit-level high
+
       - name: Lint
         run: pnpm lint
 
@@ -118,6 +123,8 @@ jobs:
         run: |
           curl -fsS http://127.0.0.1:3000/health/ready
           curl -fsS http://127.0.0.1:8100/config.json | grep -q '"apiUrl": "http://localhost:3000"'
+          curl -fsSI http://127.0.0.1:8100/ | grep -qi "content-security-policy: default-src 'self'"
+          curl -fsSI http://127.0.0.1:3000/health/live | grep -qi "content-security-policy: default-src 'none'"
 
       # Una caja publicada por el simulador llega al visor a través del broker,
       # la API y el canal en tiempo real.

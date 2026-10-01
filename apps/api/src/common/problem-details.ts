@@ -25,6 +25,8 @@ const TITLES: Readonly<Partial<Record<number, string>>> = {
   403: 'Sin permiso',
   404: 'Recurso no encontrado',
   405: 'Método no permitido',
+  413: 'Petición demasiado grande',
+  429: 'Demasiadas peticiones',
   500: 'Error interno',
   503: 'Servicio no disponible',
 };
@@ -34,6 +36,24 @@ export class ValidationProblem extends HttpException {
   constructor(readonly errors: readonly FieldError[]) {
     super('La petición contiene parámetros no válidos', HttpStatus.BAD_REQUEST);
   }
+}
+
+/**
+ * Errores de cliente que generan los middlewares de Express antes de llegar a
+ * NestJS, como un JSON mal formado (400) o un cuerpo demasiado grande (413).
+ */
+function middlewareClientError(exception: unknown): { status: number; detail: string } | null {
+  if (typeof exception !== 'object' || exception === null) {
+    return null;
+  }
+  const { status, expose } = exception as { status?: unknown; expose?: unknown };
+  if (typeof status !== 'number' || status < 400 || status >= 500 || expose !== true) {
+    return null;
+  }
+  return {
+    status,
+    detail: status === 413 ? 'La petición supera el tamaño máximo' : 'La petición no es válida',
+  };
 }
 
 /**
@@ -52,8 +72,11 @@ export class ProblemDetailsFilter implements ExceptionFilter {
     const request = http.getRequest<{ url: string }>();
     const response = http.getResponse<Response>();
 
+    const clientError = middlewareClientError(exception);
     const status =
-      exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
+      exception instanceof HttpException
+        ? exception.getStatus()
+        : (clientError?.status ?? HttpStatus.INTERNAL_SERVER_ERROR);
 
     // Las comprobaciones de salud conservan el formato estándar de Terminus,
     // con el detalle de cada dependencia, que es el que leen los orquestadores.
@@ -61,12 +84,12 @@ export class ProblemDetailsFilter implements ExceptionFilter {
       response.status(status).json(exception.getResponse());
       return;
     }
-    if (!(exception instanceof HttpException)) {
+    if (!(exception instanceof HttpException) && clientError === null) {
       this.logger.error(
         { error: exception instanceof Error ? exception.message : String(exception) },
         'Error no controlado',
       );
-    } else if (status >= 500) {
+    } else if (exception instanceof HttpException && status >= 500) {
       this.logger.warn({ status, error: exception.message }, 'Servicio no disponible');
     }
 
@@ -77,7 +100,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
       detail:
         exception instanceof HttpException
           ? exception.message
-          : 'Se ha producido un error inesperado',
+          : (clientError?.detail ?? 'Se ha producido un error inesperado'),
       instance: request.url,
       ...(exception instanceof ValidationProblem ? { errors: exception.errors } : {}),
     };

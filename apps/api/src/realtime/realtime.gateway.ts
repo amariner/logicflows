@@ -25,7 +25,8 @@ const MAX_TIMEOUT_MS = 2_147_483_647;
  * clientes autorizados. Cada conexión presenta un tique de un solo uso y se
  * cierra cuando caduca el token con el que se obtuvo (ADR-0009).
  */
-@WebSocketGateway({ path: REALTIME_PATH })
+// El visor no envía mensajes: se rechaza cualquiera de más de 1 KB (LF-52).
+@WebSocketGateway({ path: REALTIME_PATH, maxPayload: 1024 })
 export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnModuleDestroy {
   @WebSocketServer() private readonly server!: Server;
   readonly #alive = new WeakSet<WebSocket>();

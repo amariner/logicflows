@@ -23,6 +23,8 @@ describe('configuración de la API', () => {
       AUTH_AUDIENCE: 'logicflows-api',
       AUTH_ROLES_CLAIM: 'realm_access.roles',
       REALTIME_TICKET_SECRET: 'secreto-de-tiques-de-al-menos-32-caracteres',
+      RATE_LIMIT_PER_MINUTE: 300,
+      TRUST_PROXY_HOPS: 0,
       CORS_ORIGINS: ['http://localhost:4200'],
     });
   });
@@ -70,6 +72,8 @@ describe('configuración de la API', () => {
     ['un emisor que no es una URL HTTP', { ...required, AUTH_ISSUER: 'ftp://idp' }],
     ['un secreto de tiques demasiado corto', { ...required, REALTIME_TICKET_SECRET: 'corto' }],
     ['un origen de CORS que no es una URL', { ...required, CORS_ORIGINS: 'localhost' }],
+    ['un comodín en los orígenes de CORS', { ...required, CORS_ORIGINS: '*' }],
+    ['un límite de peticiones nulo', { ...required, RATE_LIMIT_PER_MINUTE: '0' }],
     ['una base de datos que no es PostgreSQL', { ...required, DATABASE_URL: 'mysql://db/x' }],
     ['un puerto no numérico', { ...required, API_PORT: 'http' }],
     ['un puerto fuera de rango', { ...required, API_PORT: '70000' }],

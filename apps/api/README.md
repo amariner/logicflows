@@ -37,6 +37,19 @@ La API es un *resource server* de OpenID Connect ([ADR-0009](../../docs/adr/0009
 
 Las pruebas usan un emisor OpenID Connect mínimo (`src/testing/auth.ts`) que firma tokens como Keycloak, sin contenedores.
 
+## Seguridad HTTP
+
+Medidas de LF-52 para una API expuesta a Internet:
+
+| Medida | Detalle |
+|---|---|
+| Cabeceras | helmet: `Content-Security-Policy: default-src 'none'` en las respuestas de la API (son JSON y no cargan nada), HSTS, `nosniff`, `no-referrer`, sin `X-Powered-By`. `/docs` usa la política por defecto de helmet para que funcione Swagger UI. |
+| Límite de peticiones | `RATE_LIMIT_PER_MINUTE` por cliente (300 por defecto). Al superarlo, `429` con `Retry-After`. La salud no cuenta. El contador es de cada instancia. |
+| Proxies | `TRUST_PROXY_HOPS` indica cuántos proxies hay delante. Detrás del balanceador de la plataforma hace falta para identificar al cliente por `X-Forwarded-For` y no por la dirección del proxy. |
+| Tamaño | Cuerpos de hasta 16 KB (`413` si es mayor) y mensajes WebSocket de hasta 1 KB (cierre `1009`). |
+| CORS | Solo los orígenes de `CORS_ORIGINS`, que deben ser URL completas: no se admiten comodines. |
+| Dependencias | La CI falla con vulnerabilidades conocidas de severidad alta o crítica (`pnpm audit --audit-level high`). |
+
 ## Ingesta de telemetría
 
 `MqttIngestionService` se suscribe a `logicflows/v1/+/+/+` con QoS 1 y una **sesión persistente** (MQTT 5, caducidad de 1 hora): si la API se reinicia, el broker le entrega los cambios de estado producidos mientras estaba caída. Por cada mensaje:
@@ -126,6 +139,8 @@ Se valida al arrancar; un valor no válido detiene la API indicando qué variabl
 | `AUTH_AUDIENCE` | `logicflows-api` | Audiencia que deben incluir los tokens |
 | `AUTH_JWKS_URL` | Descubrimiento | Claves públicas del emisor, si la API llega a él por otra dirección que el navegador |
 | `AUTH_ROLES_CLAIM` | `realm_access.roles` | Ruta de los roles dentro del token |
+| `RATE_LIMIT_PER_MINUTE` | `300` | Peticiones por minuto de cada cliente antes de responder `429` |
+| `TRUST_PROXY_HOPS` | `0` | Proxies de confianza delante de la API |
 | `REALTIME_TICKET_SECRET` | — | Secreto de al menos 32 caracteres para firmar los tiques; el mismo en todas las instancias (obligatoria) |
 
 ## Varias instancias
