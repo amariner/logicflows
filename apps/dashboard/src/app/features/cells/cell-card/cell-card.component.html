@@ -1,0 +1,48 @@
+@let view = cell();
+<ion-card
+  [class]="'tone-' + view.stateTone"
+  [class.attention]="view.attention"
+  [class.offline]="view.online === false"
+>
+  <ion-card-header>
+    <ion-card-title>{{ view.cellId }}</ion-card-title>
+    <ion-card-subtitle>Planta {{ view.siteId }}</ion-card-subtitle>
+  </ion-card-header>
+
+  <ion-card-content>
+    <p class="state" data-testid="state">
+      <ion-icon aria-hidden="true" [name]="view.stateIcon" />
+      <span>{{ view.stateLabel }}</span>
+    </p>
+
+    @if (view.online === false) {
+      <p class="disconnected">Célula desconectada: último dato conocido</p>
+    }
+
+    @if (view.alarms.length > 0) {
+      <ul class="alarms" aria-label="Alarmas activas">
+        @for (alarm of view.alarms; track alarm.code) {
+          <li [class]="'tone-' + alarm.tone" data-testid="alarm">
+            <ion-icon aria-hidden="true" [name]="alarm.icon" />
+            <div>
+              <p class="alarm-heading">
+                <strong>{{ alarm.severityLabel }}</strong> · {{ alarm.code }} ·
+                {{ alarm.sinceLabel }}
+              </p>
+              <p>{{ alarm.message }}</p>
+            </div>
+          </li>
+        }
+      </ul>
+    }
+
+    <p class="counter">
+      <span class="value" data-testid="boxes">{{ view.boxesLabel }}</span>
+      <span class="unit">cajas</span>
+    </p>
+    <p class="pallet">{{ view.palletLabel }}</p>
+    @if (view.componentsLabel !== null) {
+      <p class="components" data-testid="components">{{ view.componentsLabel }}</p>
+    }
+  </ion-card-content>
+</ion-card>

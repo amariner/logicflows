@@ -11,6 +11,7 @@ import {
 import { ConnectionStatusComponent } from '../../core/connection-status/connection-status.component';
 import { RealtimeService } from '../../core/realtime/realtime.service';
 import { CellListComponent } from './cell-list/cell-list.component';
+import { EmergencyBannerComponent } from './emergency-banner/emergency-banner.component';
 import { toCellView } from './cell-view';
 
 /** Página de las células con su producción en tiempo real. */
@@ -21,6 +22,7 @@ import { toCellView } from './cell-view';
   imports: [
     CellListComponent,
     ConnectionStatusComponent,
+    EmergencyBannerComponent,
     IonButtons,
     IonContent,
     IonHeader,
@@ -32,5 +34,7 @@ import { toCellView } from './cell-view';
 export class CellsPage {
   readonly #realtime = inject(RealtimeService);
   protected readonly connection = this.#realtime.connection;
-  protected readonly cells = computed(() => this.#realtime.cells().map(toCellView));
+  protected readonly cells = computed(() =>
+    this.#realtime.cells().map((snapshot) => toCellView(snapshot)),
+  );
 }

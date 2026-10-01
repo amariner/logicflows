@@ -1,2 +1,25 @@
 // For information on how to create your own theme, please refer to:
 // https://ionicframework.com/docs/theming/
+
+/*
+ * Tonos de estado del visor (docs/diseno-del-visor.md). Cada tono cumple un
+ * contraste de 4,5:1 como mínimo sobre el fondo de las tarjetas, en tema
+ * claro y oscuro, para usarse en texto, iconos y bordes.
+ */
+:root {
+  --lf-tone-ok: #1b7a34;
+  --lf-tone-info: #1a5fb4;
+  --lf-tone-neutral: #56606b;
+  --lf-tone-warning: #8a5300;
+  --lf-tone-danger: #b3261e;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --lf-tone-ok: #5fd07a;
+    --lf-tone-info: #8ab4f8;
+    --lf-tone-neutral: #b0b8c2;
+    --lf-tone-warning: #f5b83d;
+    --lf-tone-danger: #ff8a80;
+  }
+}
