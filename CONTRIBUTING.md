@@ -69,6 +69,17 @@ Por eso los commits de una rama deben estar limpios antes de pedir la revisión:
 
 Se descartan la fusión con commit de fusión, porque ensucia el historial con commits sin valor, y la fusión con *squash*, porque reduce cada pull request a un único commit y pierde el detalle de los cambios.
 
+### Protección de `main`
+
+Un conjunto de reglas del repositorio («Proteger main») hace obligatorias estas normas, sin excepciones para administradores:
+
+- Los cambios llegan a `main` solo mediante pull request y solo con *Rebase and merge*.
+- Para fusionar, las cuatro comprobaciones de la [CI](.github/workflows/ci.yml) deben estar en verde: *Comprobaciones*, *Integración*, *Accesibilidad* y *Sistema completo*.
+- Las conversaciones de la revisión deben estar resueltas.
+- `main` no admite *force push* ni se puede borrar, y su historial es lineal.
+
+La aprobación de la revisión se da en la conversación de la pull request y no se exige como aprobación formal de GitHub, porque el autor no puede aprobar su propia pull request. Tampoco se exige que la rama esté al día con `main` antes de fusionar: el rebase la actualiza y la CI vuelve a ejecutarse sobre `main` tras cada fusión.
+
 ## Definition of Done
 
 Una tarea está terminada cuando se cumple todo lo que le aplica:
