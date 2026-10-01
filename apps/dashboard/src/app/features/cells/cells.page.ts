@@ -18,6 +18,12 @@ import { toCellView } from './cell-view';
 @Component({
   selector: 'app-cells',
   templateUrl: './cells.page.html',
+  styles: `
+    .cells:focus-visible {
+      outline: 2px solid var(--ion-color-primary);
+      outline-offset: 4px;
+    }
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CellListComponent,

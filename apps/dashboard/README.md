@@ -65,10 +65,15 @@ Organizada por funcionalidades:
 
 Los tipos de estados y mensajes se importan de `@logicflows/contract`. El empaquetador de Angular no admite condiciones de exportación propias, así que el visor lee el código fuente del contrato mediante `paths` en `tsconfig.json`. El contrato se declara sin efectos secundarios (`sideEffects: false`): Zod no entra en el bundle mientras el visor solo use tipos y constantes.
 
-## Calidad
+## Accesibilidad (WCAG 2.2 AA)
 
-- ESLint con la configuración común más las reglas de Angular y de **accesibilidad de las plantillas**.
-- El viewport permite ampliar la página (WCAG 1.4.4).
+- **Comprobación automática** (`pnpm --filter @logicflows/dashboard test:a11y`): Playwright sirve la build de producción, simula la API con una célula en cada estado (incluida una desconectada) y pasa axe-core con las reglas WCAG 2.2 A y AA en tema claro y oscuro y en escritorio, tableta y móvil. Además comprueba el reajuste a 320 px sin desplazamiento horizontal (1.4.10), el idioma de la página y la navegación por teclado al menú en escritorio y en móvil. Se ejecuta en la CI en cada pull request.
+- **Contraste:** los tonos `--lf-tone-*` están calculados para 4,5:1 en ambos temas. Se verificó que la comprobación detecta un tono insuficiente.
+- **Teclado:** la zona de contenido es una región enfocable y etiquetada, para poder desplazarla con el teclado; los controles tienen etiquetas en español.
+- ESLint incluye las reglas de accesibilidad de las plantillas de angular-eslint.
+- El viewport permite ampliar la página (1.4.4).
+
+## Calidad
 - Presupuesto de tamaño: aviso a partir de 1 MB de carga inicial y error a partir de 2 MB.
 
 ## Scripts
@@ -80,3 +85,4 @@ Los tipos de estados y mensajes se importan de `@logicflows/contract`. El empaqu
 | `typecheck` | Comprueba los tipos de la aplicación y de las pruebas |
 | `lint` | ESLint, incluidas las plantillas |
 | `test` | Pruebas unitarias con Vitest y jsdom |
+| `test:a11y` | Build de producción y comprobación de accesibilidad en Chromium con Playwright y axe-core |

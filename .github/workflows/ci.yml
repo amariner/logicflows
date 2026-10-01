@@ -67,6 +67,28 @@ jobs:
       - name: Pruebas de integración
         run: pnpm test:integration
 
+  accessibility:
+    name: Accesibilidad
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Instalar Chromium
+        run: pnpm --filter @logicflows/dashboard exec playwright install --with-deps chromium
+
+      # axe-core comprueba WCAG 2.2 AA en tema claro y oscuro y en escritorio,
+      # tableta y móvil, con la build de producción del visor.
+      - name: Comprobar la accesibilidad del visor
+        run: pnpm --filter @logicflows/dashboard test:a11y
+
   infra:
     name: Entorno local
     runs-on: ubuntu-24.04
