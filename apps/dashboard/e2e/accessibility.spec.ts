@@ -36,6 +36,26 @@ for (const colorScheme of ['light', 'dark'] as const) {
   }
 }
 
+for (const colorScheme of ['light', 'dark'] as const) {
+  test(`los valores y las alarmas usan el color principal del texto, tema ${colorScheme === 'light' ? 'claro' : 'oscuro'}`, async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme });
+    await page.goto('/cells');
+    const card = page.locator('ion-card').filter({ hasText: 'cell-03' });
+    await expect(card).toBeVisible();
+
+    const textColor = await page.evaluate(() => getComputedStyle(document.body).color);
+    for (const element of [
+      card.getByTestId('boxes'),
+      card.getByTestId('pallets'),
+      card.getByTestId('alarm').first(),
+    ]) {
+      await expect(element).toHaveCSS('color', textColor);
+    }
+  });
+}
+
 test('el contenido se reajusta a 320 px sin desplazamiento horizontal (WCAG 1.4.10)', async ({
   page,
 }) => {
