@@ -67,7 +67,9 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.app }}
 
   promote:
-    name: Promocionar ${{ matrix.app }} a ${{ github.ref_name }}
+    # Nombre fijo: en las ejecuciones desde main el trabajo se omite y no se
+    # resolverían las variables de la matriz.
+    name: Promocionar la versión
     if: github.ref_type == 'tag'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
