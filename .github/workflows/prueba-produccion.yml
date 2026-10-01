@@ -1,0 +1,98 @@
+name: Prueba de producción
+
+# Ejecuta la prueba de extremo a extremo (LF-39) contra producción después de
+# cada despliegue (LF-57): inicio de sesión real con el usuario de solo
+# lectura, una caja nueva en directo y el visor instalable. Si falla, abre o
+# actualiza una incidencia con los pasos para volver a la versión anterior.
+on:
+  workflow_run:
+    workflows: [Railway apply]
+    types: [completed]
+  workflow_dispatch:
+
+# Dos ejecuciones a la vez contra el mismo entorno no aportan nada.
+concurrency:
+  group: prueba-produccion
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  E2E_BASE_URL: https://dashboard-production-6f89.up.railway.app
+
+jobs:
+  e2e:
+    name: Extremo a extremo en producción
+    # Tras un despliegue fallido no hay nada nuevo que probar.
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Comprobar el usuario de la prueba
+        env:
+          E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+        run: |
+          if [ -z "$E2E_USERNAME" ] || [ -z "$E2E_PASSWORD" ]; then
+            echo "::error::Faltan los secretos E2E_USERNAME y E2E_PASSWORD del usuario de solo lectura (infra/keycloak/README.md)."
+            exit 1
+          fi
+
+      # Prueba el commit que se desplegó, no el último de main.
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Instalar Chromium
+        run: pnpm --filter @logicflows/dashboard exec playwright install --with-deps chromium
+
+      - name: Prueba de extremo a extremo
+        id: e2e
+        env:
+          E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+        run: pnpm test:e2e
+
+      - name: Trazas de Playwright si falla
+        if: failure() && steps.e2e.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: trazas-produccion
+          path: apps/dashboard/test-results/
+          retention-days: 14
+
+      # Una incidencia abierta envía una notificación al responsable del
+      # repositorio. Si ya existe, se añade un comentario con la nueva ejecución.
+      - name: Avisar del fallo
+        if: failure() && steps.e2e.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          title='Producción: falla la prueba de extremo a extremo'
+          {
+            echo "La prueba de extremo a extremo ha fallado contra producción tras desplegar \`${SHA::7}\`."
+            echo
+            echo "- Ejecución y trazas: $RUN_URL"
+            echo "- Para volver a la versión anterior: revertir la pull request que cambió \`VERSION\` en \`.railway/railway.ts\` y fusionarla. En una urgencia, redesplegar el despliegue anterior desde Railway y reflejarlo después en una PR (docs/despliegue.md#volver-atrás)."
+          } > aviso.md
+          issue=$(gh issue list --repo "$REPO" --state open --search "\"$title\" in:title" \
+            --json number --jq '.[0].number // empty')
+          if [ -n "$issue" ]; then
+            gh issue comment "$issue" --repo "$REPO" --body-file aviso.md
+          else
+            gh issue create --repo "$REPO" --title "$title" --body-file aviso.md
+          fi

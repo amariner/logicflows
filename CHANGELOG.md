@@ -6,6 +6,7 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ### Añadido
 
+- Prueba de extremo a extremo contra producción después de cada despliegue, con un usuario de solo lectura. Si falla, abre una incidencia con los pasos para volver atrás (LF-57).
 - Infraestructura de producción como código en `.railway/railway.ts` (ADR-0011, LF-49):
   - Cada PR que la cambia muestra el plan, y al fusionarla se aplica.
   - Desplegar una versión o volver atrás consiste en cambiar la etiqueta de las imágenes.
