@@ -6,6 +6,10 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ### Añadido
 
+- Visor instalable como PWA (LF-55):
+  - Manifiesto con iconos propios y service worker que guarda solo la aplicación.
+  - Aviso de versión nueva.
+  - Sin conexión, indica que no hay datos en directo.
 - Endurecimiento (LF-52):
   - **API:** cabeceras de seguridad, límite de peticiones por cliente con `429` y tamaño máximo de peticiones y mensajes WebSocket.
   - **Visor:** política de seguridad de contenidos en Nginx.

@@ -5,6 +5,7 @@ import { provideIonicAngular } from '@ionic/angular';
 
 import { provideVisorAuth } from '../app/core/auth/auth';
 import { AppConfigService, parseAppConfig } from '../app/core/config/app-config';
+import { provideVisorServiceWorker } from '../app/core/pwa/app-update';
 import { WEB_SOCKET_FACTORY } from '../app/core/realtime/realtime.service';
 import { FakeWebSocket } from './fake-web-socket';
 
@@ -33,6 +34,7 @@ export function testProviders(
     provideHttpClientTesting(),
     { provide: AppConfigService, useValue: config },
     provideVisorAuth(),
+    provideVisorServiceWorker(false),
     {
       provide: WEB_SOCKET_FACTORY,
       useValue: (url: string) => new FakeWebSocket(url) as unknown as WebSocket,

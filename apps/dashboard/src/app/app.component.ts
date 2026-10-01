@@ -16,11 +16,14 @@ import {
   IonRouterLink,
   IonRouterOutlet,
   IonSplitPane,
+  IonToast,
 } from '@ionic/angular';
+import type { ToastButton } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { gridSharp, logOutSharp } from 'ionicons/icons';
 
 import { AuthService } from './core/auth/auth';
+import { AppUpdateService } from './core/pwa/app-update';
 import { RealtimeService } from './core/realtime/realtime.service';
 
 interface MenuEntry {
@@ -56,13 +59,27 @@ interface MenuEntry {
     IonRouterLink,
     IonRouterOutlet,
     IonSplitPane,
+    IonToast,
   ],
 })
 export class AppComponent {
   protected readonly auth = inject(AuthService);
+  protected readonly updates = inject(AppUpdateService);
+  protected readonly updateButtons: ToastButton[] = [
+    {
+      text: 'Actualizar',
+      handler: () => {
+        this.updates.reload();
+      },
+    },
+  ];
   protected readonly menu: readonly MenuEntry[] = [
     { title: 'Células', url: '/cells', icon: 'grid-sharp' },
   ];
+
+  protected reload(): void {
+    window.location.reload();
+  }
 
   constructor() {
     addIcons({ gridSharp, logOutSharp });
