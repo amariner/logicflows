@@ -84,6 +84,7 @@ Las decisiones relevantes se registran como ADR en [`docs/adr`](docs/adr/README.
 | [0008](docs/adr/0008-plataforma-de-despliegue.md) | Railway para producción y previsualizaciones por pull request |
 | [0009](docs/adr/0009-autenticacion-y-autorizacion.md) | OpenID Connect con Keycloak; tiques para el WebSocket y credenciales MQTT por célula |
 | [0010](docs/adr/0010-imagenes-de-la-infraestructura.md) | Imágenes propias del broker y de Keycloak con su configuración; realm de producción sin usuarios |
+| [0011](docs/adr/0011-infraestructura-como-codigo.md) | Infraestructura de Railway como código: plan en cada PR y aplicación al fusionar |
 
 ## Estructura
 
