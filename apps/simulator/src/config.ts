@@ -47,7 +47,9 @@ export interface SimulatorConfig {
 
 /** Lee y valida la configuración desde las variables de entorno. */
 export function loadConfig(env: Record<string, string | undefined>): SimulatorConfig {
-  const result = configSchema.safeParse(env);
+  // Una variable definida sin valor (`SIMULATOR_SEED=`) cuenta como no definida.
+  const defined = Object.fromEntries(Object.entries(env).filter(([, value]) => value !== ''));
+  const result = configSchema.safeParse(defined);
   if (!result.success) {
     throw new Error(`Configuración no válida:\n${z.prettifyError(result.error)}`);
   }

@@ -28,6 +28,11 @@ describe('configuración', () => {
     expect(config.boxIntervalMs).toBe(500);
   });
 
+  it('trata las variables vacías como no definidas', () => {
+    const config = loadConfig({ MQTT_SIMULATOR_PASSWORD: 'x', SIMULATOR_SEED: '' });
+    expect(config.seed).toBeUndefined();
+  });
+
   it.each([
     ['sin contraseña del broker', {}],
     [
