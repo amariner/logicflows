@@ -125,6 +125,8 @@ jobs:
           curl -fsS http://127.0.0.1:8100/config.json | grep -q '"apiUrl": "http://localhost:3000"'
           curl -fsSI http://127.0.0.1:8100/ | grep -qi "content-security-policy: default-src 'self'"
           curl -fsSI http://127.0.0.1:3000/health/live | grep -qi "content-security-policy: default-src 'none'"
+          main=$(curl -fsS http://127.0.0.1:8100/ | grep -o 'main-[A-Za-z0-9]*\.js' | head -1)
+          curl -fsSI -H 'Accept-Encoding: gzip' "http://127.0.0.1:8100/$main" | grep -qi 'content-encoding: gzip'
 
       # Una caja publicada por el simulador llega al visor a través del broker,
       # la API y el canal en tiempo real.
