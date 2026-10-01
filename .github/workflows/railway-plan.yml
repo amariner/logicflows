@@ -1,0 +1,40 @@
+name: Railway plan
+
+# Calcula los cambios que una pull request haría en Railway (ADR-0011) y los
+# publica como comentario en la PR. El plan queda fijado como artefacto: al
+# fusionar se aplica exactamente lo que se revisó.
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.railway/**']
+
+concurrency:
+  group: railway-plan-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  plan:
+    name: Plan de Railway
+    # Las PR desde forks no tienen acceso al token de Railway.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      # El fichero de configuración importa el SDK de Railway (railway/iac).
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - uses: railwayapp/config@v1
+        with:
+          command: plan
+          railway-token: ${{ secrets.RAILWAY_TOKEN }}

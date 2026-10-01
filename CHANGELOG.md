@@ -6,6 +6,11 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ### Añadido
 
+- Infraestructura de producción como código en `.railway/railway.ts` (ADR-0011, LF-49):
+  - Cada PR que la cambia muestra el plan, y al fusionarla se aplica.
+  - Desplegar una versión o volver atrás consiste en cambiar la etiqueta de las imágenes.
+  - Railway no envía tráfico a un servicio hasta que pasa su comprobación de salud; la API, solo con las migraciones aplicadas.
+  - El broker guarda sus datos en un volumen y admite células desde Internet por `wss://`.
 - MQTT sobre WebSocket: el broker escucha también en el puerto 9001 y la API y el simulador admiten URL `ws://` y `wss://`. Es la vía de las células en producción (ADR-0008, LF-49).
 - Compresión de los ficheros del visor al construir la imagen: en una red móvil lenta, los datos aparecen en 4,5 s en lugar de 8 s (LF-59).
 - Visor instalable como PWA (LF-55):
