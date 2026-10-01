@@ -7,11 +7,12 @@ import type { RealtimeMessage } from '@logicflows/contract';
 import { buildStateMessage, buildTelemetryMessage } from '@logicflows/contract/testing';
 import mqtt from 'mqtt';
 import type { MqttClient } from 'mqtt';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { WebSocket } from 'ws';
 
 import { MqttIngestionService } from '../ingestion/mqtt-ingestion.service.ts';
 import { createApp } from '../testing/app.ts';
+import { RealtimeTickets } from './realtime-tickets.ts';
 import { testIssuer } from '../testing/auth.ts';
 import { startDatabase } from '../testing/database.ts';
 import { API_PASSWORD, SIMULATOR_PASSWORD, startBroker, waitFor } from '../testing/broker.ts';
@@ -31,6 +32,9 @@ describe('canal de tiempo real con un broker real', () => {
   let apiUrl: string;
   const clients: RealtimeClient[] = [];
 
+  // Un cliente está conectado cuando recibe la instantánea, no cuando se abre
+  // el WebSocket: la API valida el tique después de abrirlo y solo garantiza
+  // los cambios posteriores a la instantánea.
   const connect = async (): Promise<RealtimeClient> => {
     const response = await fetch(`${apiUrl}/api/v1/realtime/tickets`, {
       method: 'POST',
@@ -49,6 +53,7 @@ describe('canal de tiempo real con un broker real', () => {
       socket.once('error', reject);
     });
     clients.push(client);
+    await waitFor(() => client.received.some((message) => message.type === 'snapshot'));
     return client;
   };
 
@@ -127,5 +132,38 @@ describe('canal de tiempo real con un broker real', () => {
     await publish('state', buildStateMessage({ seq: 2, state: 'PAUSED', event: 'pause' }));
     await waitFor(() => client.received.length === 2);
     expect(client.received.at(-1)).toMatchObject({ cell: { state: { state: 'PAUSED', seq: 2 } } });
+  });
+
+  it('un cambio publicado mientras se valida el tique llega en la instantánea', async () => {
+    const watcher = await connect();
+    const changes = watcher.received.length;
+    const tickets = app.get(RealtimeTickets);
+    const redeem = tickets.redeem.bind(tickets);
+    let release = (): void => undefined;
+    const validating = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const spy = vi.spyOn(tickets, 'redeem').mockImplementation(async (...args) => {
+      await validating;
+      return redeem(...args);
+    });
+    try {
+      const pending = connect();
+      await waitFor(() => spy.mock.calls.length === 1);
+      await publish(
+        'state',
+        buildStateMessage({ seq: 3, state: 'RUNNING', previousState: 'PAUSED', event: 'resume' }),
+      );
+      await waitFor(() => watcher.received.length > changes);
+      release();
+      const late = await pending;
+
+      expect(late.received[0]).toMatchObject({
+        type: 'snapshot',
+        cells: [{ cellId: 'cell-01', state: { state: 'RUNNING', seq: 3 } }],
+      });
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
