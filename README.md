@@ -41,6 +41,7 @@ logicflows/
 | `pnpm format` | Aplica el formato común (Prettier) a todo el repositorio |
 | `pnpm format:check` · `pnpm typecheck` · `pnpm lint` · `pnpm test` · `pnpm build` | Cada comprobación por separado |
 | `pnpm test:integration` | Pruebas de integración con contenedores reales; necesita Docker ([estrategia de pruebas](docs/estrategia-de-pruebas.md)) |
+| `pnpm test:e2e` | Prueba de extremo a extremo contra el sistema levantado con `pnpm stack:up` |
 | `pnpm --filter @logicflows/api <script>` | Ejecuta un script en un único paquete |
 
 Cada paquete expone los mismos scripts (`typecheck`, `lint`, `test` y `build`) a medida que se implementa; los comandos de la raíz omiten los paquetes que aún no los definen. pnpm los ejecuta en orden topológico: un paquete se procesa después de aquellos de los que depende.
@@ -96,7 +97,7 @@ cp .env.example .env
 pnpm stack:up          # construye las imágenes, arranca todo y espera a que esté sano
 ```
 
-El visor queda en `http://localhost:8100` y la API en `http://localhost:3000`. `pnpm stack:down` lo detiene. Los puertos coinciden con los de `pnpm api`, así que no se usan las dos formas a la vez.
+El visor queda en `http://localhost:8100` y la API en `http://localhost:3000`. `pnpm test:e2e` ejecuta la prueba de extremo a extremo contra este sistema ([estrategia de pruebas](docs/estrategia-de-pruebas.md)). `pnpm stack:down` lo detiene. Los puertos coinciden con los de `pnpm api`, así que no se usan las dos formas a la vez.
 
 ### Imágenes Docker
 
@@ -116,7 +117,7 @@ Las imágenes no contienen configuración de ningún entorno: la misma imagen si
 
 ## Integración continua
 
-Cada pull request contra `main` y cada cambio en `main` ejecutan el workflow [CI](.github/workflows/ci.yml) en GitHub Actions: instalación con `--frozen-lockfile`, formato, tipos, lint, pruebas y build; en paralelo, las pruebas de integración con Testcontainers, la accesibilidad del visor y la construcción de las imágenes Docker con el arranque del sistema completo. Cada comprobación es un paso independiente para identificar de un vistazo qué ha fallado. Las comprobaciones tienen un límite de 10 minutos (15 el trabajo que construye las imágenes) y una nueva ejecución en la misma rama cancela la anterior.
+Cada pull request contra `main` y cada cambio en `main` ejecutan el workflow [CI](.github/workflows/ci.yml) en GitHub Actions: instalación con `--frozen-lockfile`, formato, tipos, lint, pruebas y build; en paralelo, las pruebas de integración con Testcontainers, la accesibilidad del visor y la construcción de las imágenes Docker con el arranque del sistema completo y la prueba de extremo a extremo. Cada comprobación es un paso independiente para identificar de un vistazo qué ha fallado. Las comprobaciones tienen un límite de 10 minutos (15 el trabajo que construye las imágenes) y una nueva ejecución en la misma rama cancela la anterior.
 
 ## Calidad del código
 

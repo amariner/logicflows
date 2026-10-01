@@ -16,7 +16,7 @@ Este documento define qué se prueba en cada nivel, con qué herramientas y cóm
 |---|---|---|---|---|
 | **Unitarias** | Lógica de dominio y componentes aislados | Ninguna externa | Vitest | `pnpm test`, en cada cambio y en la CI |
 | **Integración** | Un servicio con su broker y su base de datos reales | Contenedores efímeros | Vitest y Testcontainers | `pnpm test:integration`, antes de abrir una pull request y en la CI |
-| **Extremo a extremo** | Flujos críticos del usuario con el sistema completo | Entorno de Docker Compose | Playwright | En la CI, desde LF-39 |
+| **Extremo a extremo** | Flujos críticos del usuario con el sistema completo | Imágenes de las aplicaciones en Docker Compose | Playwright | En la CI |
 
 ### Unitarias
 
@@ -42,7 +42,20 @@ Los contenedores usan las mismas imágenes y versiones que `compose.yaml`.
 
 ### Extremo a extremo
 
-Pocos flujos, los que demuestran que el producto funciona: el simulador publica una caja, la API la procesa y el visor la muestra; una célula pasa a fallo y el visor lo destaca. Se ejecutan con Playwright contra el sistema completo levantado con Docker Compose. Se definen en LF-39.
+Pocos flujos, los que demuestran que el producto funciona. Se ejecutan con Playwright contra el sistema completo en contenedores (`pnpm stack:up`, perfil `apps` de Compose), sin dobles de ningún tipo:
+
+- **Una caja simulada aparece en el visor** (LF-39): el visor abierto muestra la célula produciendo y, sin recargar, el contador de cajas aumenta. La caja recorre el simulador, el broker, la API y el canal en tiempo real.
+
+Para ejecutarlas en local:
+
+```sh
+pnpm stack:up
+pnpm test:e2e
+```
+
+La prueba espera al escenario `normal` del simulador, el de `.env.example`. Con incidencias, la célula podría estar parada justo durante la prueba.
+
+Que una célula en fallo se destaque en el visor se comprueba con los componentes y con las pruebas de accesibilidad, que usan datos de ejemplo. Provocar un fallo en el sistema completo exigiría poder dar órdenes al simulador desde fuera. Se valorará cuando haya comandos hacia la célula.
 
 ## Convenciones
 
@@ -91,7 +104,7 @@ Testcontainers instala dependencias con scripts de instalación opcionales (`cpu
 |---|---|
 | Comprobaciones | Formato, tipos, lint, pruebas unitarias y build |
 | Integración | Pruebas de integración con Testcontainers, desde que exista la primera (LF-26) |
-| Entorno local | Construcción de las imágenes y arranque de `compose.yaml` con el perfil `apps` y la configuración de ejemplo; la API responde sana y el visor sirve su `config.json` |
-| Extremo a extremo | Playwright contra el sistema completo, desde LF-39 |
+| Accesibilidad | WCAG 2.2 AA con axe-core y Playwright sobre la build de producción del visor |
+| Sistema completo | Construcción de las imágenes, arranque de `compose.yaml` con el perfil `apps` y la configuración de ejemplo, y prueba de extremo a extremo con Playwright |
 
-Todos los trabajos se ejecutan en paralelo y deben terminar en menos de 10 minutos.
+Todos los trabajos se ejecutan en paralelo. Deben terminar en menos de 10 minutos, salvo el del sistema completo, que construye las imágenes y tiene 15.

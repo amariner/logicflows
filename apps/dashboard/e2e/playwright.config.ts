@@ -5,6 +5,8 @@ const PORT = 4300;
 /** Pruebas del visor en un navegador real contra su build de producción. */
 export default defineConfig({
   testDir: '.',
+  // La prueba del sistema completo tiene su propia configuración.
+  testIgnore: 'system/**',
   fullyParallel: true,
   forbidOnly: process.env['CI'] !== undefined,
   reporter: process.env['CI'] === undefined ? 'list' : [['list'], ['github']],
