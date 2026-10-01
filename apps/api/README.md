@@ -129,7 +129,7 @@ Se valida al arrancar; un valor no válido detiene la API indicando qué variabl
 |---|---|---|
 | `API_PORT` | `3000` | Puerto HTTP |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn` o `error` |
-| `MQTT_URL` | `mqtt://127.0.0.1:1883` | Dirección del broker |
+| `MQTT_URL` | `mqtt://127.0.0.1:1883` | Dirección del broker: `mqtt://` o `mqtts://` por TCP, `ws://` o `wss://` por WebSocket ([ADR-0008](../../docs/adr/0008-plataforma-de-despliegue.md)) |
 | `MQTT_API_USERNAME` | `api` | Usuario del broker |
 | `MQTT_API_PASSWORD` | — | Contraseña del broker (obligatoria) |
 | `MQTT_CLIENT_ID` | `logicflows-api-` + nombre del equipo | Identificador del cliente MQTT, distinto en cada instancia; el broker asocia a él la sesión persistente |

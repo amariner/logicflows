@@ -29,11 +29,14 @@ export const freePort = () =>
 export interface TestBroker {
   readonly container: StartedTestContainer;
   readonly url: string;
+  /** Listener de MQTT sobre WebSocket (ADR-0008). */
+  readonly webSocketUrl: string;
 }
 
 /** Mosquitto con la configuración del repositorio: autenticación y ACL incluidas. */
 export async function startBroker(): Promise<TestBroker> {
   const port = await freePort();
+  const webSocketPort = await freePort();
   const container = await new GenericContainer('eclipse-mosquitto:2.1.2-alpine')
     .withCopyFilesToContainer([
       { source: infra('mosquitto.conf'), target: '/mosquitto/config/mosquitto.conf' },
@@ -45,10 +48,14 @@ export async function startBroker(): Promise<TestBroker> {
       MQTT_SIMULATOR_PASSWORD: SIMULATOR_PASSWORD,
     })
     .withCommand(['/bin/sh', '/mosquitto/init/init.sh'])
-    .withExposedPorts({ container: 1883, host: port })
+    .withExposedPorts({ container: 1883, host: port }, { container: 9001, host: webSocketPort })
     .withWaitStrategy(Wait.forLogMessage(/mosquitto version .* running/))
     .start();
-  return { container, url: `mqtt://127.0.0.1:${String(port)}` };
+  return {
+    container,
+    url: `mqtt://127.0.0.1:${String(port)}`,
+    webSocketUrl: `ws://127.0.0.1:${String(webSocketPort)}/mqtt`,
+  };
 }
 
 export async function waitFor(condition: () => boolean, timeoutMs = 20_000): Promise<void> {

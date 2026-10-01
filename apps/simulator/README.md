@@ -80,7 +80,7 @@ docker compose exec mosquitto mosquitto_sub -u api -P api-local -t 'logicflows/v
 
 | Variable | Por defecto | Descripción |
 |---|---|---|
-| `MQTT_URL` | `mqtt://127.0.0.1:1883` | Dirección del broker |
+| `MQTT_URL` | `mqtt://127.0.0.1:1883` | Dirección del broker: `mqtt://` o `mqtts://` por TCP, `ws://` o `wss://` por WebSocket ([ADR-0008](../../docs/adr/0008-plataforma-de-despliegue.md)) |
 | `MQTT_SIMULATOR_USERNAME` | `simulator` | Usuario del broker |
 | `MQTT_SIMULATOR_PASSWORD` | — | Contraseña del broker (obligatoria) |
 | `SIMULATOR_SITE_ID` | `demo` | Planta |

@@ -153,7 +153,7 @@ pnpm infra:up          # arranca y espera a que ambos servicios estén sanos
 
 | Servicio | Dirección | Credenciales |
 |---|---|---|
-| Mosquitto (MQTT 5) | `mqtt://127.0.0.1:1883` | Usuarios `api` (lectura) y `simulator` (escritura); contraseñas en `.env` |
+| Mosquitto (MQTT 5) | `mqtt://127.0.0.1:1883` y, sobre WebSocket, `ws://127.0.0.1:9001/mqtt` | Usuarios `api` (lectura) y `simulator` (escritura); contraseñas en `.env` |
 | PostgreSQL 18 | `postgres://127.0.0.1:5432` | Usuario, contraseña y base de datos en `.env` |
 | Keycloak 26 | `http://localhost:8180` | Realm `logicflows` con usuarios de prueba ([`infra/keycloak`](infra/keycloak)); consola de administración con las credenciales de `.env` |
 

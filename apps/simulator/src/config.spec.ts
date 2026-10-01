@@ -28,6 +28,11 @@ describe('configuración', () => {
     expect(config.boxIntervalMs).toBe(500);
   });
 
+  it('admite MQTT sobre WebSocket con TLS (ADR-0008)', () => {
+    const url = 'wss://mqtt.logicflows.example/mqtt';
+    expect(loadConfig({ MQTT_SIMULATOR_PASSWORD: 'x', MQTT_URL: url }).mqtt.url).toBe(url);
+  });
+
   it('trata las variables vacías como no definidas', () => {
     const config = loadConfig({ MQTT_SIMULATOR_PASSWORD: 'x', SIMULATOR_SEED: '' });
     expect(config.seed).toBeUndefined();
