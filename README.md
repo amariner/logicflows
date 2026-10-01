@@ -4,9 +4,82 @@ Plataforma IIoT para monitorizar en tiempo real células robotizadas de paletiza
 
 > **Estado:** en desarrollo. Hito actual: **Hito 1 · Primera caja en pantalla** (`v0.1.0`).
 
+<p>
+  <img src="docs/imagenes/visor-escritorio.png" alt="Visor de LogicFlows en escritorio, tema oscuro: la célula cell-01 produciendo, con el contador de cajas, pallets, capa, ritmo y tiempo de ciclo" width="68%">
+  <img src="docs/imagenes/visor-movil.png" alt="El mismo visor en un móvil, tema claro" width="28%">
+</p>
+
+## Arranque rápido
+
+Solo hace falta **Docker** con Docker Compose 2 (Docker Desktop, OrbStack o Colima con `docker-buildx`). En menos de 10 minutos el sistema completo funciona en local con una célula simulada:
+
+```sh
+git clone https://github.com/amariner/logicflows.git
+cd logicflows
+cp .env.example .env
+docker compose --profile apps up -d --build --wait
+```
+
+La primera vez se descargan las imágenes base y se compilan las aplicaciones: unos 2 minutos con una conexión normal. Después:
+
+| Qué | Dónde |
+|---|---|
+| Visor | <http://localhost:8100> |
+| API y su documentación OpenAPI | <http://localhost:3000/docs> |
+| Estado de la API | <http://localhost:3000/health/ready> |
+
+El simulador arranca la célula `cell-01` de la planta `demo` y empieza a paletizar: el contador de cajas del visor avanza cada pocos segundos. Para ver averías, esperas y paradas de emergencia, se cambia `SIMULATOR_SCENARIO=demo` en `.env` y se vuelve a ejecutar el último comando ([escenarios](apps/simulator/README.md)).
+
+Para detenerlo todo: `docker compose --profile apps down` (añadir `--volumes` para borrar también los datos).
+
+Si el puerto 3000 o el 8100 están ocupados, se cambian con `API_PORT` y `DASHBOARD_PORT` en `.env`.
+
 ## Arquitectura
 
-Un simulador de paletizadora publica telemetría por MQTT. Una API en NestJS la valida, la persiste en PostgreSQL y la expone por REST y WebSocket a un visor multiplataforma construido con Ionic y Angular.
+```mermaid
+flowchart LR
+  sim["Simulador de la célula<br/>apps/simulator"]
+  broker[("Broker MQTT 5<br/>Mosquitto")]
+
+  subgraph api["API · apps/api (NestJS)"]
+    direction TB
+    ingesta["Ingesta<br/>validación, duplicados y orden"]
+    estado["Estado actual<br/>de las células"]
+    salida["REST /api/v1 y<br/>WebSocket /realtime"]
+    ingesta --> estado --> salida
+  end
+
+  db[("PostgreSQL 18")]
+  visor["Visor · apps/dashboard<br/>navegador, Android e iOS"]
+
+  sim -- "status, state y telemetry<br/>logicflows/v1/planta/célula/…" --> broker
+  broker --> ingesta
+  ingesta -- "persistencia" --> db
+  db -. "recuperación al arrancar<br/>y producción por periodo" .-> api
+  salida -- "carga inicial y<br/>cambios en tiempo real" --> visor
+```
+
+- **Simulador** ([`apps/simulator`](apps/simulator)): reproduce una célula robotizada de paletizado con su máquina de estados ([ADR-0003](docs/adr/0003-estados-de-la-paletizadora.md)), alarmas y escenarios de incidencias y de red inestable. Publica por MQTT el estado, la telemetría y su conexión.
+- **Broker MQTT** (Eclipse Mosquitto): desacopla las células de la plataforma. Los mensajes son JSON versionado en topics `logicflows/v1/{planta}/{célula}/{tipo}`, con autenticación y listas de control de acceso ([ADR-0004](docs/adr/0004-mensajes-de-telemetria-y-topics-mqtt.md)).
+- **Contrato** ([`packages/contract`](packages/contract)): topics, tipos y validación compartidos por las tres aplicaciones. Un cambio incompatible falla al compilar ([ADR-0005](docs/adr/0005-paquete-del-contrato.md)).
+- **API** ([`apps/api`](apps/api), NestJS): valida cada mensaje y descarta duplicados y desordenados. Mantiene el estado actual de cada célula, lo persiste en PostgreSQL ([ADR-0007](docs/adr/0007-acceso-a-datos-y-migraciones.md)) y lo ofrece por REST y por un canal WebSocket de tiempo real ([ADR-0006](docs/adr/0006-canal-de-tiempo-real.md)).
+- **Visor** ([`apps/dashboard`](apps/dashboard), Ionic y Angular): muestra el estado, la producción y las alarmas de cada célula siguiendo ISA-101 y WCAG 2.2 AA ([diseño](docs/diseno-del-visor.md)). Funciona en el navegador y, con Capacitor, como aplicación de Android e iOS ([ADR-0002](docs/adr/0002-visor-multiplataforma.md)).
+
+Cada aplicación se empaqueta como imagen Docker configurable solo con variables de entorno, de modo que la misma imagen sirve para cualquier entorno ([imágenes](#imágenes-docker)).
+
+## Decisiones de arquitectura
+
+Las decisiones relevantes se registran como ADR en [`docs/adr`](docs/adr/README.md):
+
+| ADR | Decisión |
+|---|---|
+| [0001](docs/adr/0001-gestor-de-paquetes-y-orquestacion.md) | pnpm workspaces como gestor del monorepo, sin orquestador de tareas |
+| [0002](docs/adr/0002-visor-multiplataforma.md) | Visor multiplataforma con Ionic, Angular y Capacitor |
+| [0003](docs/adr/0003-estados-de-la-paletizadora.md) | Siete estados de la paletizadora, alineados con PackML |
+| [0004](docs/adr/0004-mensajes-de-telemetria-y-topics-mqtt.md) | Mensajes JSON sobre MQTT 5, topics versionados y Mosquitto como broker |
+| [0005](docs/adr/0005-paquete-del-contrato.md) | Contrato compartido con Zod y JSON Schema |
+| [0006](docs/adr/0006-canal-de-tiempo-real.md) | WebSocket nativo para el tiempo real entre la API y el visor |
+| [0007](docs/adr/0007-acceso-a-datos-y-migraciones.md) | Drizzle ORM sobre PostgreSQL con migraciones SQL versionadas |
 
 ## Estructura
 
@@ -25,7 +98,7 @@ logicflows/
     └── adr/         # Decisiones de arquitectura
 ```
 
-## Requisitos
+## Requisitos para desarrollar
 
 - **Docker** con Docker Compose, para la infraestructura local.
 - **pnpm 11.** La versión exacta está fijada en el campo `packageManager` de `package.json`. Con Corepack, incluido en Node.js, basta con ejecutar `corepack enable`.
@@ -55,9 +128,9 @@ Cada paquete expone los mismos scripts (`typecheck`, `lint`, `test` y `build`) a
 
 pnpm reescribe este fichero al modificar la configuración y elimina los comentarios, por eso las decisiones se documentan aquí.
 
-## Entorno local
+## Desarrollo local
 
-Docker Compose levanta la infraestructura que necesitan las aplicaciones: el broker MQTT (Eclipse Mosquitto) y PostgreSQL, ambos accesibles solo desde el propio equipo.
+Para desarrollar no se usan las imágenes: las aplicaciones se ejecutan con pnpm, con recarga automática, y Docker Compose levanta la infraestructura que necesitan: el broker MQTT (Eclipse Mosquitto) y PostgreSQL, ambos accesibles solo desde el propio equipo.
 
 ```sh
 cp .env.example .env   # una sola vez; ajustar si hace falta
@@ -90,14 +163,7 @@ docker compose exec mosquitto mosquitto_sub -u api -P api-local -t 'logicflows/v
 
 ### Sistema completo en contenedores
 
-El perfil `apps` de Docker Compose añade las tres aplicaciones, construidas con el [`Dockerfile`](Dockerfile) de la raíz, a la infraestructura anterior. Es la forma más rápida de ver el sistema funcionando sin instalar nada más que Docker:
-
-```sh
-cp .env.example .env
-pnpm stack:up          # construye las imágenes, arranca todo y espera a que esté sano
-```
-
-El visor queda en `http://localhost:8100` y la API en `http://localhost:3000`. `pnpm test:e2e` ejecuta la prueba de extremo a extremo contra este sistema ([estrategia de pruebas](docs/estrategia-de-pruebas.md)). `pnpm stack:down` lo detiene. Los puertos coinciden con los de `pnpm api`, así que no se usan las dos formas a la vez.
+`pnpm stack:up` equivale al [arranque rápido](#arranque-rápido): añade a la infraestructura las tres aplicaciones, construidas con el [`Dockerfile`](Dockerfile) de la raíz, y espera a que estén sanas. `pnpm test:e2e` ejecuta la prueba de extremo a extremo contra este sistema ([estrategia de pruebas](docs/estrategia-de-pruebas.md)) y `pnpm stack:down` lo detiene. La API en contenedor usa el mismo puerto e identificador MQTT que `pnpm api`, así que no se ejecutan las dos a la vez.
 
 ### Imágenes Docker
 
