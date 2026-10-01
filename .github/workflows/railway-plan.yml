@@ -27,6 +27,15 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
+      - name: Comprobar el token de Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          if [ -z "$RAILWAY_TOKEN" ]; then
+            echo "::error::Falta el secreto RAILWAY_TOKEN: un token de proyecto de Railway para production (docs/despliegue.md)."
+            exit 1
+          fi
+
       - uses: actions/checkout@v7
 
       # La CLI evalúa .railway/railway.ts con el Node.js del sistema.
