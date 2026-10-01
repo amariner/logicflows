@@ -61,6 +61,8 @@ Unidades siempre escritas. Cuando falta un dato se muestra «—», nunca un cer
 
 Cifras con `font-variant-numeric: tabular-nums`. El texto se puede ampliar hasta el 200 % sin perder contenido (WCAG 1.4.4).
 
+Los valores de producción y el texto de las alarmas usan el color principal del texto, no el gris secundario de las tarjetas. Ionic solo define `--ion-text-color` en la paleta oscura, así que se usa siempre con su valor por defecto: `var(--ion-text-color, #000)`. Una prueba en el navegador lo comprueba en ambos temas (LF-43).
+
 ## Contraste
 
 Todo texto cumple una relación de contraste de 4,5:1 como mínimo, y los iconos y bordes que transmiten información 3:1 (WCAG 1.4.3 y 1.4.11), en tema claro y oscuro. Se comprueba automáticamente en la CI (LF-37).
