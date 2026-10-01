@@ -3,6 +3,10 @@
 #   docker build --target api -t logicflows-api .
 #   docker build --target simulator -t logicflows-simulator .
 #   docker build --target dashboard -t logicflows-dashboard .
+# Y una etapa por cada servicio de infraestructura con su configuración
+# incluida (ADR-0010):
+#   docker build --target broker -t logicflows-broker .
+#   docker build --target identity -t logicflows-identity .
 # La configuración se da al arrancar con variables de entorno (.env.example):
 # la misma imagen sirve para cualquier entorno.
 
@@ -58,3 +62,44 @@ ENV API_URL=http://localhost:3000
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=3s --retries=3 \
   CMD wget -qO- http://127.0.0.1:8080/config.json > /dev/null || exit 1
+
+# Broker MQTT (ADR-0004): Mosquitto con la configuración y la ACL del
+# repositorio. init.sh genera el fichero de contraseñas al arrancar a partir de
+# MQTT_API_PASSWORD y MQTT_SIMULATOR_PASSWORD; la imagen no contiene ninguna.
+FROM eclipse-mosquitto:2.1.2-alpine AS broker
+COPY infra/mosquitto/mosquitto.conf /mosquitto/config/mosquitto.conf
+COPY --chown=mosquitto:mosquitto --chmod=0600 infra/mosquitto/acl /mosquitto/config/acl
+COPY infra/mosquitto/init.sh /mosquitto/init/init.sh
+EXPOSE 1883 9001
+HEALTHCHECK --interval=5s --timeout=5s --start-period=5s --retries=10 \
+  CMD mosquitto_sub -h localhost -u api -P "$MQTT_API_PASSWORD" -t '$SYS/broker/uptime' -C 1 -W 3 > /dev/null || exit 1
+CMD ["/bin/sh", "/mosquitto/init/init.sh"]
+
+# Realm de producción: se genera a partir del realm local, sin usuarios de
+# prueba y con las direcciones del visor tomadas de LOGICFLOWS_VISOR_URL.
+FROM --platform=$BUILDPLATFORM node:24.21.0-alpine AS identity-realm
+WORKDIR /realm
+COPY infra/keycloak/realm-logicflows.json infra/keycloak/realm-produccion.mjs ./
+RUN node realm-produccion.mjs realm-logicflows.json logicflows.json
+
+# Keycloak compilado para producción con PostgreSQL y comprobaciones de salud.
+# El resultado es Java y sirve para cualquier arquitectura.
+FROM --platform=$BUILDPLATFORM quay.io/keycloak/keycloak:26.7.5 AS identity-build
+ENV KC_DB=postgres \
+    KC_HEALTH_ENABLED=true
+RUN /opt/keycloak/bin/kc.sh build
+
+# Proveedor de identidad (ADR-0009) en modo producción. Al arrancar necesita
+# KC_HOSTNAME, KC_DB_URL, KC_DB_USERNAME, KC_DB_PASSWORD, LOGICFLOWS_VISOR_URL y
+# el administrador inicial (KC_BOOTSTRAP_ADMIN_USERNAME y _PASSWORD). La
+# plataforma termina TLS: Keycloak atiende HTTP y confía en X-Forwarded-*.
+FROM quay.io/keycloak/keycloak:26.7.5 AS identity
+COPY --from=identity-build /opt/keycloak/ /opt/keycloak/
+COPY --from=identity-realm /realm/logicflows.json /opt/keycloak/data/import/realm-logicflows.json
+ENV KC_HTTP_ENABLED=true \
+    KC_PROXY_HEADERS=xforwarded
+EXPOSE 8080 9000
+# La imagen no incluye curl: se consulta el puerto de gestión con bash.
+HEALTHCHECK --interval=10s --timeout=5s --start-period=60s --retries=10 \
+  CMD ["bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+CMD ["start", "--optimized", "--import-realm"]
