@@ -1,7 +1,7 @@
 <ion-header>
   <ion-toolbar>
     <ion-buttons slot="start">
-      <ion-menu-button />
+      <ion-menu-button aria-label="Abrir el menú" />
     </ion-buttons>
     <ion-title>Células</ion-title>
     <ion-buttons slot="end">
@@ -12,5 +12,8 @@
 </ion-header>
 
 <ion-content class="ion-padding">
-  <app-cell-list [cells]="cells()" />
+  <!-- Región enfocable: permite desplazar el contenido con el teclado (WCAG 2.1.1). -->
+  <section class="cells" tabindex="0" aria-label="Células">
+    <app-cell-list [cells]="cells()" />
+  </section>
 </ion-content>
