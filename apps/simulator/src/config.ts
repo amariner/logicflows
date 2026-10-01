@@ -7,7 +7,8 @@ import type { ScenarioName } from './scenarios.ts';
 const positiveInt = z.coerce.number().int().positive();
 
 const configSchema = z.object({
-  MQTT_URL: z.url({ protocol: /^mqtts?$/ }).default('mqtt://127.0.0.1:1883'),
+  // mqtt:// o mqtts:// por TCP; ws:// o wss:// por WebSocket (ADR-0008).
+  MQTT_URL: z.url({ protocol: /^(mqtts?|wss?)$/ }).default('mqtt://127.0.0.1:1883'),
   MQTT_SIMULATOR_USERNAME: z.string().min(1).default('simulator'),
   MQTT_SIMULATOR_PASSWORD: z.string().min(1),
   SIMULATOR_SITE_ID: siteIdSchema.default('demo'),

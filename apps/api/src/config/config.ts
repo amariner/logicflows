@@ -21,7 +21,8 @@ export function defaultClientId(host: string): string {
 const configSchema = z.object({
   API_PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
-  MQTT_URL: z.url({ protocol: /^mqtts?$/ }).default('mqtt://127.0.0.1:1883'),
+  // mqtt:// o mqtts:// por TCP; ws:// o wss:// por WebSocket (ADR-0008).
+  MQTT_URL: z.url({ protocol: /^(mqtts?|wss?)$/ }).default('mqtt://127.0.0.1:1883'),
   MQTT_API_USERNAME: z.string().min(1).default('api'),
   MQTT_API_PASSWORD: z.string().min(1),
   /**

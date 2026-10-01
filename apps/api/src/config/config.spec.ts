@@ -61,6 +61,14 @@ describe('configuración de la API', () => {
     expect(defaultClientId(host)).toBe(expected);
   });
 
+  it.each([
+    ['mqtts://broker:8883'],
+    ['wss://mqtt.logicflows.example/mqtt'],
+    ['ws://mosquitto:9001'],
+  ])('admite el broker %s', (url) => {
+    expect(validateConfig({ ...required, MQTT_URL: url }).MQTT_URL).toBe(url);
+  });
+
   it('convierte el puerto de las variables de entorno', () => {
     expect(validateConfig({ ...required, API_PORT: '8080' }).API_PORT).toBe(8080);
   });
