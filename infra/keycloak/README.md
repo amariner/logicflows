@@ -62,6 +62,22 @@ El rol `admin` de `logicflows` no concede administración de Keycloak. Una cuent
 
 La comprobación de salud de la API no sustituye esta prueba: una API sana no demuestra que un usuario pueda autenticarse y consultar los datos. Tampoco basta con que Keycloak acepte la contraseña si quedan acciones de perfil pendientes.
 
+### Usuario de la prueba de producción (LF-57)
+
+El flujo **Prueba de producción** inicia sesión en el visor después de cada despliegue con una cuenta propia, solo de lectura. Es una cuenta técnica: no se comparte ni se usa para nada más.
+
+1. En el realm `logicflows`, crear el usuario `prueba-e2e` siguiendo [Crear un usuario del visor](#crear-un-usuario-del-visor), con estas particularidades:
+   - completar **Email**, **First name** y **Last name**. Si falta algún campo obligatorio, Keycloak pide completar el perfil en el primer acceso y la prueba falla;
+   - generar la contraseña con `openssl rand -base64 24` y guardarla con **Temporary** desactivado;
+   - asignar **solo** el rol `viewer`.
+2. Iniciar sesión una vez en el visor con esa cuenta para comprobar que llega a `/cells` sin pasos pendientes.
+3. Guardar las credenciales en GitHub sin que aparezcan en pantalla ni en el historial: `gh secret set E2E_USERNAME --repo amariner/logicflows` y `gh secret set E2E_PASSWORD --repo amariner/logicflows`. Cada orden pide el valor.
+4. Lanzar el flujo a mano para comprobarlo: `gh workflow run prueba-produccion.yml --repo amariner/logicflows`.
+
+La prueba comprueba en cada ejecución que el token del usuario tiene `viewer` y no `admin`. Si alguien le asigna `admin`, la prueba falla.
+
+Para rotar la contraseña: fijar una nueva en **Credentials** y actualizar `E2E_PASSWORD`.
+
 ### Si caduca el intento de inicio de sesión
 
 Ante **«Ha tardado demasiado en identificarse. Inicie de nuevo la identificación.»**, volver a abrir la dirección base del visor e iniciar sesión otra vez. Si vuelve a pedir completar el perfil, rellenar los campos y enviar el formulario.

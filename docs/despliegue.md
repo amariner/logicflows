@@ -54,7 +54,15 @@ La API aplica las migraciones pendientes antes de empezar a escuchar ([ADR-0007]
 1. **Etiquetar.** Con todas las comprobaciones en verde en `main`, se etiqueta el commit (`git tag v0.2.0 && git push origin v0.2.0`). El flujo `Imágenes` asigna esa versión a las imágenes ya publicadas del commit, sin recompilar. Si el commit no tiene imágenes, falla.
 2. **Proponer.** En una pull request se cambia `VERSION` en `.railway/railway.ts` a la etiqueta nueva. El plan de la PR debe mostrar solo el cambio de imagen de los cinco servicios.
 3. **Fusionar.** `Railway apply` despliega los cinco servicios y cada uno pasa su comprobación de salud antes de recibir tráfico.
-4. **Comprobar.** `/health/ready` en la API, el visor con sesión y la célula de demostración en directo.
+4. **Comprobar.** El flujo `Prueba de producción` se ejecuta solo al terminar el despliegue. Si falla, se vuelve atrás.
+
+**Prueba tras el despliegue (LF-57).** Cuando `Railway apply` termina bien, el flujo `Prueba de producción` ejecuta la prueba de extremo a extremo contra el visor de producción:
+
+- inicia sesión con el usuario de solo lectura;
+- espera a que llegue una caja nueva de la célula de demostración;
+- comprueba que el visor es instalable y que el usuario no tiene el rol `admin`.
+
+Si falla, abre una incidencia en GitHub (o comenta en la que siga abierta) con las trazas y los pasos para volver atrás. También se puede lanzar a mano: `gh workflow run prueba-produccion.yml`. Necesita los secretos `E2E_USERNAME` y `E2E_PASSWORD` ([alta del usuario](../infra/keycloak/README.md#usuario-de-la-prueba-de-producción-lf-57)).
 
 ## Volver atrás
 
