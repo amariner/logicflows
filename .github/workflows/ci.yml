@@ -92,25 +92,35 @@ jobs:
   infra:
     name: Entorno local
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
-      # Comprueba que la infraestructura local arranca y supera sus
-      # comprobaciones de salud con la configuración de ejemplo.
-      - name: Levantar broker y base de datos
+      # Construye las imágenes de las aplicaciones (Dockerfile de la raíz) y
+      # comprueba que el sistema completo arranca y supera sus comprobaciones
+      # de salud con la configuración de ejemplo.
+      - name: Construir las imágenes y levantar el sistema
         run: |
           cp .env.example .env
-          docker compose up -d --wait
+          docker compose --profile apps up -d --build --wait
+
+      - name: Comprobar los servicios publicados
+        run: |
+          curl -fsS http://127.0.0.1:3000/health/ready
+          curl -fsS http://127.0.0.1:8100/config.json | grep -q '"apiUrl": "http://localhost:3000"'
+          curl -fsS http://127.0.0.1:8100/cells | grep -q '<app-root'
+
+      - name: Tamaño de las imágenes
+        run: docker image ls 'logicflows-*'
 
       - name: Estado de los servicios
         if: always()
-        run: docker compose ps
+        run: docker compose --profile apps ps
 
       - name: Registros si falla
         if: failure()
-        run: docker compose logs
+        run: docker compose --profile apps logs
 
       - name: Detener y eliminar los datos
         if: always()
-        run: docker compose down --volumes
+        run: docker compose --profile apps down --volumes

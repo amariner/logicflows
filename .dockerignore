@@ -1,0 +1,13 @@
+# Solo se envía al motor de Docker lo necesario para compilar.
+.git
+.github
+**/node_modules
+**/dist
+**/www
+**/.angular
+**/coverage
+**/test-results
+**/playwright-report
+.env
+.env.*
+!.env.example

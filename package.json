@@ -28,6 +28,8 @@
     "infra:down": "docker compose down",
     "infra:reset": "docker compose down --volumes",
     "infra:logs": "docker compose logs -f",
+    "stack:up": "docker compose --profile apps up -d --build --wait",
+    "stack:down": "docker compose --profile apps down",
     "simulator": "pnpm --filter @logicflows/simulator dev",
     "api": "pnpm --filter @logicflows/api dev",
     "dashboard": "pnpm --filter @logicflows/dashboard dev"

@@ -1,5 +1,8 @@
-# Infraestructura local de LogicFlows: broker MQTT y base de datos.
-# Uso: pnpm infra:up · pnpm infra:down · pnpm infra:reset
+# Entorno local de LogicFlows.
+# Infraestructura (broker MQTT y base de datos):
+#   pnpm infra:up · pnpm infra:down · pnpm infra:reset
+# Sistema completo con las imágenes de las aplicaciones (perfil "apps"):
+#   pnpm stack:up · pnpm stack:down
 name: logicflows
 
 services:
@@ -45,6 +48,54 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+    restart: unless-stopped
+
+  # Aplicaciones (perfil "apps"). Se construyen con el Dockerfile de la raíz.
+  api:
+    profiles: [apps]
+    build: { context: ., target: api }
+    image: logicflows-api:local
+    environment:
+      MQTT_URL: mqtt://mosquitto:1883
+      MQTT_API_PASSWORD: ${MQTT_API_PASSWORD}
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      CORS_ORIGINS: http://localhost:${DASHBOARD_PORT:-8100}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - '127.0.0.1:${API_PORT:-3000}:3000'
+    depends_on:
+      mosquitto: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    restart: unless-stopped
+
+  simulator:
+    profiles: [apps]
+    build: { context: ., target: simulator }
+    image: logicflows-simulator:local
+    environment:
+      MQTT_URL: mqtt://mosquitto:1883
+      MQTT_SIMULATOR_PASSWORD: ${MQTT_SIMULATOR_PASSWORD}
+      SIMULATOR_SITE_ID: ${SIMULATOR_SITE_ID:-demo}
+      SIMULATOR_CELL_ID: ${SIMULATOR_CELL_ID:-cell-01}
+      SIMULATOR_SCENARIO: ${SIMULATOR_SCENARIO:-normal}
+      SIMULATOR_BOX_INTERVAL_MS: ${SIMULATOR_BOX_INTERVAL_MS:-4000}
+      SIMULATOR_SEED: ${SIMULATOR_SEED:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      mosquitto: { condition: service_healthy }
+    restart: unless-stopped
+
+  dashboard:
+    profiles: [apps]
+    build: { context: ., target: dashboard }
+    image: logicflows-dashboard:local
+    environment:
+      # URL de la API vista desde el navegador, no desde la red de Docker.
+      API_URL: http://localhost:${API_PORT:-3000}
+    ports:
+      - '127.0.0.1:${DASHBOARD_PORT:-8100}:8080'
+    depends_on:
+      api: { condition: service_healthy }
     restart: unless-stopped
 
 volumes:

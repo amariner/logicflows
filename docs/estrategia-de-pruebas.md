@@ -91,7 +91,7 @@ Testcontainers instala dependencias con scripts de instalación opcionales (`cpu
 |---|---|
 | Comprobaciones | Formato, tipos, lint, pruebas unitarias y build |
 | Integración | Pruebas de integración con Testcontainers, desde que exista la primera (LF-26) |
-| Entorno local | Arranque de `compose.yaml` con la configuración de ejemplo |
+| Entorno local | Construcción de las imágenes y arranque de `compose.yaml` con el perfil `apps` y la configuración de ejemplo; la API responde sana y el visor sirve su `config.json` |
 | Extremo a extremo | Playwright contra el sistema completo, desde LF-39 |
 
 Todos los trabajos se ejecutan en paralelo y deben terminar en menos de 10 minutos.
