@@ -7,7 +7,10 @@
 # la misma imagen sirve para cualquier entorno.
 
 # La compilación usa glibc: pnpm descarga el Node de devEngines desde nodejs.org.
-FROM node:24.21.0-bookworm-slim AS build
+# Se ejecuta en la arquitectura de la máquina que construye: el resultado es
+# JavaScript sin dependencias nativas y sirve para cualquier arquitectura, así
+# que las imágenes ARM no necesitan emulación.
+FROM --platform=$BUILDPLATFORM node:24.21.0-bookworm-slim AS build
 WORKDIR /repo
 RUN corepack enable
 # Solo el lockfile: la descarga de dependencias se guarda en caché mientras no cambie.

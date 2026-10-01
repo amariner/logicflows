@@ -183,6 +183,21 @@ docker build --target api -t logicflows-api .
 
 Las imágenes no contienen configuración de ningún entorno: la misma imagen sirve para local, pruebas o producción y todo se indica con variables de entorno al arrancar. Las imágenes Node solo incluyen las dependencias de producción (`pnpm deploy --prod`). Las de Node se compilan sobre Debian porque pnpm descarga el Node fijado en `devEngines` desde nodejs.org, que no publica binarios oficiales de Alpine para ARM.
 
+### Registro de imágenes
+
+El workflow [Imágenes](.github/workflows/imagenes.yml) publica las tres imágenes en GitHub Container Registry, para `linux/amd64` y `linux/arm64`:
+
+| Evento | Etiquetas |
+|---|---|
+| Cambio en `main` | `sha-<commit>` y `main` |
+| Etiqueta `vX.Y.Z` | `vX.Y.Z`, asignada a las imágenes ya publicadas de ese commit sin recompilar |
+
+```sh
+docker pull ghcr.io/amariner/logicflows-api:v0.2.0
+```
+
+Una versión solo puede salir de imágenes construidas y probadas en `main`: si el commit de la etiqueta no tiene imágenes publicadas, la promoción falla. Las pull requests no publican nada. Mientras el repositorio sea privado, las imágenes también lo son y descargarlas requiere un token con permiso `read:packages`.
+
 ## Integración continua
 
 Cada pull request contra `main` y cada cambio en `main` ejecutan el workflow [CI](.github/workflows/ci.yml) en GitHub Actions: instalación con `--frozen-lockfile`, formato, tipos, lint, pruebas y build; en paralelo, las pruebas de integración con Testcontainers, la accesibilidad del visor y la construcción de las imágenes Docker con el arranque del sistema completo y la prueba de extremo a extremo. Cada comprobación es un paso independiente para identificar de un vistazo qué ha fallado. Las comprobaciones tienen un límite de 10 minutos (15 el trabajo que construye las imágenes) y una nueva ejecución en la misma rama cancela la anterior.

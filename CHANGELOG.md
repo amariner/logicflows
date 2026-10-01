@@ -4,6 +4,10 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ## [Sin publicar]
 
+### Añadido
+
+- Publicación de las imágenes en GitHub Container Registry para amd64 y arm64. Cada versión etiqueta las imágenes ya probadas de su commit, sin recompilar (LF-45).
+
 ### Cambiado
 
 - Cada instancia de la API usa un identificador MQTT propio, derivado por defecto del nombre de su equipo o contenedor. Varias instancias pueden funcionar a la vez contra el mismo broker y la misma base de datos (LF-47).
