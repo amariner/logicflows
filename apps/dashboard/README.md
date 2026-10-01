@@ -13,6 +13,10 @@ Esqueleto (LF-24), producción en tiempo real (LF-28) y panel de estado (LF-34):
 - **Aviso global** en la parte superior cuando alguna célula está en parada de emergencia, anunciado a los lectores de pantalla (`role="alert"`).
 - Estado del robot y de la cinta en texto.
 
+## Indicadores de producción
+
+`ProductionIndicatorsComponent` muestra el contador de cajas destacado y, debajo, pallets, capa en curso, ritmo (cajas/h) y tiempo de ciclo (s, con un decimal), con la barra de avance del pallet en curso descrita para lectores de pantalla. Las cifras usan separador de miles y ancho fijo; las unidades se escriben siempre y se muestran más pequeñas. Sin datos se muestra «—», nunca un cero. Se actualizan con cada telemetría y se atenúan cuando la célula está desconectada.
+
 ## Tiempo real
 
 `RealtimeService` abre al arrancar el WebSocket de la API ([ADR-0006](../../docs/adr/0006-canal-de-tiempo-real.md)) y expone como *signals* el estado de la conexión y las células. Aplica la instantánea inicial y cada cambio, y si la conexión se pierde reconecta con espera exponencial (de 1 a 30 segundos) y una variación aleatoria que evita que todos los visores reconecten a la vez. Al reconectar recibe una instantánea nueva, así que no pierde información.

@@ -36,11 +36,7 @@
       </ul>
     }
 
-    <p class="counter">
-      <span class="value" data-testid="boxes">{{ view.boxesLabel }}</span>
-      <span class="unit">cajas</span>
-    </p>
-    <p class="pallet">{{ view.palletLabel }}</p>
+    <app-production-indicators [indicators]="view.indicators" [stale]="view.online === false" />
     @if (view.componentsLabel !== null) {
       <p class="components" data-testid="components">{{ view.componentsLabel }}</p>
     }

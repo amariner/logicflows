@@ -27,8 +27,7 @@ describe('vista de una célula', () => {
       stateTone: 'neutral',
       attention: false,
       alarms: [],
-      boxesLabel: '—',
-      palletLabel: 'Sin datos de producción',
+      indicators: { boxes: '—', layer: '—' },
       componentsLabel: null,
     });
   });
@@ -106,8 +105,8 @@ describe('vista de una célula', () => {
     );
     expect(view).toMatchObject({
       online: false,
-      boxesLabel: '15.234',
-      palletLabel: '1 pallet · capa 3 de 5',
+      boxesTotal: 15234,
+      indicators: { boxes: '15.234', pallets: '1', layer: '3 de 5' },
       componentsLabel: 'Robot: averiado · Cinta: parada',
     });
   });
