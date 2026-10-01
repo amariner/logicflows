@@ -63,6 +63,8 @@ Necesita la [CLI de Railway](https://docs.railway.com/cli) con sesión iniciada 
 
 ## Rotación de credenciales
 
+El [procedimiento de Keycloak](../infra/keycloak/README.md#alta-y-primer-acceso-en-producción-lf-48) describe el alta de usuarios, la comprobación del primer acceso al visor, la recuperación de un intento de identificación caducado y la sustitución del administrador temporal.
+
 Una variable sellada no se puede leer, pero sí sustituir. Para rotar un secreto se genera un valor nuevo, se cambia donde se valida y después donde se usa, y se despliega.
 
 | Credencial | Procedimiento |
@@ -79,7 +81,7 @@ Una variable sellada no se puede leer, pero sí sustituir. Para rotar un secreto
 ## Particularidades de Railway
 
 - **Las referencias se resuelven al guardar la variable.** Una referencia a un servicio que todavía no existe queda vacía. Si se crean servicios que se referencian entre sí, hay que volver a definir esas variables al final.
-- **El realm de Keycloak solo se importa la primera vez** ([ADR-0010](adr/0010-imagenes-de-la-infraestructura.md)). Si `identity` arranca con una configuración incorrecta, hay que vaciar su base de datos y volver a desplegar. Mientras no tenga usuarios, basta con ejecutar `DROP DATABASE keycloak WITH (FORCE)` y después `usuarios.sql`.
+- **El realm de Keycloak solo se importa la primera vez** ([ADR-0010](adr/0010-imagenes-de-la-infraestructura.md)). Los cambios posteriores se aplican desde la consola o la API de administración. Vaciar la base de datos para repetir la importación solo es una opción durante la preparación inicial, si no contiene usuarios ni datos que conservar. Con usuarios de producción, no se borra la base de datos para corregir un acceso o un formulario caducado.
 - **El administrador inicial de Keycloak solo se crea con el realm `master`.** `KC_BOOTSTRAP_ADMIN_USERNAME` y `KC_BOOTSTRAP_ADMIN_PASSWORD` solo se usan en el primer arranque. Si se definen después, Keycloak las ignora y el inicio de sesión falla con `user_not_found`. Para crear un administrador temporal en un `master` existente, con `identity` detenido (`railway down --service identity`):
   1. Fijar como comando de inicio `/bin/bash -c "/opt/keycloak/bin/kc.sh bootstrap-admin user --username:env KC_BOOTSTRAP_ADMIN_USERNAME --password:env KC_BOOTSTRAP_ADMIN_PASSWORD --optimized; exec /opt/keycloak/bin/kc.sh start --optimized --import-realm"` y desplegar. Railway sustituye el `ENTRYPOINT` de la imagen por el comando de inicio.
   2. Comprobar en el registro `Created temporary admin user`.
