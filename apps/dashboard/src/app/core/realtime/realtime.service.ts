@@ -1,7 +1,9 @@
+import { HttpClient } from '@angular/common/http';
 import { DestroyRef, Injectable, InjectionToken, computed, inject, signal } from '@angular/core';
 import type { CellSnapshot, RealtimeMessage } from '@logicflows/contract';
 
 import { AppConfigService } from '../config/app-config';
+import { mergeCell } from './merge';
 import { reconnectDelay } from './reconnect';
 
 export type ConnectionState = 'connecting' | 'open' | 'closed';
@@ -15,13 +17,16 @@ export const WEB_SOCKET_FACTORY = new InjectionToken<(url: string) => WebSocket>
 const keyOf = (cell: CellSnapshot) => `${cell.siteId}/${cell.cellId}`;
 
 /**
- * Canal de tiempo real con la API (ADR-0006). Mantiene la información de las
- * células a partir de la instantánea inicial y de cada cambio, y reconecta
- * con espera creciente si se pierde la conexión.
+ * Información de las células en tiempo real. Al arrancar la carga por REST y
+ * abre el canal de tiempo real (ADR-0006), que aporta una instantánea y cada
+ * cambio; reconecta con espera creciente si se pierde la conexión. Las dos
+ * fuentes pueden llegar en cualquier orden: para cada mensaje se conserva
+ * siempre el más reciente, así que nunca se muestra un dato antiguo.
  */
 @Injectable({ providedIn: 'root' })
 export class RealtimeService {
   readonly #config = inject(AppConfigService);
+  readonly #http = inject(HttpClient);
   readonly #createSocket = inject(WEB_SOCKET_FACTORY);
   readonly #cells = signal<ReadonlyMap<string, CellSnapshot>>(new Map());
   readonly #connection = signal<ConnectionState>('closed');
@@ -52,6 +57,7 @@ export class RealtimeService {
       return;
     }
     this.#stopped = false;
+    this.#loadInitialState();
     this.#connect();
   }
 
@@ -86,11 +92,31 @@ export class RealtimeService {
     });
   }
 
+  /** Estado inicial por REST, sin esperar al canal de tiempo real. */
+  #loadInitialState(): void {
+    this.#http.get<CellSnapshot[]>(`${this.#config.config.apiUrl}/api/v1/cells`).subscribe({
+      next: (cells) => {
+        this.#merge(cells);
+      },
+      // Si falla, el canal de tiempo real aporta la misma información.
+      error: () => undefined,
+    });
+  }
+
   #apply(message: RealtimeMessage): void {
-    if (message.type === 'snapshot') {
-      this.#cells.set(new Map(message.cells.map((cell) => [keyOf(cell), cell])));
+    this.#merge(message.type === 'snapshot' ? message.cells : [message.cell]);
+  }
+
+  #merge(incoming: readonly CellSnapshot[]): void {
+    if (this.#stopped) {
       return;
     }
-    this.#cells.update((cells) => new Map(cells).set(keyOf(message.cell), message.cell));
+    this.#cells.update((cells) => {
+      const next = new Map(cells);
+      for (const cell of incoming) {
+        next.set(keyOf(cell), mergeCell(next.get(keyOf(cell)), cell));
+      }
+      return next;
+    });
   }
 }

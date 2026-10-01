@@ -19,7 +19,13 @@ Esqueleto (LF-24), producción en tiempo real (LF-28) y panel de estado (LF-34):
 
 ## Tiempo real
 
-`RealtimeService` abre al arrancar el WebSocket de la API ([ADR-0006](../../docs/adr/0006-canal-de-tiempo-real.md)) y expone como *signals* el estado de la conexión y las células. Aplica la instantánea inicial y cada cambio, y si la conexión se pierde reconecta con espera exponencial (de 1 a 30 segundos) y una variación aleatoria que evita que todos los visores reconecten a la vez. Al reconectar recibe una instantánea nueva, así que no pierde información.
+`RealtimeService` expone como *signals* el estado de la conexión y las células. Al arrancar:
+
+1. Carga el estado actual por REST (`GET /api/v1/cells`), para mostrar datos en cuanto se abre el visor.
+2. Abre el WebSocket de la API ([ADR-0006](../../docs/adr/0006-canal-de-tiempo-real.md)), que envía una instantánea y cada cambio.
+3. Si la conexión se pierde, reconecta con espera exponencial (de 1 a 30 segundos) y una variación aleatoria que evita que todos los visores reconecten a la vez. Al reconectar recibe una instantánea nueva.
+
+Las fuentes pueden llegar en cualquier orden, así que **para cada tipo de mensaje se conserva siempre el más reciente** (misma sesión: mayor secuencia; otra sesión: marca de tiempo posterior, como en ADR-0004). Una respuesta REST tardía o un mensaje retrasado nunca hacen retroceder lo que se muestra.
 
 El indicador de la barra superior combina icono, texto y color (**En directo**, **Conectando…**, **Sin conexión**) y anuncia los cambios a los lectores de pantalla. Si una célula se desconecta, su tarjeta lo indica y muestra el último dato conocido.
 
