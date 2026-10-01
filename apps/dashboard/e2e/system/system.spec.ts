@@ -38,3 +38,29 @@ test('una caja publicada por el simulador aparece en el visor', async ({ page })
   await expect.poll(() => boxesShown(card)).toBeGreaterThan(before);
   expect(violations).toEqual([]);
 });
+
+test('el visor es instalable: manifiesto y service worker (LF-55)', async ({ page, context }) => {
+  await page.goto('/');
+  await page.locator('#username').fill(USERNAME);
+  await page.locator('#password').fill(PASSWORD);
+  await page.locator('#kc-login').click();
+  await expect(page.getByRole('status')).toHaveText('En directo');
+
+  const manifest = await page.evaluate(async () => {
+    const link = document.querySelector<HTMLLinkElement>('link[rel=manifest]');
+    return link ? ((await (await fetch(link.href)).json()) as { display: string }) : null;
+  });
+  expect(manifest).toMatchObject({ display: 'standalone' });
+  const worker = await page.evaluate(
+    async () => (await navigator.serviceWorker.ready).active?.scriptURL,
+  );
+  expect(worker).toContain('ngsw-worker.js');
+
+  // Sin conexión no se muestran datos antiguos como si fueran actuales.
+  await page.reload();
+  await expect(page.getByRole('status')).toHaveText('En directo');
+  await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByRole('alert')).toContainText('Sin conexión');
+  await context.setOffline(false);
+});

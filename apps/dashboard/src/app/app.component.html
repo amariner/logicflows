@@ -1,37 +1,51 @@
 <ion-app>
-  <ion-split-pane contentId="main-content">
-    <ion-menu contentId="main-content" type="overlay">
-      <ion-content>
-        <ion-list>
-          <ion-list-header>LogicFlows</ion-list-header>
-          @for (entry of menu; track entry.url) {
-            <ion-menu-toggle [autoHide]="false">
-              <ion-item
-                routerDirection="root"
-                [routerLink]="entry.url"
-                routerLinkActive="selected"
-                lines="none"
-                [detail]="false"
-              >
-                <ion-icon aria-hidden="true" slot="start" [name]="entry.icon" />
-                <ion-label>{{ entry.title }}</ion-label>
-              </ion-item>
-            </ion-menu-toggle>
-          }
-        </ion-list>
-      </ion-content>
-      @if (auth.enabled) {
-        <ion-footer class="session">
-          @if (auth.userName(); as name) {
-            <ion-note>Sesión de {{ name }}</ion-note>
-          }
-          <ion-button fill="clear" expand="block" (click)="auth.logout()">
-            <ion-icon aria-hidden="true" slot="start" name="log-out-sharp" />
-            Cerrar sesión
-          </ion-button>
-        </ion-footer>
-      }
-    </ion-menu>
-    <ion-router-outlet id="main-content" />
-  </ion-split-pane>
+  @if (auth.problem(); as problem) {
+    <main class="problem" role="alert">
+      <h1>LogicFlows</h1>
+      <p>{{ problem }}</p>
+      <ion-button (click)="reload()">Reintentar</ion-button>
+    </main>
+  } @else {
+    <ion-split-pane contentId="main-content">
+      <ion-menu contentId="main-content" type="overlay">
+        <ion-content>
+          <ion-list>
+            <ion-list-header>LogicFlows</ion-list-header>
+            @for (entry of menu; track entry.url) {
+              <ion-menu-toggle [autoHide]="false">
+                <ion-item
+                  routerDirection="root"
+                  [routerLink]="entry.url"
+                  routerLinkActive="selected"
+                  lines="none"
+                  [detail]="false"
+                >
+                  <ion-icon aria-hidden="true" slot="start" [name]="entry.icon" />
+                  <ion-label>{{ entry.title }}</ion-label>
+                </ion-item>
+              </ion-menu-toggle>
+            }
+          </ion-list>
+        </ion-content>
+        @if (auth.enabled) {
+          <ion-footer class="session">
+            @if (auth.userName(); as name) {
+              <ion-note>Sesión de {{ name }}</ion-note>
+            }
+            <ion-button fill="clear" expand="block" (click)="auth.logout()">
+              <ion-icon aria-hidden="true" slot="start" name="log-out-sharp" />
+              Cerrar sesión
+            </ion-button>
+          </ion-footer>
+        }
+      </ion-menu>
+      <ion-router-outlet id="main-content" />
+    </ion-split-pane>
+  }
+  <ion-toast
+    [isOpen]="updates.available()"
+    message="Hay una versión nueva del visor."
+    position="bottom"
+    [buttons]="updateButtons"
+  />
 </ion-app>

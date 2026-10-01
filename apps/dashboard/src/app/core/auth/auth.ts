@@ -59,10 +59,17 @@ export class AuthService {
   readonly #config = inject(AppConfigService);
   readonly #oidc = inject(OidcSecurityService);
   readonly #userName = signal<string | null>(null);
+  readonly #problem = signal<string | null>(null);
   #session: Promise<boolean> | undefined;
 
   /** Nombre del usuario con sesión, para mostrarlo en el menú. */
   readonly userName = this.#userName.asReadonly();
+
+  /**
+   * Por qué no se puede comprobar la sesión: sin conexión o sin respuesta del
+   * proveedor. Mientras tanto no se redirige a ninguna parte.
+   */
+  readonly problem = this.#problem.asReadonly();
 
   get enabled(): boolean {
     return this.#config.config.auth !== null;
@@ -93,7 +100,20 @@ export class AuthService {
     if (!this.enabled) {
       return true;
     }
-    const result = await firstValueFrom(this.#oidc.checkAuth());
+    // Sin conexión, redirigir al proveedor mostraría una página de error del navegador.
+    if (!navigator.onLine) {
+      this.#problem.set('Sin conexión: el visor necesita conexión para mostrar datos en directo.');
+      this.#retryWhenOnline();
+      return false;
+    }
+    let result;
+    try {
+      result = await firstValueFrom(this.#oidc.checkAuth());
+    } catch {
+      this.#problem.set('No se puede contactar con el servicio de inicio de sesión.');
+      this.#retryWhenOnline();
+      return false;
+    }
     if (result.isAuthenticated) {
       const data = result.userData as { preferred_username?: unknown; name?: unknown } | null;
       const name = data?.name ?? data?.preferred_username;
@@ -102,6 +122,16 @@ export class AuthService {
     }
     this.#oidc.authorize();
     return false;
+  }
+
+  #retryWhenOnline(): void {
+    window.addEventListener(
+      'online',
+      () => {
+        window.location.reload();
+      },
+      { once: true },
+    );
   }
 }
 

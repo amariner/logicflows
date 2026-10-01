@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { OidcSecurityService } from 'angular-auth-oidc-client';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { describe, expect, it, vi } from 'vitest';
 
 import { TEST_AUTH, testProviders } from '../../../testing/providers';
@@ -55,6 +55,28 @@ describe('sesión del visor', () => {
     expect(await auth.ensureSession()).toBe(false);
     expect(oidc.checkAuth).toHaveBeenCalledTimes(1);
     expect(oidc.authorize).toHaveBeenCalledTimes(1);
+  });
+
+  it('sin conexión no redirige al proveedor e indica el motivo', async () => {
+    const online = vi.spyOn(navigator, 'onLine', 'get').mockReturnValue(false);
+    const oidc = fakeOidc(false);
+    const auth = setup({ auth: true, oidc });
+    expect(await auth.ensureSession()).toBe(false);
+    expect(auth.problem()).toContain('Sin conexión');
+    expect(oidc.checkAuth).not.toHaveBeenCalled();
+    expect(oidc.authorize).not.toHaveBeenCalled();
+    online.mockRestore();
+  });
+
+  it('si el proveedor no responde, lo indica sin entrar en un bucle de redirecciones', async () => {
+    const oidc = {
+      ...fakeOidc(false),
+      checkAuth: vi.fn(() => throwError(() => new Error('Failed to fetch'))),
+    };
+    const auth = setup({ auth: true, oidc: oidc });
+    expect(await auth.ensureSession()).toBe(false);
+    expect(auth.problem()).toContain('No se puede contactar');
+    expect(oidc.authorize).not.toHaveBeenCalled();
   });
 
   it('cerrar sesión la cierra también en el proveedor', () => {

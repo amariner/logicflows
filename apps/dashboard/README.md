@@ -65,6 +65,21 @@ Sin `auth`, el visor no pide sesión. Solo tiene sentido con una API simulada, c
 
 En la imagen Docker, `config.json` se genera al arrancar a partir de `API_URL`, `AUTH_ISSUER` y `AUTH_CLIENT_ID`.
 
+## Visor instalable (PWA)
+
+El visor se puede instalar en el escritorio o en el móvil (LF-55, [ADR-0002](../../docs/adr/0002-visor-multiplataforma.md)):
+
+- **Manifiesto.** `public/manifest.webmanifest`, con nombre, colores e iconos de LogicFlows, incluido uno *maskable* para Android. Se abre en `/cells` y sin la barra del navegador.
+- **Service worker de Angular** (`ngsw-config.json`), solo en la build de producción:
+  - Guarda la aplicación para que arranque al instante.
+  - De `config.json` guarda la última copia, para poder arrancar sin conexión.
+  - **Nunca guarda datos de planta.**
+- **Sin conexión.** El visor no redirige al inicio de sesión ni muestra datos antiguos: indica que necesita conexión para mostrar datos en directo y vuelve a intentarlo al recuperarla.
+- **Versiones nuevas.** Cuando hay una versión nueva descargada, un aviso ofrece **Actualizar**; se activa al recargar.
+- **Caché en Nginx.** `ngsw-worker.js`, `ngsw.json` y el manifiesto se sirven sin caché, para detectar enseguida una versión nueva.
+
+La prueba de extremo a extremo comprueba el manifiesto, el service worker y el comportamiento sin conexión.
+
 ## Cabeceras de seguridad
 
 Nginx sirve el visor con una política de seguridad de contenidos generada al arrancar el contenedor, porque depende de la URL de la API y del emisor:

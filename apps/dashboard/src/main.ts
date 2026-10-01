@@ -1,4 +1,5 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { isDevMode } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
 import {
   PreloadAllModules,
@@ -13,6 +14,7 @@ import { AppComponent } from './app/app.component';
 import { routes } from './app/app.routes';
 import { provideVisorAuth } from './app/core/auth/auth';
 import { provideAppConfig } from './app/core/config/app-config';
+import { provideVisorServiceWorker } from './app/core/pwa/app-update';
 
 bootstrapApplication(AppComponent, {
   providers: [
@@ -24,6 +26,8 @@ bootstrapApplication(AppComponent, {
     provideHttpClient(withInterceptors([authInterceptor()])),
     provideAppConfig(),
     provideVisorAuth(),
+    // Visor instalable: solo en la build de producción (LF-55).
+    provideVisorServiceWorker(!isDevMode()),
   ],
 }).catch((error: unknown) => {
   console.error(error);
