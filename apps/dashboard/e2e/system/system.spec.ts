@@ -2,7 +2,8 @@ import { expect, test } from '@playwright/test';
 import type { Locator } from '@playwright/test';
 
 const CELL_ID = process.env['E2E_CELL_ID'] ?? 'cell-01';
-// Usuario de pruebas del realm de infra/keycloak (solo desarrollo y previsualizaciones).
+// Usuario de pruebas del realm de infra/keycloak (solo desarrollo y
+// previsualizaciones). En producción, el usuario de solo lectura de LF-57.
 const USERNAME = process.env['E2E_USERNAME'] ?? 'operario';
 const PASSWORD = process.env['E2E_PASSWORD'] ?? 'operario-local';
 
@@ -37,6 +38,28 @@ test('una caja publicada por el simulador aparece en el visor', async ({ page })
   const before = (await boxesShown(card)) ?? 0;
   await expect.poll(() => boxesShown(card)).toBeGreaterThan(before);
   expect(violations).toEqual([]);
+});
+
+test('el usuario de la prueba solo tiene permisos de lectura (LF-57)', async ({ page }) => {
+  // El visor guarda el token en memoria: se lee de la primera petición a la API.
+  const apiRequest = page.waitForRequest(
+    (request) =>
+      request.url().includes('/api/v1/') &&
+      (request.headers()['authorization'] ?? '').startsWith('Bearer '),
+  );
+  await page.goto('/');
+  await page.locator('#username').fill(USERNAME);
+  await page.locator('#password').fill(PASSWORD);
+  await page.locator('#kc-login').click();
+
+  const token = ((await apiRequest).headers()['authorization'] ?? '').slice('Bearer '.length);
+  const payload = token.split('.')[1] ?? '';
+  const claims = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8')) as {
+    realm_access?: { roles?: string[] };
+  };
+  const roles = claims.realm_access?.roles ?? [];
+  expect(roles).toContain('viewer');
+  expect(roles).not.toContain('admin');
 });
 
 test('el visor es instalable: manifiesto y service worker (LF-55)', async ({ page, context }) => {
