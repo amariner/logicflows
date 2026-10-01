@@ -1,8 +1,8 @@
 name: Railway plan
 
-# Calcula los cambios que una pull request haría en Railway (ADR-0011) y los
-# publica como comentario en la PR. El plan queda fijado como artefacto: al
-# fusionar se aplica exactamente lo que se revisó.
+# Calcula los cambios que una pull request haría en producción (ADR-0011), los
+# publica como comentario en la PR y fija el plan como artefacto: al fusionar,
+# Railway apply aplica exactamente ese plan.
 on:
   pull_request:
     branches: [main]
@@ -16,6 +16,9 @@ permissions:
   contents: read
   pull-requests: write
 
+env:
+  RAILWAY_CLI_VERSION: 5.55.0
+
 jobs:
   plan:
     name: Plan de Railway
@@ -26,6 +29,11 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # La CLI evalúa .railway/railway.ts con el Node.js del sistema.
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
       # El fichero de configuración importa el SDK de Railway (railway/iac).
       - uses: pnpm/action-setup@v6
         with:
@@ -34,7 +42,34 @@ jobs:
       - name: Instalar dependencias
         run: pnpm install --frozen-lockfile
 
-      - uses: railwayapp/config@v1
+      - name: Instalar la CLI de Railway
+        run: npm install --global "@railway/cli@$RAILWAY_CLI_VERSION"
+
+      - name: Calcular el plan
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          set -o pipefail
+          railway config plan --verbose --out railway-plan.json | tee plan.txt
+
+      - uses: actions/upload-artifact@v7
         with:
-          command: plan
-          railway-token: ${{ secrets.RAILWAY_TOKEN }}
+          name: railway-plan
+          path: railway-plan.json
+          retention-days: 30
+
+      - name: Comentar el plan en la pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          {
+            echo '### Plan de Railway (producción)'
+            echo
+            echo 'Al fusionar, `Railway apply` aplicará exactamente estos cambios.'
+            echo
+            echo '```text'
+            cat plan.txt
+            echo '```'
+          } > comentario.md
+          gh pr comment "$PR" --body-file comentario.md --edit-last --create-if-none

@@ -1,9 +1,9 @@
 name: Railway apply
 
 # Aplica en producción el plan fijado en la pull request fusionada (ADR-0011).
-# Si el entorno cambió desde el plan, o lo fusionado no es lo planificado,
-# falla y hay que volver a planificar. Un cambio en .railway/ que no venga de
-# una PR no tiene plan y no se aplica.
+# Si producción cambió desde que se calculó, o lo fusionado en .railway/ no es
+# lo planificado, la CLI rechaza el plan y hay que volver a planificar. Un
+# cambio en .railway/ que no venga de una PR no tiene plan y no se aplica.
 on:
   push:
     branches: [main]
@@ -19,6 +19,9 @@ permissions:
   actions: read
   pull-requests: read
 
+env:
+  RAILWAY_CLI_VERSION: 5.55.0
+
 jobs:
   apply:
     name: Aplicar en producción
@@ -30,14 +33,37 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
         with:
-          cache: true
+          node-version-file: .nvmrc
 
-      - name: Instalar dependencias
-        run: pnpm install --frozen-lockfile
+      - name: Instalar la CLI de Railway
+        run: npm install --global "@railway/cli@$RAILWAY_CLI_VERSION"
 
-      - uses: railwayapp/config@v1
-        with:
-          command: apply
-          railway-token: ${{ secrets.RAILWAY_TOKEN }}
+      # Con Rebase and merge, el commit de main no es el de la PR: se busca la
+      # PR del commit y el plan de la última ejecución de su rama.
+      - name: Descargar el plan de la pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          pr=$(gh api "repos/$REPO/commits/$SHA/pulls" --jq '.[0].number // empty')
+          if [ -z "$pr" ]; then
+            echo "::error::El commit $SHA no viene de una pull request: no hay plan revisado que aplicar."
+            exit 1
+          fi
+          head=$(gh pr view "$pr" --repo "$REPO" --json headRefOid --jq .headRefOid)
+          run=$(gh run list --repo "$REPO" --workflow railway-plan.yml --commit "$head" \
+            --status success --limit 1 --json databaseId --jq '.[0].databaseId // empty')
+          if [ -z "$run" ]; then
+            echo "::error::La PR #$pr no tiene un plan correcto para su último commit ($head)."
+            exit 1
+          fi
+          echo "Plan de la PR #$pr (ejecución $run)"
+          gh run download "$run" --repo "$REPO" --name railway-plan
+
+      - name: Aplicar el plan
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway config apply --plan railway-plan.json --yes --confirm-destructive
