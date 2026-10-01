@@ -1,0 +1,46 @@
+# Registro de cambios
+
+Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, [versionado semántico](https://semver.org/lang/es/). Mientras la versión mayor sea 0, el contrato y la API pueden cambiar entre versiones menores.
+
+## [0.1.0] - 2026-10-01
+
+**Hito 1 · Primera caja en pantalla.** Primera versión que monitoriza de extremo a extremo una célula robotizada de paletizado simulada: el estado de la máquina, la producción y las alarmas llegan en tiempo real a un visor web adaptable y accesible.
+
+### Añadido
+
+- **Simulador de célula de paletizado** (`apps/simulator`):
+  - Ciclo realista con variación del tiempo de ciclo, capas y cambio de pallet.
+  - Máquina de siete estados alineada con PackML (ADR-0003), con esperas por falta de cajas o salida ocupada.
+  - Fallos y paradas de emergencia con alarmas y recuperación.
+  - Escenarios `normal`, `turno`, `averias`, `red-inestable` y `demo`, con cortes de red, mensajes duplicados y desordenados.
+- **Contrato de telemetría** (`packages/contract`): topics MQTT versionados, mensajes `status`, `state` y `telemetry`, tipos y validación con Zod y JSON Schema, compartidos por las tres aplicaciones (ADR-0004 y ADR-0005).
+- **API** (`apps/api`, NestJS):
+  - Ingesta MQTT 5 con sesión persistente que valida cada mensaje y descarta duplicados y desordenados.
+  - Estado actual de cada célula, recuperado de la base de datos al arrancar.
+  - Persistencia idempotente en PostgreSQL con migraciones versionadas (ADR-0007).
+  - API REST `/api/v1` con estado actual y producción por periodo, errores RFC 9457 y documentación OpenAPI en `/docs`.
+  - Canal WebSocket `/realtime` con instantánea al conectar y cambios en tiempo real (ADR-0006).
+  - Salud en `/health/live` y `/health/ready`, y registros JSON.
+- **Visor** (`apps/dashboard`, Ionic y Angular, ADR-0002):
+  - Panel de células con estado, robot, cinta y alarmas ordenadas por severidad.
+  - Aviso global de parada de emergencia.
+  - Indicadores de producción: cajas, pallets, capa, ritmo y tiempo de ciclo.
+  - Estado de la conexión con reconexión automática; combina REST y tiempo real y gana el dato más nuevo.
+  - Diseño ISA-101 adaptable a escritorio, tableta y móvil, en tema claro y oscuro, y accesible según WCAG 2.2 AA.
+  - Configuración en tiempo de ejecución con `config.json`.
+- **Entrega y operación:**
+  - Imágenes Docker multietapa de las tres aplicaciones, sin privilegios y configurables solo con variables de entorno.
+  - Docker Compose para la infraestructura local (`pnpm infra:up`) y para el sistema completo (`pnpm stack:up`).
+- **Calidad:**
+  - Monorepo con pnpm workspaces y TypeScript estricto (ADR-0001), ESLint y Prettier comunes.
+  - Pruebas unitarias con Vitest, de integración con Testcontainers (Mosquitto y PostgreSQL reales), de accesibilidad con axe-core y de extremo a extremo con Playwright.
+  - Integración continua en cada pull request.
+- **Documentación:** arranque rápido, diagrama de arquitectura, siete ADR, estrategia de pruebas, diseño del visor y guía de contribución.
+
+### Limitaciones conocidas
+
+- Sin autenticación: el sistema está pensado para ejecutarse en local. La autenticación, el endurecimiento y el despliegue llegan en el Hito 2.
+- La API mantiene el estado en memoria y no admite aún varias réplicas: cada instancia necesitaría su propio identificador de cliente MQTT.
+- La rama `main` no tiene protección técnica: la exige una decisión pendiente sobre la visibilidad del repositorio.
+
+[0.1.0]: https://github.com/amariner/logicflows/releases/tag/v0.1.0

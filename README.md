@@ -2,7 +2,7 @@
 
 Plataforma IIoT para monitorizar en tiempo real células robotizadas de paletizado: estado de la máquina, producción y alarmas, desde la web y desde el móvil.
 
-> **Estado:** en desarrollo. Hito actual: **Hito 1 · Primera caja en pantalla** (`v0.1.0`).
+> **Estado:** [`v0.1.0`](CHANGELOG.md) publicada: **Hito 1 · Primera caja en pantalla**. En curso: **Hito 2 · Sistema desplegado**.
 
 <p>
   <img src="docs/imagenes/visor-escritorio.png" alt="Visor de LogicFlows en escritorio, tema oscuro: la célula cell-01 produciendo, con el contador de cajas, pallets, capa, ritmo y tiempo de ciclo" width="68%">
@@ -28,7 +28,7 @@ La primera vez se descargan las imágenes base y se compilan las aplicaciones: u
 | API y su documentación OpenAPI | <http://localhost:3000/docs> |
 | Estado de la API | <http://localhost:3000/health/ready> |
 
-El simulador arranca la célula `cell-01` de la planta `demo` y empieza a paletizar: el contador de cajas del visor avanza cada pocos segundos. Para ver averías, esperas y paradas de emergencia, se cambia `SIMULATOR_SCENARIO=demo` en `.env` y se vuelve a ejecutar el último comando ([escenarios](apps/simulator/README.md)).
+El simulador arranca la célula `cell-01` de la planta `demo` y empieza a paletizar: el contador de cajas del visor avanza cada pocos segundos. Para ver averías, esperas y paradas de emergencia, se cambia `SIMULATOR_SCENARIO=demo` en `.env` y se vuelve a ejecutar el último comando ([escenarios](apps/simulator/README.md), [guion de la demo](docs/demo.md)).
 
 Para detenerlo todo: `docker compose --profile apps down` (añadir `--volumes` para borrar también los datos).
 
@@ -218,6 +218,8 @@ TypeScript está fijado en la versión 6.0 porque Angular 22 y typescript-eslint
 
 ## Documentación
 
+- [Registro de cambios](CHANGELOG.md)
+- [Guion de la demo](docs/demo.md)
 - [Decisiones de arquitectura (ADR)](docs/adr/README.md)
 - [Guía de contribución y Definition of Done](CONTRIBUTING.md)
 - [Estrategia de pruebas](docs/estrategia-de-pruebas.md)
