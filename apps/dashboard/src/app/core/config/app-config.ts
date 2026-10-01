@@ -90,6 +90,11 @@ export class AppConfigService {
 export function provideAppConfig(): EnvironmentProviders {
   return provideAppInitializer(async () => {
     const service = inject(AppConfigService);
+    // Spike LF-56: en el servidor no hay config.json que descargar.
+    if (typeof window === 'undefined') {
+      service.set(parseAppConfig({ apiUrl: process.env['API_URL'] ?? 'http://localhost:3000' }));
+      return;
+    }
     const response = await fetch('config.json', { cache: 'no-store' });
     if (!response.ok) {
       throw new Error(`No se pudo cargar config.json (${String(response.status)})`);

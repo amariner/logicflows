@@ -47,7 +47,10 @@ export function provideVisorAuth(): EnvironmentProviders {
       provide: StsConfigLoader,
       useFactory: () =>
         new StsConfigStaticLoader(
-          openIdConfiguration(inject(AppConfigService).config, window.location.origin),
+          openIdConfiguration(
+            inject(AppConfigService).config,
+            typeof window === 'undefined' ? 'http://localhost' : window.location.origin,
+          ),
         ),
     },
   });
@@ -90,7 +93,8 @@ export class AuthService {
   }
 
   async #checkSession(): Promise<boolean> {
-    if (!this.enabled) {
+    // Spike LF-56: el servidor no tiene la sesión del usuario; renderiza el esqueleto.
+    if (!this.enabled || typeof window === 'undefined') {
       return true;
     }
     const result = await firstValueFrom(this.#oidc.checkAuth());

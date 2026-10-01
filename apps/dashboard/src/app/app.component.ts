@@ -70,7 +70,7 @@ export class AppComponent {
     // configuración y comprobada la sesión.
     const realtime = inject(RealtimeService);
     void this.auth.ensureSession().then((authenticated) => {
-      if (authenticated) {
+      if (authenticated && typeof window !== 'undefined') {
         realtime.start();
       }
     });
