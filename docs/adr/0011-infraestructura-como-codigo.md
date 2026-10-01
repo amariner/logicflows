@@ -19,7 +19,7 @@ Las previsualizaciones por pull request (LF-53) necesitarán además describir e
 ## Opciones consideradas
 
 1. **Script con la CLI de Railway.** Un script que cambia la imagen de cada servicio y despliega.
-2. **Infraestructura como código nativa de Railway** (`railway config`). Un fichero TypeScript (`.railway/railway.ts`) describe el proyecto. `railway config plan` calcula las diferencias con el entorno real y `apply` las aplica. La acción oficial `railwayapp/config` publica el plan en cada pull request y, al fusionarla, aplica ese mismo plan.
+2. **Infraestructura como código nativa de Railway** (`railway config`). Un fichero TypeScript (`.railway/railway.ts`) describe el proyecto. `railway config plan` calcula las diferencias con el entorno real y `apply` las aplica. Un plan se puede fijar en un fichero y aplicar después sin volver a evaluar la configuración.
 3. **Terraform** con el proveedor de Railway.
 
 ## Decisión
@@ -49,6 +49,11 @@ Se adopta la **opción 2**:
 
 - **Positivas:** la producción está descrita y revisada en el repositorio. Desplegar y volver atrás es una PR de una línea, con el plan visible antes de aplicar.
 - **Coste:** un token de proyecto de Railway en GitHub (`RAILWAY_TOKEN`, entorno `production`). Lo crea y lo rota el titular de la cuenta.
+- **Flujos propios en lugar de la acción oficial.** Railway publica la acción `railwayapp/config`, pero tiene dos problemas:
+  - instala las dependencias con `npm`, que falla en un workspace de pnpm;
+  - instala siempre la última CLI.
+
+  Los flujos de LogicFlows hacen lo mismo con pasos propios: CLI fijada (5.55.0), `pnpm install`, plan fijado como artefacto y aplicación de ese plan.
 - **Riesgo asumido:** el SDK (`railway` 3.12) es joven. Se fija su versión exacta y se comprueba con `plan` antes de cada actualización. Dos limitaciones detectadas en el spike:
   - Un dominio generado de Railway no se crea desde el fichero. Se crea con `railway domain` y después se declara con su nombre.
   - El montaje de un volumen se declara con la ruta como clave: `{ '/ruta': volumen }`.
@@ -57,6 +62,6 @@ Se adopta la **opción 2**:
 
 ## Criterios de revisión
 
-- El SDK o la acción dejan de mantenerse o rompen la compatibilidad de forma repetida.
+- El SDK o la CLI dejan de mantenerse o rompen la compatibilidad de forma repetida.
 - LogicFlows pasa a usar varios proveedores de infraestructura.
 - Las previsualizaciones (LF-53) no se pueden describir con este fichero.
