@@ -107,6 +107,8 @@ Acceso a datos con Drizzle ORM sobre `pg` ([ADR-0007](../../docs/adr/0007-acceso
 
 Cada `cell` incluye `siteId`, `cellId` y los últimos mensajes `status`, `state` y `telemetry` recibidos (`null` si aún no ha llegado ninguno). El servidor envía un *ping* cada 30 segundos y cierra las conexiones que no responden. El cliente reconecta por su cuenta y recibe una instantánea nueva.
 
+**La instantánea marca el inicio de la suscripción.** El WebSocket se abre antes de que la API valide el tique, y durante ese intervalo no se envían cambios. Un cliente se considera conectado cuando recibe `snapshot`, no cuando se abre el WebSocket: la instantánea ya incluye cualquier cambio anterior, y los mensajes `cell` que llegan después contienen todos los posteriores.
+
 Para observar el canal con la API en marcha:
 
 ```sh
