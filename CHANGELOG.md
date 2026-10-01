@@ -6,6 +6,7 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ### Añadido
 
+- Compresión de los ficheros del visor al construir la imagen: en una red móvil lenta, los datos aparecen en 4,5 s en lugar de 8 s (LF-59).
 - Visor instalable como PWA (LF-55):
   - Manifiesto con iconos propios y service worker que guarda solo la aplicación.
   - Aviso de versión nueva.

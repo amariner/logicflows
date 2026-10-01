@@ -20,6 +20,12 @@ COPY . .
 RUN pnpm install --offline --frozen-lockfile
 RUN pnpm --filter @logicflows/contract build \
  && pnpm --filter @logicflows/api --filter @logicflows/simulator --filter @logicflows/dashboard build
+# El visor se sirve comprimido: los ficheros se comprimen una vez aquí y Nginx
+# los entrega con gzip_static (LF-59). config.json se genera al arrancar y no
+# se comprime: una copia antigua se serviría en su lugar.
+RUN find apps/dashboard/www -type f -size +1k ! -name config.json \
+      \( -name '*.js' -o -name '*.css' -o -name '*.json' -o -name '*.webmanifest' -o -name '*.svg' -o -name '*.txt' \) \
+      -exec gzip -9 -k -n {} +
 # Cada servicio Node se queda solo con sus dependencias de producción.
 RUN pnpm --filter @logicflows/api deploy --prod --legacy /prod/api \
  && pnpm --filter @logicflows/simulator deploy --prod --legacy /prod/simulator

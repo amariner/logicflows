@@ -18,6 +18,8 @@ for value in "$API_URL" "$AUTH_ISSUER" "$AUTH_CLIENT_ID"; do
 done
 
 target=/usr/share/nginx/html/config.json
+# Nunca debe servirse una versión comprimida antigua de la configuración.
+rm -f "${target}.gz"
 if [ -n "$AUTH_ISSUER" ]; then
   : "${AUTH_CLIENT_ID:?Falta AUTH_CLIENT_ID}"
   printf '{\n  "apiUrl": "%s",\n  "auth": { "issuer": "%s", "clientId": "%s" }\n}\n' \

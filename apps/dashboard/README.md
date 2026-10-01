@@ -80,6 +80,12 @@ El visor se puede instalar en el escritorio o en el móvil (LF-55, [ADR-0002](..
 
 La prueba de extremo a extremo comprueba el manifiesto, el service worker y el comportamiento sin conexión.
 
+## Compresión
+
+Los ficheros del visor se comprimen con gzip al construir la imagen y Nginx los sirve tal cual (`gzip_static`), sin comprimir en cada petición (LF-59). `config.json` no se comprime, porque se genera al arrancar. En una red móvil lenta («Fast 3G», CPU ×4), comprimir redujo lo transferido de 883 a 235 KB y el tiempo hasta ver datos de 8,0 a 4,5 s.
+
+El spike de LF-56 comparó además el renderizado en el servidor (SSR): adelanta el primer pintado, pero no la llegada de los datos, que dependen de la sesión del navegador. No se adopta.
+
 ## Cabeceras de seguridad
 
 Nginx sirve el visor con una política de seguridad de contenidos generada al arrancar el contenedor, porque depende de la URL de la API y del emisor:
