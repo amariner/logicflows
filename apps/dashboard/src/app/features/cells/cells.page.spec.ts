@@ -28,7 +28,7 @@ describe('página de células en tiempo real', () => {
       cellId: 'cell-01',
       status: null,
       state: null,
-      telemetry: buildTelemetryMessage({ boxesTotal }),
+      telemetry: buildTelemetryMessage({ boxesTotal, seq: boxesTotal }),
     });
 
     socket.receive({ type: 'snapshot', cells: [telemetry(41)] });

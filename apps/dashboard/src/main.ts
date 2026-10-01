@@ -1,3 +1,4 @@
+import { provideHttpClient } from '@angular/common/http';
 import { bootstrapApplication } from '@angular/platform-browser';
 import {
   PreloadAllModules,
@@ -17,6 +18,7 @@ bootstrapApplication(AppComponent, {
     // Mismo aspecto en todas las plataformas (ADR-0002).
     provideIonicAngular({ mode: 'md' }),
     provideRouter(routes, withPreloading(PreloadAllModules)),
+    provideHttpClient(),
     provideAppConfig(),
   ],
 }).catch((error: unknown) => {
