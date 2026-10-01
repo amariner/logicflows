@@ -39,6 +39,8 @@ export function connectToBroker(options: MqttConnectionOptions): BrokerConnectio
     options.logger.error({ error: error.message }, 'Error de la conexión MQTT');
   });
 
+  const reconnectPeriod = options.reconnectPeriodMs ?? 1_000;
+
   return {
     async publish(topic: string, payload: string, publishOptions: PublishOptions) {
       await client.publishAsync(topic, payload, publishOptions);
@@ -47,19 +49,46 @@ export function connectToBroker(options: MqttConnectionOptions): BrokerConnectio
       client.on('connect', listener);
     },
     /**
-     * Corta la conexión de forma abrupta, sin desconexión limpia: el broker
-     * publica el Last Will. Tras `durationMs` vuelve a conectar.
+     * Simula un corte de red: destruye el socket sin desconexión limpia, así
+     * que el broker publica el Last Will. El cliente reconecta por su cuenta
+     * pasado `durationMs`, como tras una caída real.
      */
     interrupt(durationMs: number) {
       options.logger.warn({ durationMs }, 'Cortando la conexión con el broker');
-      client.end(true, () => {
-        setTimeout(() => {
-          client.reconnect();
-        }, durationMs);
+      client.options.reconnectPeriod = durationMs;
+      client.once('connect', () => {
+        client.options.reconnectPeriod = reconnectPeriod;
       });
+      client.stream.destroy();
     },
+    /**
+     * Cierra la conexión de forma limpia con un límite de tiempo: si el broker
+     * no responde, la cierra a la fuerza para que el proceso pueda terminar.
+     */
     async close() {
-      await client.endAsync();
+      const closed = await withTimeout(client.endAsync(), CLOSE_TIMEOUT_MS);
+      if (!closed) {
+        options.logger.warn({}, 'El broker no respondió al cierre: se fuerza la desconexión');
+        await client.endAsync(true);
+      }
     },
   };
+}
+
+/** Tiempo máximo para un cierre limpio de la conexión. */
+const CLOSE_TIMEOUT_MS = 2_000;
+
+/** Espera una promesa como máximo `timeoutMs`. Devuelve si terminó a tiempo. */
+export async function withTimeout(promise: Promise<unknown>, timeoutMs: number): Promise<boolean> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<false>((resolve) => {
+    timer = setTimeout(() => {
+      resolve(false);
+    }, timeoutMs);
+  });
+  try {
+    return await Promise.race([promise.then(() => true), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
 }

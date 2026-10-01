@@ -9,6 +9,7 @@ import { cycleDurationMs } from './domain/cycle.ts';
 import type { PalletFormat } from './domain/production.ts';
 import type { Random } from './domain/random.ts';
 import type { MessageFactory } from './messages.ts';
+import { withTimeout } from './mqtt/connection.ts';
 
 export interface SimulatorOptions {
   readonly format: PalletFormat;
@@ -40,6 +41,8 @@ export interface SimulatorDependencies {
 
 const RETAINED_QOS1: PublishOptions = { qos: 1, retain: true };
 const RETAINED_QOS0: PublishOptions = { qos: 0, retain: true };
+/** Tiempo máximo para confirmar el anuncio de desconexión al detenerse. */
+const STOP_ANNOUNCE_TIMEOUT_MS = 2_000;
 
 const SUPPLY_ALARMS: Readonly<Record<WaitingReason, AlarmDefinition>> = {
   STARVED: ALARMS.starved,
@@ -108,7 +111,15 @@ export class Simulator {
       this.#transition('stop');
     }
     // Una desconexión limpia no dispara el Last Will: se publica explícitamente.
-    await this.#publish('status', this.#messages.status(false, this.#now()), RETAINED_QOS1);
+    // La parada debe terminar aunque el broker no confirme, porque el
+    // orquestador solo concede unos segundos tras SIGTERM.
+    const announced = await withTimeout(
+      this.#publish('status', this.#messages.status(false, this.#now()), RETAINED_QOS1),
+      STOP_ANNOUNCE_TIMEOUT_MS,
+    );
+    if (!announced) {
+      this.#logger.warn({}, 'No se confirmó el anuncio de desconexión');
+    }
     await this.#connection.close();
   }
 

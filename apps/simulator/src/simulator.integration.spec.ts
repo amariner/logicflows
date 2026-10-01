@@ -41,15 +41,25 @@ interface Received {
   telemetry: TelemetryMessage[];
 }
 
-const waitFor = async (condition: () => boolean, timeoutMs = 20_000) => {
+const waitFor = async (condition: () => boolean, description: string, timeoutMs = 15_000) => {
   const deadline = Date.now() + timeoutMs;
   while (!condition()) {
     if (Date.now() > deadline) {
-      throw new Error('Tiempo de espera agotado');
+      throw new Error(`Tiempo de espera agotado: ${description}`);
     }
     await new Promise((resolve) => setTimeout(resolve, 50));
   }
 };
+
+const within = <T>(promise: Promise<T>, description: string, timeoutMs = 15_000): Promise<T> =>
+  Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(() => {
+        reject(new Error(`Operación sin terminar: ${description}`));
+      }, timeoutMs),
+    ),
+  ]);
 
 describe('simulador con un broker real', () => {
   let broker: StartedTestContainer;
@@ -96,7 +106,7 @@ describe('simulador con un broker real', () => {
     consumer.on('connect', () => {
       void consumer.subscribeAsync(subscriptionFilter(), { qos: 1 });
     });
-    await consumer.subscribeAsync(subscriptionFilter(), { qos: 1 });
+    await within(consumer.subscribeAsync(subscriptionFilter(), { qos: 1 }), 'suscribirse');
 
     const messages = new MessageFactory({
       siteId: 'demo',
@@ -132,29 +142,32 @@ describe('simulador con un broker real', () => {
     );
 
     simulator.start();
-    await waitFor(() => (received.telemetry.at(-1)?.boxesTotal ?? 0) >= 3);
+    await waitFor(() => (received.telemetry.at(-1)?.boxesTotal ?? 0) >= 3, 'tres cajas');
     expect(received.status[0]).toMatchObject({ online: true });
     expect(received.state.map((s) => s.state)).toContain('RUNNING');
 
     const boxesBeforeRestart = received.telemetry.at(-1)?.boxesTotal ?? 0;
     const statusBeforeRestart = received.status.length;
-    await broker.restart();
+    await within(broker.restart(), 'reiniciar el broker');
 
-    await waitFor(() => received.status.length > statusBeforeRestart);
-    await waitFor(() => (received.telemetry.at(-1)?.boxesTotal ?? 0) > boxesBeforeRestart + 3);
+    await waitFor(() => received.status.length > statusBeforeRestart, 'status tras reiniciar');
+    await waitFor(
+      () => (received.telemetry.at(-1)?.boxesTotal ?? 0) > boxesBeforeRestart + 3,
+      'cajas tras reiniciar',
+    );
     expect(received.status.at(-1)).toMatchObject({ online: true });
 
     // Corte abrupto de la red: el broker publica el Last Will y la célula
     // vuelve a anunciarse al reconectar.
     const statusBeforeCut = received.status.length;
     connection.interrupt(500);
-    await waitFor(() => received.status.length > statusBeforeCut);
+    await waitFor(() => received.status.length > statusBeforeCut, 'Last Will tras el corte');
     expect(received.status.at(-1)).toMatchObject({ online: false });
-    await waitFor(() => received.status.at(-1)?.online === true);
+    await waitFor(() => received.status.at(-1)?.online === true, 'online tras el corte');
     expect(received.status.at(-1)?.sessionId).toBe(received.status[0]?.sessionId);
 
-    await simulator.stop();
-    await waitFor(() => received.status.at(-1)?.online === false);
-    await consumer.endAsync();
+    await within(simulator.stop(), 'detener el simulador');
+    await waitFor(() => received.status.at(-1)?.online === false, 'offline al detener');
+    await within(consumer.endAsync(), 'cerrar el consumidor');
   });
 });
