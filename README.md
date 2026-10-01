@@ -198,7 +198,7 @@ El workflow [Imágenes](.github/workflows/imagenes.yml) publica las tres imágen
 docker pull ghcr.io/amariner/logicflows-api:v0.2.0
 ```
 
-Una versión solo puede salir de imágenes construidas y probadas en `main`: si el commit de la etiqueta no tiene imágenes publicadas, la promoción falla. Las pull requests no publican nada. Mientras el repositorio sea privado, las imágenes también lo son y descargarlas requiere un token con permiso `read:packages`.
+Una versión solo puede salir de imágenes construidas y probadas en `main`: si el commit de la etiqueta no tiene imágenes publicadas, la promoción falla. Las pull requests no publican nada. Las imágenes son públicas, como el repositorio, y se descargan sin credenciales. No contienen secretos: toda la configuración entra por variables de entorno al arrancar.
 
 ## Integración continua
 
