@@ -3,25 +3,7 @@
 } @else {
   <ul class="grid">
     @for (cell of cells(); track cell.id) {
-      <li>
-        <ion-card [class.offline]="cell.online === false">
-          <ion-card-header>
-            <ion-card-title>{{ cell.cellId }}</ion-card-title>
-            <ion-card-subtitle>Planta {{ cell.siteId }}</ion-card-subtitle>
-          </ion-card-header>
-          <ion-card-content>
-            <p class="state">{{ cell.stateLabel }}</p>
-            @if (cell.online === false) {
-              <p class="disconnected">Célula desconectada: último dato conocido</p>
-            }
-            <p class="counter">
-              <span class="value" data-testid="boxes">{{ cell.boxesLabel }}</span>
-              <span class="unit">cajas</span>
-            </p>
-            <p class="pallet">{{ cell.palletLabel }}</p>
-          </ion-card-content>
-        </ion-card>
-      </li>
+      <li><app-cell-card [cell]="cell" /></li>
     }
   </ul>
 }

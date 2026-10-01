@@ -4,7 +4,14 @@ Muestra el estado, las alarmas y los indicadores de las células en tiempo real.
 
 ## Estado actual
 
-Esqueleto (LF-24) y producción en tiempo real (LF-28): estructura con menú lateral fijo en escritorio y desplegable en móvil (`ion-split-pane`), modo visual `md` en todas las plataformas y página de células con el contador de cajas de cada célula, que se actualiza en cuanto la API recibe una caja.
+Esqueleto (LF-24), producción en tiempo real (LF-28) y panel de estado (LF-34): estructura con menú lateral fijo en escritorio y desplegable en móvil (`ion-split-pane`), modo visual `md` y una tarjeta por célula con su estado, sus alarmas activas, el contador de cajas y el estado del robot y de la cinta, actualizados en cuanto la API recibe un mensaje. El diseño sigue [Diseño del visor](../../docs/diseno-del-visor.md).
+
+## Panel de estado
+
+- **Estado** de ADR-0003 con icono, texto y un tono de color con contraste AA en tema claro y oscuro (tokens `--lf-tone-*` en `src/theme/variables.scss`). Solo los estados que requieren atención (espera, fallo y parada de emergencia) colorean el borde de la tarjeta.
+- **Alarmas activas** de más a menos grave, con la severidad escrita, el código, el mensaje y la hora de activación.
+- **Aviso global** en la parte superior cuando alguna célula está en parada de emergencia, anunciado a los lectores de pantalla (`role="alert"`).
+- Estado del robot y de la cinta en texto.
 
 ## Tiempo real
 
@@ -41,8 +48,8 @@ Organizada por funcionalidades:
 | Ruta | Contenido |
 |---|---|
 | `src/app/core/` | Servicios transversales: configuración de ejecución, canal de tiempo real e indicador de conexión |
-| `src/app/features/cells/` | Funcionalidad de células: página, tarjetas y modelo de vista |
-| `src/testing/` | Ayudantes de pruebas: WebSocket falso y proveedores comunes |
+| `src/app/features/cells/` | Funcionalidad de células: página, tarjeta, lista, aviso de emergencia, presentación de estados y alarmas, y modelo de vista |
+| `src/testing/` | Ayudantes de pruebas: WebSocket falso, proveedores comunes y vistas de célula |
 | `src/app/app.component.*` | Estructura de la aplicación y menú |
 | `src/app/app.routes.ts` | Rutas, con carga diferida de cada página |
 

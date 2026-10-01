@@ -1,24 +1,15 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
-import {
-  IonCard,
-  IonCardContent,
-  IonCardHeader,
-  IonCardSubtitle,
-  IonCardTitle,
-} from '@ionic/angular';
 
+import { CellCardComponent } from '../cell-card/cell-card.component';
 import type { CellView } from '../cell-view';
 
-/**
- * Tarjetas de las células con el contador de cajas destacado para leerlo a
- * distancia. Componente de presentación: recibe los datos ya preparados.
- */
+/** Rejilla de tarjetas de célula que se adapta al ancho disponible. */
 @Component({
   selector: 'app-cell-list',
   templateUrl: './cell-list.component.html',
   styleUrl: './cell-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle],
+  imports: [CellCardComponent],
 })
 export class CellListComponent {
   readonly cells = input.required<readonly CellView[]>();

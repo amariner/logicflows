@@ -1,0 +1,114 @@
+:host {
+  display: block;
+}
+
+ion-card {
+  margin: 0;
+  height: 100%;
+  border-left: 0.375rem solid transparent;
+}
+
+// Solo los estados que requieren atención colorean la tarjeta (ISA-101).
+ion-card.attention {
+  border-left-color: var(--tone);
+}
+
+ion-card.attention.tone-danger {
+  border-width: 0 0 0 0.625rem;
+}
+
+.tone-ok {
+  --tone: var(--lf-tone-ok);
+}
+
+.tone-info {
+  --tone: var(--lf-tone-info);
+}
+
+.tone-neutral {
+  --tone: var(--lf-tone-neutral);
+}
+
+.tone-warning {
+  --tone: var(--lf-tone-warning);
+}
+
+.tone-danger {
+  --tone: var(--lf-tone-danger);
+}
+
+.state {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--tone);
+
+  ion-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
+}
+
+.disconnected {
+  color: var(--lf-tone-danger);
+}
+
+.alarms {
+  margin: 0 0 0.75rem;
+  padding: 0;
+  list-style: none;
+
+  li {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--tone);
+    border-left-width: 0.375rem;
+    border-radius: 0.25rem;
+    color: var(--ion-text-color);
+  }
+
+  ion-icon {
+    color: var(--tone);
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+  }
+
+  p {
+    margin: 0;
+  }
+
+  .alarm-heading strong {
+    color: var(--tone);
+  }
+}
+
+.counter {
+  margin: 0.5rem 0 0.25rem;
+  color: var(--ion-text-color);
+}
+
+.value {
+  font-size: 3.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.unit {
+  margin-left: 0.5rem;
+  font-size: 1.25rem;
+}
+
+.offline .value {
+  opacity: 0.6;
+}
+
+.components {
+  margin-top: 0.5rem;
+}
