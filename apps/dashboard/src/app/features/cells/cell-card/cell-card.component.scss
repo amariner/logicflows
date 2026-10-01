@@ -88,27 +88,6 @@ ion-card.attention.tone-danger {
   }
 }
 
-.counter {
-  margin: 0.5rem 0 0.25rem;
-  color: var(--ion-text-color);
-}
-
-.value {
-  font-size: 3.5rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
-.unit {
-  margin-left: 0.5rem;
-  font-size: 1.25rem;
-}
-
-.offline .value {
-  opacity: 0.6;
-}
-
 .components {
   margin-top: 0.5rem;
 }

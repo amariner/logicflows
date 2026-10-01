@@ -1,0 +1,36 @@
+@let kpi = indicators();
+<div class="indicators" [class.stale]="stale()">
+  <p class="counter">
+    <span class="value" data-testid="boxes">{{ kpi.boxes }}</span>
+    <span class="unit">cajas</span>
+  </p>
+
+  <dl>
+    <div>
+      <dt>Pallets</dt>
+      <dd data-testid="pallets">{{ kpi.pallets }}</dd>
+    </div>
+    <div>
+      <dt>Capa</dt>
+      <dd data-testid="layer">{{ kpi.layer }}</dd>
+    </div>
+    <div>
+      <dt>Ritmo</dt>
+      <dd data-testid="throughput">
+        {{ kpi.throughput.value }} <span class="measure-unit">{{ kpi.throughput.unit }}</span>
+      </dd>
+    </div>
+    <div>
+      <dt>Ciclo</dt>
+      <dd data-testid="cycle-time">
+        {{ kpi.cycleTime.value }} <span class="measure-unit">{{ kpi.cycleTime.unit }}</span>
+      </dd>
+    </div>
+  </dl>
+
+  <ion-progress-bar
+    [value]="kpi.palletProgress"
+    [attr.aria-label]="kpi.palletProgressLabel"
+    data-testid="pallet-progress"
+  />
+</div>

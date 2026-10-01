@@ -1,5 +1,7 @@
 import type { CellSnapshot, CellState } from '@logicflows/contract';
 
+import { toIndicators } from './indicators';
+import type { ProductionIndicators } from './indicators';
 import {
   CONVEYOR_LABELS,
   ROBOT_LABELS,
@@ -9,7 +11,6 @@ import {
 } from './presentation';
 import type { Tone } from './presentation';
 
-const numberFormat = new Intl.NumberFormat('es-ES');
 const defaultTimeFormat = new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit' });
 
 /** Formatea la hora de un instante ISO 8601. Sustituible en las pruebas. */
@@ -41,9 +42,7 @@ export interface CellView {
   /** Alarmas activas, de más a menos grave. */
   readonly alarms: readonly AlarmView[];
   readonly boxesTotal: number | null;
-  readonly boxesLabel: string;
-  readonly palletsTotal: number | null;
-  readonly palletLabel: string;
+  readonly indicators: ProductionIndicators;
   /** «Robot: en movimiento · Cinta: en marcha», o `null` sin telemetría. */
   readonly componentsLabel: string | null;
 }
@@ -83,12 +82,8 @@ export function toCellView(snapshot: CellSnapshot, time: TimeFormatter = formatT
       };
     });
 
-  let palletLabel = 'Sin datos de producción';
   let componentsLabel: string | null = null;
   if (telemetry !== null) {
-    const { currentLayer, layersPerPallet } = telemetry.pallet;
-    const pallets = `${numberFormat.format(telemetry.palletsTotal)} ${telemetry.palletsTotal === 1 ? 'pallet' : 'pallets'}`;
-    palletLabel = `${pallets} · capa ${String(currentLayer)} de ${String(layersPerPallet)}`;
     componentsLabel = `Robot: ${ROBOT_LABELS[telemetry.robot.state]} · Cinta: ${CONVEYOR_LABELS[telemetry.conveyor.state]}`;
   }
 
@@ -104,9 +99,7 @@ export function toCellView(snapshot: CellSnapshot, time: TimeFormatter = formatT
     attention,
     alarms,
     boxesTotal: telemetry?.boxesTotal ?? null,
-    boxesLabel: telemetry === null ? '—' : numberFormat.format(telemetry.boxesTotal),
-    palletsTotal: telemetry?.palletsTotal ?? null,
-    palletLabel,
+    indicators: toIndicators(telemetry),
     componentsLabel,
   };
 }

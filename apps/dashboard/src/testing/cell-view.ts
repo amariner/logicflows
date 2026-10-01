@@ -14,9 +14,15 @@ export function buildCellView(overrides: Partial<CellView> = {}): CellView {
     attention: false,
     alarms: [],
     boxesTotal: 42,
-    boxesLabel: '42',
-    palletsTotal: 1,
-    palletLabel: '1 pallet · capa 2 de 5',
+    indicators: {
+      boxes: '42',
+      pallets: '1',
+      layer: '2 de 5',
+      palletProgress: 0.25,
+      palletProgressLabel: 'Pallet en curso: 10 de 40 cajas',
+      throughput: { value: '820', unit: 'cajas/h' },
+      cycleTime: { value: '4,2', unit: 's' },
+    },
     componentsLabel: 'Robot: en movimiento · Cinta: en marcha',
     ...overrides,
   };

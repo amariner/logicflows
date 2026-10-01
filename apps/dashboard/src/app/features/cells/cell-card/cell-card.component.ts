@@ -21,6 +21,7 @@ import {
 } from 'ionicons/icons';
 
 import type { CellView } from '../cell-view';
+import { ProductionIndicatorsComponent } from '../production-indicators/production-indicators.component';
 
 /**
  * Tarjeta de una célula: estado, alarmas activas y producción. Sigue
@@ -32,7 +33,15 @@ import type { CellView } from '../cell-view';
   templateUrl: './cell-card.component.html',
   styleUrl: './cell-card.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonIcon],
+  imports: [
+    IonCard,
+    IonCardContent,
+    IonCardHeader,
+    IonCardSubtitle,
+    IonCardTitle,
+    IonIcon,
+    ProductionIndicatorsComponent,
+  ],
 })
 export class CellCardComponent {
   readonly cell = input.required<CellView>();
