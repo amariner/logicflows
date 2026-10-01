@@ -11,6 +11,7 @@ import { HealthModule } from './health/health.module.ts';
 import { IngestionModule } from './ingestion/ingestion.module.ts';
 import { PersistenceModule } from './persistence/persistence.module.ts';
 import { RealtimeModule } from './realtime/realtime.module.ts';
+import { SecurityModule } from './security/security.module.ts';
 
 @Module({
   imports: [
@@ -27,6 +28,8 @@ import { RealtimeModule } from './realtime/realtime.module.ts';
         },
       }),
     }),
+    // El límite de peticiones se evalúa antes que la autenticación.
+    SecurityModule,
     AuthModule,
     CellsModule,
     DatabaseModule,

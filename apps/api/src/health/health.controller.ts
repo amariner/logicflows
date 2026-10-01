@@ -2,6 +2,7 @@ import { Controller, Get } from '@nestjs/common';
 import { HealthCheck, HealthCheckService } from '@nestjs/terminus';
 import type { HealthCheckResult } from '@nestjs/terminus';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 
 import { Public } from '../auth/decorators.ts';
 import { DatabaseHealthIndicator } from '../database/database.health.ts';
@@ -9,6 +10,8 @@ import { MqttHealthIndicator } from '../ingestion/mqtt.health.ts';
 
 @ApiTags('Salud')
 @Public()
+// Los orquestadores consultan la salud cada pocos segundos.
+@SkipThrottle()
 @Controller('health')
 export class HealthController {
   constructor(

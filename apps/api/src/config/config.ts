@@ -49,6 +49,14 @@ const configSchema = z.object({
    * puede usarse en otra.
    */
   REALTIME_TICKET_SECRET: z.string().min(32),
+  /** Peticiones por minuto que admite la API de cada cliente antes de responder 429. */
+  RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(300),
+  /**
+   * Proxies de confianza delante de la API (balanceador de la plataforma). Con
+   * 0 se usa la dirección de la conexión; con 1, la que añade el proxy en
+   * X-Forwarded-For. Es necesario para limitar por cliente y no por proxy.
+   */
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
   /** Orígenes autorizados a llamar a la API desde el navegador, separados por comas. */
   CORS_ORIGINS: z
     .string()

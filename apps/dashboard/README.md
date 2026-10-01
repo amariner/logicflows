@@ -65,6 +65,17 @@ Sin `auth`, el visor no pide sesión. Solo tiene sentido con una API simulada, c
 
 En la imagen Docker, `config.json` se genera al arrancar a partir de `API_URL`, `AUTH_ISSUER` y `AUTH_CLIENT_ID`.
 
+## Cabeceras de seguridad
+
+Nginx sirve el visor con una política de seguridad de contenidos generada al arrancar el contenedor, porque depende de la URL de la API y del emisor:
+
+- **Conexiones.** `connect-src` solo admite el propio visor, la API (HTTP y WebSocket) y el proveedor de identidad.
+- **Scripts.** Solo los del propio visor, nunca en línea. Por eso la build de producción desactiva `inlineCritical`: el script en línea con el que Angular carga la hoja de estilos de forma diferida quedaría bloqueado.
+- **Estilos.** Admiten `'unsafe-inline'`, porque Ionic aplica estilos en línea a sus componentes.
+- **Otras cabeceras.** `frame-ancestors 'none'`, `X-Frame-Options`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` y HSTS.
+
+La prueba de extremo a extremo falla si el navegador registra alguna violación de la política.
+
 El fichero de desarrollo está en `public/config.json`. Un valor no válido detiene el arranque con un mensaje que indica el problema.
 
 ## Estructura

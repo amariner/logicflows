@@ -14,6 +14,14 @@ async function boxesShown(card: Locator): Promise<number | null> {
 }
 
 test('una caja publicada por el simulador aparece en el visor', async ({ page }) => {
+  // La política de seguridad de contenidos no debe bloquear nada del visor (LF-52).
+  const violations: string[] = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error' && message.text().includes('Content Security Policy')) {
+      violations.push(message.text());
+    }
+  });
+
   // Sin sesión, el visor lleva al inicio de sesión del proveedor de identidad.
   await page.goto('/');
   await page.locator('#username').fill(USERNAME);
@@ -28,4 +36,5 @@ test('una caja publicada por el simulador aparece en el visor', async ({ page })
   // Sin recargar la página: la caja siguiente llega por el canal en tiempo real.
   const before = (await boxesShown(card)) ?? 0;
   await expect.poll(() => boxesShown(card)).toBeGreaterThan(before);
+  expect(violations).toEqual([]);
 });

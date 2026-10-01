@@ -6,6 +6,10 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ### Añadido
 
+- Endurecimiento (LF-52):
+  - **API:** cabeceras de seguridad, límite de peticiones por cliente con `429` y tamaño máximo de peticiones y mensajes WebSocket.
+  - **Visor:** política de seguridad de contenidos en Nginx.
+  - **CI:** auditoría de dependencias.
 - Publicación de las imágenes en GitHub Container Registry para amd64 y arm64. Cada versión etiqueta las imágenes ya probadas de su commit, sin recompilar (LF-45).
 
 ### Cambiado
