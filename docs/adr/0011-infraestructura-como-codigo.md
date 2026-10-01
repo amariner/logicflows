@@ -48,7 +48,7 @@ Se adopta la **opción 2**:
 ## Consecuencias
 
 - **Positivas:** la producción está descrita y revisada en el repositorio. Desplegar y volver atrás es una PR de una línea, con el plan visible antes de aplicar.
-- **Coste:** un token de proyecto de Railway en GitHub (`RAILWAY_TOKEN`, entorno `production`). Lo crea y lo rota el titular de la cuenta.
+- **Coste:** un token de proyecto de Railway en GitHub (secreto `RAILWAY_TOKEN`), limitado al entorno `production` de Railway. Lo crea y lo rota el titular de la cuenta.
 - **Flujos propios en lugar de la acción oficial.** Railway publica la acción `railwayapp/config`, pero tiene dos problemas:
   - instala las dependencias con `npm`, que falla en un workspace de pnpm;
   - instala siempre la última CLI.

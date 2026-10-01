@@ -32,7 +32,12 @@ Los servicios usan una etiqueta de versión (`vX.Y.Z`) o de commit (`sha-<commit
 - **Al fusionar,** `Railway apply` aplica exactamente el plan revisado. Si producción cambió entretanto, falla y hay que volver a planificar.
 - **En local,** `pnpm railway:plan` compara el fichero con producción. Necesita la CLI de Railway con sesión iniciada y la carpeta enlazada al proyecto (`railway link -p logicflows -e production`). Si muestra cambios que nadie ha propuesto, alguien modificó producción a mano: se lleva el cambio al fichero o se deshace.
 
-Los flujos necesitan el secreto `RAILWAY_TOKEN` en el entorno `production` de GitHub: un token de proyecto de Railway limitado a `production`. Lo crea y lo rota el titular de la cuenta.
+Los flujos necesitan el secreto de repositorio `RAILWAY_TOKEN`: un token de proyecto de Railway limitado al entorno `production`. Lo crea y lo rota el titular de la cuenta:
+
+1. En Railway, ir a *Project Settings → Tokens* del proyecto `logicflows` y crear un token para `production`.
+2. Guardarlo en GitHub con `gh secret set RAILWAY_TOKEN --repo amariner/logicflows`, que pide el valor sin mostrarlo.
+
+Sin el token, los dos flujos fallan con un aviso. Las PR desde forks no lo reciben y no calculan el plan.
 
 **Comprobaciones de salud.** Railway no envía tráfico a un despliegue nuevo hasta que su comprobación responde; si no lo hace a tiempo, el anterior sigue atendiendo.
 
