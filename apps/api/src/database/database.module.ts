@@ -25,9 +25,23 @@ const MIGRATIONS_FOLDER = fileURLToPath(new URL('../../drizzle', import.meta.url
   providers: [
     {
       provide: POOL,
-      inject: [ConfigService],
-      useFactory: (config: ConfigService<AppConfig, true>) =>
-        new Pool({ connectionString: config.get('DATABASE_URL', { infer: true }), max: 10 }),
+      inject: [ConfigService, PinoLogger],
+      useFactory: (config: ConfigService<AppConfig, true>, logger: PinoLogger): Pool => {
+        const pool = new Pool({
+          connectionString: config.get('DATABASE_URL', { infer: true }),
+          max: 10,
+        });
+        // PostgreSQL puede cerrar una conexión inactiva del pool (reinicio,
+        // mantenimiento, conmutación). Sin este manejador, el error terminaría el
+        // proceso. El pool descarta esa conexión y abre otra cuando la necesita.
+        pool.on('error', (error: Error & { code?: string }) => {
+          logger.warn(
+            { context: 'Database', code: error.code, error: error.message },
+            'PostgreSQL cerró una conexión inactiva',
+          );
+        });
+        return pool;
+      },
     },
     {
       provide: DATABASE,

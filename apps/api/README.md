@@ -88,6 +88,7 @@ Acceso a datos con Drizzle ORM sobre `pg` ([ADR-0007](../../docs/adr/0007-acceso
 - **Idempotencia:** cada tabla tiene una restricción única sobre la identidad del mensaje (planta, célula, sesión y secuencia) y se inserta con `ON CONFLICT DO NOTHING`. Un duplicado no se guarda dos veces aunque la API se reinicie.
 - **Producción por periodo:** `TelemetryRepository.production()` suma las diferencias entre muestras consecutivas de cada sesión con funciones de ventana. La primera muestra de una sesión y los reinicios de contadores cuentan desde cero.
 - **Recuperación:** al arrancar, la información de tiempo real de cada célula se recupera de la base de datos.
+- **Cortes de conexión:** si PostgreSQL cierra una conexión inactiva, por ejemplo al reiniciarse, el pool la descarta, registra un aviso (`PostgreSQL cerró una conexión inactiva`) y abre otra cuando la necesita. Mientras la base de datos no responde, `/health/ready` devuelve 503 con `database: down`, pero la API sigue en marcha.
 - **Migraciones:** SQL versionado en `drizzle/`, generado a partir de `src/database/schema.ts` y aplicado automáticamente al arrancar. Para crear una migración tras cambiar el esquema:
 
   ```sh
