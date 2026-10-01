@@ -1,0 +1,43 @@
+name: Railway apply
+
+# Aplica en producción el plan fijado en la pull request fusionada (ADR-0011).
+# Si el entorno cambió desde el plan, o lo fusionado no es lo planificado,
+# falla y hay que volver a planificar. Un cambio en .railway/ que no venga de
+# una PR no tiene plan y no se aplica.
+on:
+  push:
+    branches: [main]
+    paths: ['.railway/**']
+
+# Un despliegue no se cancela a medias: el siguiente espera.
+concurrency:
+  group: railway-apply
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+jobs:
+  apply:
+    name: Aplicar en producción
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: https://dashboard-production-6f89.up.railway.app
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - uses: railwayapp/config@v1
+        with:
+          command: apply
+          railway-token: ${{ secrets.RAILWAY_TOKEN }}

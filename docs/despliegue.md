@@ -1,6 +1,11 @@
 # Despliegue en Railway
 
-LogicFlows se despliega en [Railway](https://railway.com) ([ADR-0008](adr/0008-plataforma-de-despliegue.md)). Este documento describe el entorno de producción, su configuración y sus secretos, y cómo operarlos (LF-48). El despliegue de versiones y la vuelta atrás llegan con LF-49.
+LogicFlows se despliega en [Railway](https://railway.com) ([ADR-0008](adr/0008-plataforma-de-despliegue.md)). Este documento describe:
+
+- el entorno de producción, su configuración y sus secretos (LF-48);
+- cómo se despliega una versión y cómo se vuelve atrás (LF-49).
+
+La infraestructura está descrita como código en [`.railway/railway.ts`](../.railway/railway.ts) ([ADR-0011](adr/0011-infraestructura-como-codigo.md)).
 
 ## Servicios
 
@@ -9,13 +14,61 @@ Proyecto `logicflows`, entorno `production`, todos los servicios en la región *
 | Servicio | Origen | Acceso |
 |---|---|---|
 | `Postgres` | Plantilla PostgreSQL de Railway, con volumen | Solo red privada |
-| `broker` | `ghcr.io/amariner/logicflows-broker` | Solo red privada (`broker.railway.internal:1883`) |
+| `broker` | `ghcr.io/amariner/logicflows-broker`, con el volumen `broker-data` en `/mosquitto/data` | Red privada (`broker.railway.internal:1883`) para la API y el simulador; público por `wss://` (puerto 9001) para las células |
 | `identity` | `ghcr.io/amariner/logicflows-identity` | Público, puerto 8080 |
 | `api` | `ghcr.io/amariner/logicflows-api` | Público, puerto 3000 |
 | `simulator` | `ghcr.io/amariner/logicflows-simulator` | Sin puertos |
 | `dashboard` | `ghcr.io/amariner/logicflows-dashboard` | Público, puerto 8080 |
 
-Los servicios usan imágenes con etiqueta de commit (`sha-<commit>`), nunca `main`: una etiqueta inmutable garantiza que se ejecuta lo que se probó. Los dominios son los gratuitos de Railway (`*.up.railway.app`) con HTTPS.
+Los servicios usan una etiqueta de versión (`vX.Y.Z`) o de commit (`sha-<commit>`), nunca `main`: una etiqueta inmutable garantiza que se ejecuta lo que se probó. Los dominios son los gratuitos de Railway (`*.up.railway.app`), con HTTPS y `wss://`.
+
+**Las células de planta** se conectan a `wss://broker-production-c580.up.railway.app`. Railway termina TLS y el broker exige usuario y contraseña: rechaza las conexiones anónimas y las credenciales incorrectas (comprobado el 1 de octubre de 2026). La célula de demostración (`simulator`) usa la red privada.
+
+## Infraestructura como código
+
+`.railway/railway.ts` describe los servicios, las imágenes, las réplicas, los dominios, los volúmenes, las comprobaciones de salud y las variables. Los secretos no están en el fichero: `preserve()` conserva el valor sellado que ya tiene cada variable en Railway.
+
+- **En cada pull request** que cambie `.railway/`, el flujo `Railway plan` publica en la PR los cambios que haría en producción y fija ese plan.
+- **Al fusionar,** `Railway apply` aplica exactamente el plan revisado. Si producción cambió entretanto, falla y hay que volver a planificar.
+- **En local,** `pnpm railway:plan` compara el fichero con producción. Necesita la CLI de Railway con sesión iniciada y la carpeta enlazada al proyecto (`railway link -p logicflows -e production`). Si muestra cambios que nadie ha propuesto, alguien modificó producción a mano: se lleva el cambio al fichero o se deshace.
+
+Los flujos necesitan el secreto `RAILWAY_TOKEN` en el entorno `production` de GitHub: un token de proyecto de Railway limitado a `production`. Lo crea y lo rota el titular de la cuenta.
+
+**Comprobaciones de salud.** Railway no envía tráfico a un despliegue nuevo hasta que su comprobación responde; si no lo hace a tiempo, el anterior sigue atendiendo.
+
+| Servicio | Comprobación | Espera máxima |
+|---|---|---|
+| `api` | `/health/ready`: PostgreSQL y broker conectados | 120 s |
+| `identity` | `/realms/logicflows/.well-known/openid-configuration`: realm cargado | 300 s |
+| `dashboard` | `/config.json` | Por defecto |
+
+La API aplica las migraciones pendientes antes de empezar a escuchar ([ADR-0007](adr/0007-acceso-a-datos-y-migraciones.md)): una versión nueva no recibe tráfico hasta tener el esquema al día.
+
+## Desplegar una versión
+
+1. **Etiquetar.** Con todas las comprobaciones en verde en `main`, se etiqueta el commit (`git tag v0.2.0 && git push origin v0.2.0`). El flujo `Imágenes` asigna esa versión a las imágenes ya publicadas del commit, sin recompilar. Si el commit no tiene imágenes, falla.
+2. **Proponer.** En una pull request se cambia `VERSION` en `.railway/railway.ts` a la etiqueta nueva. El plan de la PR debe mostrar solo el cambio de imagen de los cinco servicios.
+3. **Fusionar.** `Railway apply` despliega los cinco servicios y cada uno pasa su comprobación de salud antes de recibir tráfico.
+4. **Comprobar.** `/health/ready` en la API, el visor con sesión y la célula de demostración en directo.
+
+## Volver atrás
+
+Se devuelve `VERSION` a la etiqueta anterior con una pull request (`git revert` del cambio de versión) y se fusiona. Las imágenes anteriores siguen en GHCR, así que no se recompila nada.
+
+**Probado en producción el 1 de octubre de 2026:**
+
+- de `sha-edbfac9` a `sha-656c72d` y vuelta;
+- unos dos minutos cada sentido, con los cinco servicios en `SUCCESS` y `/health/ready` en `up`;
+- al terminar, `plan` no mostró ninguna diferencia.
+
+**En una urgencia,** si no se puede esperar a la CI, desde la web de Railway se redespliega el despliegue anterior del servicio afectado. Después se refleja en `.railway/railway.ts` con una pull request; si no, el siguiente `apply` lo revertirá.
+
+**Volver atrás no deshace migraciones.** Solo es seguro si el esquema nuevo sigue sirviendo a la versión anterior. Por eso las migraciones son aditivas:
+
+1. Una versión añade columnas o tablas.
+2. Una versión posterior, ya sin vuelta atrás a la previa, retira lo que sobra.
+
+Una migración que borre o renombre no puede ir en la misma versión que el código que deja de usarlo.
 
 ## Configuración y secretos
 
@@ -86,6 +139,8 @@ Una variable sellada no se puede leer, pero sí sustituir. Para rotar un secreto
   1. Fijar como comando de inicio `/bin/bash -c "/opt/keycloak/bin/kc.sh bootstrap-admin user --username:env KC_BOOTSTRAP_ADMIN_USERNAME --password:env KC_BOOTSTRAP_ADMIN_PASSWORD --optimized; exec /opt/keycloak/bin/kc.sh start --optimized --import-realm"` y desplegar. Railway sustituye el `ENTRYPOINT` de la imagen por el comando de inicio.
   2. Comprobar en el registro `Created temporary admin user`.
   3. Vaciar el comando de inicio (`startCommand: ""`) y volver a desplegar.
-- **La región por defecto es `us-west`.** Cada servicio nuevo se mueve a Ámsterdam: `railway service scale --service <servicio> europe-west4-drams3a=1 sfo=0`.
+- **La región por defecto es `us-west`.** En `.railway/railway.ts` cada servicio declara sus réplicas en Ámsterdam (`europe-west4-drams3a`).
+- **Un dominio generado no se crea desde `.railway/railway.ts`.** Se crea con `railway domain --service <servicio> --port <puerto>` y después se declara en el fichero con el nombre que asignó Railway.
+- **El montaje de un volumen se declara con la ruta como clave:** `volumeMounts: { '/mosquitto/data': brokerData }`.
 - **Sellar una variable solo es posible desde la web**, no con la CLI ni con la API.
 - **Aviso de dominio público:** Railway marca las variables que usan `RAILWAY_PUBLIC_DOMAIN` porque el tráfico entre servicios que sale por Internet se factura como salida de red. En `KC_HOSTNAME`, `LOGICFLOWS_VISOR_URL`, `CORS_ORIGINS` y la configuración del visor es lo correcto: es la dirección que ve el navegador. La API descarga por la dirección pública las claves de Keycloak con las que valida los tokens; son pocos kilobytes y se guardan en caché.
