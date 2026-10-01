@@ -4,6 +4,10 @@
   "private": true,
   "description": "API de LogicFlows: ingesta y validación de la telemetría MQTT, persistencia en PostgreSQL, REST y WebSocket.",
   "type": "module",
+  "files": [
+    "dist",
+    "drizzle"
+  ],
   "scripts": {
     "dev": "nest start --watch --env-file ../../.env",
     "start": "node dist/main.js",

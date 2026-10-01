@@ -72,6 +72,7 @@ pnpm infra:up          # arranca y espera a que ambos servicios estén sanos
 | `pnpm simulator` | Arranca el [simulador](apps/simulator) de una célula que publica en el broker local |
 | `pnpm api` | Arranca la [API](apps/api) en modo desarrollo en `http://localhost:3000`, con la documentación en `/docs` |
 | `pnpm dashboard` | Arranca el [visor](apps/dashboard) en modo desarrollo en `http://localhost:4200` |
+| `pnpm stack:up` · `pnpm stack:down` | Arranca o detiene el sistema completo en contenedores (ver más abajo) |
 
 | Servicio | Dirección | Credenciales |
 |---|---|---|
@@ -86,9 +87,36 @@ Para inspeccionar los mensajes publicados:
 docker compose exec mosquitto mosquitto_sub -u api -P api-local -t 'logicflows/v1/#' -v
 ```
 
+### Sistema completo en contenedores
+
+El perfil `apps` de Docker Compose añade las tres aplicaciones, construidas con el [`Dockerfile`](Dockerfile) de la raíz, a la infraestructura anterior. Es la forma más rápida de ver el sistema funcionando sin instalar nada más que Docker:
+
+```sh
+cp .env.example .env
+pnpm stack:up          # construye las imágenes, arranca todo y espera a que esté sano
+```
+
+El visor queda en `http://localhost:8100` y la API en `http://localhost:3000`. `pnpm stack:down` lo detiene. Los puertos coinciden con los de `pnpm api`, así que no se usan las dos formas a la vez.
+
+### Imágenes Docker
+
+Un único `Dockerfile` con una etapa por aplicación comparte la instalación y la compilación del monorepo:
+
+| Imagen | Etapa | Base | Configuración |
+|---|---|---|---|
+| API | `api` | `node:24.21.0-alpine`, usuario `node` | Variables de la API en `.env.example`; comprobación de salud en `/health/live` |
+| Simulador | `simulator` | `node:24.21.0-alpine`, usuario `node` | Variables `MQTT_*` y `SIMULATOR_*`; `docker stop` detiene la célula de forma controlada |
+| Visor | `dashboard` | `nginx-unprivileged` (Alpine), puerto 8080 | `API_URL`: al arrancar se genera `config.json` con ella |
+
+```sh
+docker build --target api -t logicflows-api .
+```
+
+Las imágenes no contienen configuración de ningún entorno: la misma imagen sirve para local, pruebas o producción y todo se indica con variables de entorno al arrancar. Las imágenes Node solo incluyen las dependencias de producción (`pnpm deploy --prod`). Las de Node se compilan sobre Debian porque pnpm descarga el Node fijado en `devEngines` desde nodejs.org, que no publica binarios oficiales de Alpine para ARM.
+
 ## Integración continua
 
-Cada pull request contra `main` y cada cambio en `main` ejecutan el workflow [CI](.github/workflows/ci.yml) en GitHub Actions: instalación con `--frozen-lockfile`, formato, tipos, lint, pruebas y build; en paralelo, las pruebas de integración con Testcontainers y el arranque del entorno local con Docker Compose. Cada comprobación es un paso independiente para identificar de un vistazo qué ha fallado. El trabajo tiene un límite de 10 minutos y una nueva ejecución en la misma rama cancela la anterior.
+Cada pull request contra `main` y cada cambio en `main` ejecutan el workflow [CI](.github/workflows/ci.yml) en GitHub Actions: instalación con `--frozen-lockfile`, formato, tipos, lint, pruebas y build; en paralelo, las pruebas de integración con Testcontainers, la accesibilidad del visor y la construcción de las imágenes Docker con el arranque del sistema completo. Cada comprobación es un paso independiente para identificar de un vistazo qué ha fallado. Las comprobaciones tienen un límite de 10 minutos (15 el trabajo que construye las imágenes) y una nueva ejecución en la misma rama cancela la anterior.
 
 ## Calidad del código
 

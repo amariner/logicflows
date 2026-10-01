@@ -4,6 +4,9 @@
   "private": true,
   "description": "Simulador de la célula de paletizado: reproduce el ciclo, los estados y los fallos, y publica la telemetría por MQTT.",
   "type": "module",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "node --env-file-if-exists=../../.env --conditions=@logicflows/source --watch src/main.ts",
     "start": "node dist/main.js",
