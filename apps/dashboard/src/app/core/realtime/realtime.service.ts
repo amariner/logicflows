@@ -1,7 +1,10 @@
 import { HttpClient } from '@angular/common/http';
 import { DestroyRef, Injectable, InjectionToken, computed, inject, signal } from '@angular/core';
+import { REALTIME_TICKETS_PATH, REALTIME_UNAUTHORIZED_CLOSE_CODE } from '@logicflows/contract';
 import type { CellSnapshot, RealtimeMessage } from '@logicflows/contract';
+import { firstValueFrom } from 'rxjs';
 
+import { AuthService } from '../auth/auth';
 import { AppConfigService } from '../config/app-config';
 import { mergeCell } from './merge';
 import { reconnectDelay } from './reconnect';
@@ -22,10 +25,15 @@ const keyOf = (cell: CellSnapshot) => `${cell.siteId}/${cell.cellId}`;
  * cambio; reconecta con espera creciente si se pierde la conexión. Las dos
  * fuentes pueden llegar en cualquier orden: para cada mensaje se conserva
  * siempre el más reciente, así que nunca se muestra un dato antiguo.
+ *
+ * Con inicio de sesión, cada conexión usa un tique de un solo uso pedido a la
+ * API (ADR-0009). Si la API cierra la conexión porque caducó la sesión, se
+ * pide un tique nuevo y se reconecta enseguida.
  */
 @Injectable({ providedIn: 'root' })
 export class RealtimeService {
   readonly #config = inject(AppConfigService);
+  readonly #auth = inject(AuthService);
   readonly #http = inject(HttpClient);
   readonly #createSocket = inject(WEB_SOCKET_FACTORY);
   readonly #cells = signal<ReadonlyMap<string, CellSnapshot>>(new Map());
@@ -71,7 +79,34 @@ export class RealtimeService {
 
   #connect(): void {
     this.#connection.set('connecting');
-    const socket = this.#createSocket(this.#config.config.realtimeUrl);
+    if (!this.#auth.enabled) {
+      this.#open(this.#config.config.realtimeUrl);
+      return;
+    }
+    this.#ticketUrl().then(
+      (url) => {
+        if (!this.#stopped) {
+          this.#open(url);
+        }
+      },
+      () => {
+        this.#scheduleReconnect();
+      },
+    );
+  }
+
+  async #ticketUrl(): Promise<string> {
+    const { ticket } = await firstValueFrom(
+      this.#http.post<{ ticket: string }>(
+        `${this.#config.config.apiUrl}/api/v1${REALTIME_TICKETS_PATH}`,
+        null,
+      ),
+    );
+    return `${this.#config.config.realtimeUrl}?ticket=${encodeURIComponent(ticket)}`;
+  }
+
+  #open(url: string): void {
+    const socket = this.#createSocket(url);
     this.#socket = socket;
 
     socket.addEventListener('open', () => {
@@ -81,15 +116,26 @@ export class RealtimeService {
     socket.addEventListener('message', (event: MessageEvent<string>) => {
       this.#apply(JSON.parse(event.data) as RealtimeMessage);
     });
-    socket.addEventListener('close', () => {
+    socket.addEventListener('close', (event: Event) => {
       if (this.#socket !== socket || this.#stopped) {
         return;
       }
-      this.#connection.set('closed');
-      this.#reconnectTimer = setTimeout(() => {
-        this.#connect();
-      }, reconnectDelay(this.#attempt++));
+      if ((event as Partial<CloseEvent>).code === REALTIME_UNAUTHORIZED_CLOSE_CODE) {
+        // Sesión caducada o tique rechazado: basta con pedir otro.
+        this.#attempt = 0;
+      }
+      this.#scheduleReconnect();
     });
+  }
+
+  #scheduleReconnect(): void {
+    if (this.#stopped) {
+      return;
+    }
+    this.#connection.set('closed');
+    this.#reconnectTimer = setTimeout(() => {
+      this.#connect();
+    }, reconnectDelay(this.#attempt++));
   }
 
   /** Estado inicial por REST, sin esperar al canal de tiempo real. */

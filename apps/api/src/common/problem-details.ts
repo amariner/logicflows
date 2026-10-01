@@ -21,9 +21,12 @@ export interface ProblemDetails {
 
 const TITLES: Readonly<Partial<Record<number, string>>> = {
   400: 'Petición no válida',
+  401: 'No autenticado',
+  403: 'Sin permiso',
   404: 'Recurso no encontrado',
   405: 'Método no permitido',
   500: 'Error interno',
+  503: 'Servicio no disponible',
 };
 
 /** Petición no válida con el detalle de cada campo incorrecto. */
@@ -58,11 +61,13 @@ export class ProblemDetailsFilter implements ExceptionFilter {
       response.status(status).json(exception.getResponse());
       return;
     }
-    if (status >= 500) {
+    if (!(exception instanceof HttpException)) {
       this.logger.error(
         { error: exception instanceof Error ? exception.message : String(exception) },
         'Error no controlado',
       );
+    } else if (status >= 500) {
+      this.logger.warn({ status, error: exception.message }, 'Servicio no disponible');
     }
 
     const problem: ProblemDetails = {
@@ -70,11 +75,9 @@ export class ProblemDetailsFilter implements ExceptionFilter {
       title: TITLES[status] ?? 'Error',
       status,
       detail:
-        status >= 500
-          ? 'Se ha producido un error inesperado'
-          : exception instanceof HttpException
-            ? exception.message
-            : 'Error',
+        exception instanceof HttpException
+          ? exception.message
+          : 'Se ha producido un error inesperado',
       instance: request.url,
       ...(exception instanceof ValidationProblem ? { errors: exception.errors } : {}),
     };

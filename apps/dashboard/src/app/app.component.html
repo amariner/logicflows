@@ -20,6 +20,17 @@
           }
         </ion-list>
       </ion-content>
+      @if (auth.enabled) {
+        <ion-footer class="session">
+          @if (auth.userName(); as name) {
+            <ion-note>Sesión de {{ name }}</ion-note>
+          }
+          <ion-button fill="clear" expand="block" (click)="auth.logout()">
+            <ion-icon aria-hidden="true" slot="start" name="log-out-sharp" />
+            Cerrar sesión
+          </ion-button>
+        </ion-footer>
+      }
     </ion-menu>
     <ion-router-outlet id="main-content" />
   </ion-split-pane>

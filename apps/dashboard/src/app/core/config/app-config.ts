@@ -2,12 +2,47 @@ import { Injectable, inject, provideAppInitializer } from '@angular/core';
 import type { EnvironmentProviders } from '@angular/core';
 import { REALTIME_PATH } from '@logicflows/contract';
 
+/** Proveedor de identidad OpenID Connect (ADR-0009). */
+export interface AuthSettings {
+  /** Emisor de los tokens, por ejemplo `https://idp.example/realms/logicflows`. */
+  readonly issuer: string;
+  /** Cliente público del visor en el proveedor. */
+  readonly clientId: string;
+}
+
 /** Configuración del visor que depende del entorno de despliegue. */
 export interface AppConfig {
   /** URL base de la API REST. */
   readonly apiUrl: string;
   /** URL del canal de tiempo real (ADR-0006), derivada de la API. */
   readonly realtimeUrl: string;
+  /**
+   * Inicio de sesión. Sin él, el visor no pide credenciales: solo sirve con
+   * una API simulada, porque la API real rechaza las peticiones sin token.
+   */
+  readonly auth: AuthSettings | null;
+}
+
+const isHttpUrl = (value: unknown): value is string =>
+  typeof value === 'string' &&
+  URL.canParse(value) &&
+  ['http:', 'https:'].includes(new URL(value).protocol);
+
+function parseAuth(value: unknown): AuthSettings | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (typeof value !== 'object' || !('issuer' in value) || !('clientId' in value)) {
+    throw new Error('config.json no válido: auth necesita issuer y clientId');
+  }
+  const { issuer, clientId } = value;
+  if (!isHttpUrl(issuer)) {
+    throw new Error('config.json no válido: auth.issuer no es una URL http o https');
+  }
+  if (typeof clientId !== 'string' || clientId === '') {
+    throw new Error('config.json no válido: auth.clientId está vacío');
+  }
+  return { issuer: issuer.replace(/\/$/, ''), clientId };
 }
 
 /**
@@ -28,7 +63,11 @@ export function parseAppConfig(value: unknown): AppConfig {
   }
   const realtime = new URL(REALTIME_PATH, api);
   realtime.protocol = api.protocol === 'https:' ? 'wss:' : 'ws:';
-  return { apiUrl: api.origin, realtimeUrl: realtime.toString() };
+  return {
+    apiUrl: api.origin,
+    realtimeUrl: realtime.toString(),
+    auth: parseAuth('auth' in value ? value.auth : undefined),
+  };
 }
 
 @Injectable({ providedIn: 'root' })

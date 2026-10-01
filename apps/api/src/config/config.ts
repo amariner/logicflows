@@ -31,6 +31,24 @@ const configSchema = z.object({
    */
   MQTT_CLIENT_ID: z.string().min(1).max(MAX_CLIENT_ID_LENGTH).optional(),
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
+  /** Emisor OpenID Connect de los tokens de acceso (ADR-0009). */
+  AUTH_ISSUER: z.url({ protocol: /^https?$/ }),
+  /** Audiencia que deben incluir los tokens de acceso. */
+  AUTH_AUDIENCE: z.string().min(1).default('logicflows-api'),
+  /**
+   * Claves públicas del emisor. Sin valor se obtienen con el descubrimiento de
+   * OpenID Connect; hace falta cuando la API llega al emisor por otra dirección
+   * que el navegador, como dentro de Docker Compose.
+   */
+  AUTH_JWKS_URL: z.url({ protocol: /^https?$/ }).optional(),
+  /** Ruta de los roles dentro del token, separada por puntos. */
+  AUTH_ROLES_CLAIM: z.string().min(1).default('realm_access.roles'),
+  /**
+   * Secreto con el que se firman los tiques del canal de tiempo real. Todas
+   * las instancias de la API comparten el mismo, porque un tique pedido a una
+   * puede usarse en otra.
+   */
+  REALTIME_TICKET_SECRET: z.string().min(32),
   /** Orígenes autorizados a llamar a la API desde el navegador, separados por comas. */
   CORS_ORIGINS: z
     .string()

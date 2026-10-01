@@ -24,11 +24,11 @@ La primera vez se descargan las imágenes base y se compilan las aplicaciones: u
 
 | Qué | Dónde |
 |---|---|
-| Visor | <http://localhost:8100> |
+| Visor | <http://localhost:8100>, con el usuario `operario` y la contraseña `operario-local` |
 | API y su documentación OpenAPI | <http://localhost:3000/docs> |
 | Estado de la API | <http://localhost:3000/health/ready> |
 
-El simulador arranca la célula `cell-01` de la planta `demo` y empieza a paletizar: el contador de cajas del visor avanza cada pocos segundos. Para ver averías, esperas y paradas de emergencia, se cambia `SIMULATOR_SCENARIO=demo` en `.env` y se vuelve a ejecutar el último comando ([escenarios](apps/simulator/README.md), [guion de la demo](docs/demo.md)).
+El visor pide iniciar sesión en Keycloak, el proveedor de identidad ([ADR-0009](docs/adr/0009-autenticacion-y-autorizacion.md)). Los usuarios de [`infra/keycloak`](infra/keycloak) son solo para el entorno local. El simulador arranca la célula `cell-01` de la planta `demo` y empieza a paletizar: el contador de cajas del visor avanza cada pocos segundos. Para ver averías, esperas y paradas de emergencia, se cambia `SIMULATOR_SCENARIO=demo` en `.env` y se vuelve a ejecutar el último comando ([escenarios](apps/simulator/README.md), [guion de la demo](docs/demo.md)).
 
 Para detenerlo todo: `docker compose --profile apps down` (añadir `--volumes` para borrar también los datos).
 
@@ -62,6 +62,7 @@ flowchart LR
 - **Simulador** ([`apps/simulator`](apps/simulator)): reproduce una célula robotizada de paletizado con su máquina de estados ([ADR-0003](docs/adr/0003-estados-de-la-paletizadora.md)), alarmas y escenarios de incidencias y de red inestable. Publica por MQTT el estado, la telemetría y su conexión.
 - **Broker MQTT** (Eclipse Mosquitto): desacopla las células de la plataforma. Los mensajes son JSON versionado en topics `logicflows/v1/{planta}/{célula}/{tipo}`, con autenticación y listas de control de acceso ([ADR-0004](docs/adr/0004-mensajes-de-telemetria-y-topics-mqtt.md)).
 - **Contrato** ([`packages/contract`](packages/contract)): topics, tipos y validación compartidos por las tres aplicaciones. Un cambio incompatible falla al compilar ([ADR-0005](docs/adr/0005-paquete-del-contrato.md)).
+- **Keycloak**: proveedor de identidad OpenID Connect. El visor inicia sesión con él y la API valida sus tokens ([ADR-0009](docs/adr/0009-autenticacion-y-autorizacion.md)).
 - **API** ([`apps/api`](apps/api), NestJS): valida cada mensaje y descarta duplicados y desordenados. Mantiene el estado actual de cada célula, lo persiste en PostgreSQL ([ADR-0007](docs/adr/0007-acceso-a-datos-y-migraciones.md)) y lo ofrece por REST y por un canal WebSocket de tiempo real ([ADR-0006](docs/adr/0006-canal-de-tiempo-real.md)).
 - **Visor** ([`apps/dashboard`](apps/dashboard), Ionic y Angular): muestra el estado, la producción y las alarmas de cada célula siguiendo ISA-101 y WCAG 2.2 AA ([diseño](docs/diseno-del-visor.md)). Funciona en el navegador y, con Capacitor, como aplicación de Android e iOS ([ADR-0002](docs/adr/0002-visor-multiplataforma.md)).
 
@@ -132,7 +133,7 @@ pnpm reescribe este fichero al modificar la configuración y elimina los comenta
 
 ## Desarrollo local
 
-Para desarrollar no se usan las imágenes: las aplicaciones se ejecutan con pnpm, con recarga automática, y Docker Compose levanta la infraestructura que necesitan: el broker MQTT (Eclipse Mosquitto) y PostgreSQL, ambos accesibles solo desde el propio equipo.
+Para desarrollar no se usan las imágenes: las aplicaciones se ejecutan con pnpm, con recarga automática, y Docker Compose levanta la infraestructura que necesitan: el broker MQTT (Eclipse Mosquitto), PostgreSQL y el proveedor de identidad (Keycloak), accesibles solo desde el propio equipo.
 
 ```sh
 cp .env.example .env   # una sola vez; ajustar si hace falta
@@ -154,6 +155,7 @@ pnpm infra:up          # arranca y espera a que ambos servicios estén sanos
 |---|---|---|
 | Mosquitto (MQTT 5) | `mqtt://127.0.0.1:1883` | Usuarios `api` (lectura) y `simulator` (escritura); contraseñas en `.env` |
 | PostgreSQL 18 | `postgres://127.0.0.1:5432` | Usuario, contraseña y base de datos en `.env` |
+| Keycloak 26 | `http://localhost:8180` | Realm `logicflows` con usuarios de prueba ([`infra/keycloak`](infra/keycloak)); consola de administración con las credenciales de `.env` |
 
 La configuración del broker está en [`infra/mosquitto`](infra/mosquitto): no admite clientes anónimos y una lista de control de acceso limita lo que puede hacer cada usuario ([ADR-0004](docs/adr/0004-mensajes-de-telemetria-y-topics-mqtt.md)). Los datos se conservan en volúmenes de Docker entre reinicios.
 

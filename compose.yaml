@@ -1,5 +1,5 @@
 # Entorno local de LogicFlows.
-# Infraestructura (broker MQTT y base de datos):
+# Infraestructura (broker MQTT, base de datos y proveedor de identidad):
 #   pnpm infra:up · pnpm infra:down · pnpm infra:reset
 # Sistema completo con las imágenes de las aplicaciones (perfil "apps"):
 #   pnpm stack:up · pnpm stack:down
@@ -50,6 +50,38 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  # Proveedor de identidad OpenID Connect (ADR-0009). Modo desarrollo con el
+  # realm de infra/keycloak, que incluye usuarios de prueba.
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.7.5
+    command: ['start-dev', '--import-realm']
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME:?Define KEYCLOAK_ADMIN_USERNAME en .env}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:?Define KEYCLOAK_ADMIN_PASSWORD en .env}
+      # Dirección pública: el emisor de los tokens es la que ve el navegador.
+      KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT:-8180}
+      # Las peticiones internas (claves públicas para la API) usan keycloak:8080.
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: 'true'
+      KC_HEALTH_ENABLED: 'true'
+    ports:
+      - '127.0.0.1:${KEYCLOAK_PORT:-8180}:8080'
+    volumes:
+      - ./infra/keycloak/realm-logicflows.json:/opt/keycloak/data/import/realm-logicflows.json:ro
+    healthcheck:
+      # La imagen no incluye curl: se consulta el puerto de gestión con bash.
+      test:
+        [
+          'CMD',
+          'bash',
+          '-c',
+          "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q UP <&3",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    restart: unless-stopped
+
   # Aplicaciones (perfil "apps"). Se construyen con el Dockerfile de la raíz.
   api:
     profiles: [apps]
@@ -60,12 +92,16 @@ services:
       MQTT_API_PASSWORD: ${MQTT_API_PASSWORD}
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       CORS_ORIGINS: http://localhost:${DASHBOARD_PORT:-8100}
+      AUTH_ISSUER: http://localhost:${KEYCLOAK_PORT:-8180}/realms/logicflows
+      AUTH_JWKS_URL: http://keycloak:8080/realms/logicflows/protocol/openid-connect/certs
+      REALTIME_TICKET_SECRET: ${REALTIME_TICKET_SECRET:?Define REALTIME_TICKET_SECRET en .env}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:
       - '127.0.0.1:${API_PORT:-3000}:3000'
     depends_on:
       mosquitto: { condition: service_healthy }
       postgres: { condition: service_healthy }
+      keycloak: { condition: service_healthy }
     restart: unless-stopped
 
   simulator:
@@ -100,6 +136,8 @@ services:
     environment:
       # URL de la API vista desde el navegador, no desde la red de Docker.
       API_URL: http://localhost:${API_PORT:-3000}
+      AUTH_ISSUER: http://localhost:${KEYCLOAK_PORT:-8180}/realms/logicflows
+      AUTH_CLIENT_ID: logicflows-visor
     ports:
       - '127.0.0.1:${DASHBOARD_PORT:-8100}:8080'
     depends_on:

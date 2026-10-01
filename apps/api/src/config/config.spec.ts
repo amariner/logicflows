@@ -5,6 +5,8 @@ import { defaultClientId, validateConfig } from './config.ts';
 const required = {
   MQTT_API_PASSWORD: 'secreto',
   DATABASE_URL: 'postgres://logicflows:secreto@127.0.0.1:5432/logicflows',
+  AUTH_ISSUER: 'http://localhost:8180/realms/logicflows',
+  REALTIME_TICKET_SECRET: 'secreto-de-tiques-de-al-menos-32-caracteres',
 };
 
 describe('configuración de la API', () => {
@@ -17,6 +19,10 @@ describe('configuración de la API', () => {
       MQTT_API_PASSWORD: 'secreto',
       MQTT_CLIENT_ID: 'logicflows-api-api-7f9c',
       DATABASE_URL: 'postgres://logicflows:secreto@127.0.0.1:5432/logicflows',
+      AUTH_ISSUER: 'http://localhost:8180/realms/logicflows',
+      AUTH_AUDIENCE: 'logicflows-api',
+      AUTH_ROLES_CLAIM: 'realm_access.roles',
+      REALTIME_TICKET_SECRET: 'secreto-de-tiques-de-al-menos-32-caracteres',
       CORS_ORIGINS: ['http://localhost:4200'],
     });
   });
@@ -59,7 +65,10 @@ describe('configuración de la API', () => {
 
   it.each([
     ['sin contraseña del broker', { DATABASE_URL: required.DATABASE_URL }],
-    ['sin base de datos', { MQTT_API_PASSWORD: 'secreto' }],
+    ['sin base de datos', { ...required, DATABASE_URL: undefined }],
+    ['sin emisor de tokens', { ...required, AUTH_ISSUER: undefined }],
+    ['un emisor que no es una URL HTTP', { ...required, AUTH_ISSUER: 'ftp://idp' }],
+    ['un secreto de tiques demasiado corto', { ...required, REALTIME_TICKET_SECRET: 'corto' }],
     ['un origen de CORS que no es una URL', { ...required, CORS_ORIGINS: 'localhost' }],
     ['una base de datos que no es PostgreSQL', { ...required, DATABASE_URL: 'mysql://db/x' }],
     ['un puerto no numérico', { ...required, API_PORT: 'http' }],

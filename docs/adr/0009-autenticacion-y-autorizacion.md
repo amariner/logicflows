@@ -87,6 +87,16 @@ Requisitos:
 - Aparecen acciones sobre la planta (comandos, configuración) que necesitan permisos más finos que dos roles.
 - Las células pasan a conectarse desde redes de planta reales: se reconsideran los certificados de cliente.
 
+## Notas de implementación
+
+**1 de octubre de 2026, LF-50 y LF-51.** Dos detalles de la decisión se ajustan a lo que permite la implementación, sin cambiar la decisión:
+
+- **Dónde se guardan los tokens del visor.** El flujo con redirección necesita conservar el verificador PKCE mientras el navegador visita el proveedor, y la librería guarda todo el estado de la sesión en un mismo almacén. Por eso los tokens se guardan en `sessionStorage` en lugar de solo en memoria:
+  - El almacén es propio de cada pestaña y se borra al cerrarla.
+  - El token de acceso dura 5 minutos y el de refresco es de un solo uso.
+  - La defensa frente a XSS sigue siendo no ejecutar código ajeno: la política de seguridad de contenidos llega con el endurecimiento (LF-52).
+- **Tiques de un solo uso con varias instancias.** Cada instancia recuerda los tiques que ya aceptó. Con varias instancias, un mismo tique podría usarse una vez en cada una durante sus 30 segundos de vida. Se acepta porque el tique solo abre un canal de lectura para quien ya tenía un token válido. Un registro compartido de tiques usados se valorará si aparecen acciones sobre la planta.
+
 ## Referencias
 
 - [OpenID Connect Core 1.0](https://openid.net/specs/openid-connect-core-1_0.html)
