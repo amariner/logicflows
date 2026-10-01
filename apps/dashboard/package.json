@@ -10,7 +10,8 @@
     "typecheck": "tsc -p tsconfig.app.json --noEmit && tsc -p tsconfig.spec.json --noEmit && tsc -p e2e/tsconfig.json --noEmit",
     "lint": "eslint .",
     "test": "ng test --watch=false",
-    "test:a11y": "ng build && playwright test -c e2e/playwright.config.ts"
+    "test:a11y": "ng build && playwright test -c e2e/playwright.config.ts",
+    "test:e2e": "playwright test -c e2e/system/playwright.config.ts"
   },
   "dependencies": {
     "@angular/common": "^22.2.0",

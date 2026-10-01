@@ -89,26 +89,48 @@ jobs:
       - name: Comprobar la accesibilidad del visor
         run: pnpm --filter @logicflows/dashboard test:a11y
 
-  infra:
-    name: Entorno local
+  system:
+    name: Sistema completo
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
 
       # Construye las imágenes de las aplicaciones (Dockerfile de la raíz) y
-      # comprueba que el sistema completo arranca y supera sus comprobaciones
-      # de salud con la configuración de ejemplo.
+      # levanta el sistema completo con la configuración de ejemplo
+      # (escenario normal del simulador, sin incidencias).
       - name: Construir las imágenes y levantar el sistema
         run: |
           cp .env.example .env
           docker compose --profile apps up -d --build --wait
 
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Instalar Chromium
+        run: pnpm --filter @logicflows/dashboard exec playwright install --with-deps chromium
+
       - name: Comprobar los servicios publicados
         run: |
           curl -fsS http://127.0.0.1:3000/health/ready
           curl -fsS http://127.0.0.1:8100/config.json | grep -q '"apiUrl": "http://localhost:3000"'
-          curl -fsS http://127.0.0.1:8100/cells | grep -q '<app-root'
+
+      # Una caja publicada por el simulador llega al visor a través del broker,
+      # la API y el canal en tiempo real.
+      - name: Prueba de extremo a extremo
+        run: pnpm test:e2e
+
+      - name: Trazas de Playwright si falla
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: trazas-extremo-a-extremo
+          path: apps/dashboard/test-results/
+          retention-days: 7
 
       - name: Tamaño de las imágenes
         run: docker image ls 'logicflows-*'
