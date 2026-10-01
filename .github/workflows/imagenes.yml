@@ -1,6 +1,7 @@
 name: Imágenes
 
-# Publica las imágenes de las aplicaciones en GitHub Container Registry.
+# Publica las imágenes de las aplicaciones y de la infraestructura (broker y
+# proveedor de identidad, ADR-0010) en GitHub Container Registry.
 # - Cada cambio en main: imágenes etiquetadas con el commit (sha-xxxxxxx) y main.
 # - Cada etiqueta vX.Y.Z: la versión se asigna a las imágenes ya publicadas de
 #   ese commit, sin recompilar: se promociona exactamente lo que se probó.
@@ -33,7 +34,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [api, simulator, dashboard]
+        app: [api, simulator, dashboard, broker, identity]
     steps:
       - uses: actions/checkout@v7
 
@@ -79,7 +80,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [api, simulator, dashboard]
+        app: [api, simulator, dashboard, broker, identity]
     steps:
       - uses: docker/setup-buildx-action@v4
 
