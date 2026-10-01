@@ -6,9 +6,11 @@
 name: logicflows
 
 services:
+  # Broker MQTT: la misma imagen que en producción, con la configuración de
+  # infra/mosquitto incluida (ADR-0010).
   mosquitto:
-    image: eclipse-mosquitto:2.1.2-alpine
-    command: ['/bin/sh', '/mosquitto/init/init.sh']
+    build: { context: ., target: broker }
+    image: logicflows-broker:local
     environment:
       MQTT_API_PASSWORD: ${MQTT_API_PASSWORD:?Define MQTT_API_PASSWORD en .env}
       MQTT_SIMULATOR_PASSWORD: ${MQTT_SIMULATOR_PASSWORD:?Define MQTT_SIMULATOR_PASSWORD en .env}
@@ -18,20 +20,7 @@ services:
       # MQTT sobre WebSocket (ADR-0008).
       - '127.0.0.1:${MQTT_WS_PORT:-9001}:9001'
     volumes:
-      - ./infra/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
-      - ./infra/mosquitto/acl:/mosquitto/config/acl:ro
-      - ./infra/mosquitto/init.sh:/mosquitto/init/init.sh:ro
       - mosquitto-data:/mosquitto/data
-    healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'mosquitto_sub -h localhost -u api -P "$$MQTT_API_PASSWORD" -t ''$$SYS/broker/uptime'' -C 1 -W 3',
-        ]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-      start_period: 5s
     restart: unless-stopped
 
   postgres:

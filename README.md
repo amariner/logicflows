@@ -83,6 +83,7 @@ Las decisiones relevantes se registran como ADR en [`docs/adr`](docs/adr/README.
 | [0007](docs/adr/0007-acceso-a-datos-y-migraciones.md) | Drizzle ORM sobre PostgreSQL con migraciones SQL versionadas |
 | [0008](docs/adr/0008-plataforma-de-despliegue.md) | Railway para producción y previsualizaciones por pull request |
 | [0009](docs/adr/0009-autenticacion-y-autorizacion.md) | OpenID Connect con Keycloak; tiques para el WebSocket y credenciales MQTT por célula |
+| [0010](docs/adr/0010-imagenes-de-la-infraestructura.md) | Imágenes propias del broker y de Keycloak con su configuración; realm de producción sin usuarios |
 
 ## Estructura
 
@@ -137,12 +138,12 @@ Para desarrollar no se usan las imágenes: las aplicaciones se ejecutan con pnpm
 
 ```sh
 cp .env.example .env   # una sola vez; ajustar si hace falta
-pnpm infra:up          # arranca y espera a que ambos servicios estén sanos
+pnpm infra:up          # arranca y espera a que los servicios estén sanos
 ```
 
 | Comando | Qué hace |
 |---|---|
-| `pnpm infra:up` | Arranca el broker y la base de datos y espera a que superen sus comprobaciones de salud |
+| `pnpm infra:up` | Construye la imagen del broker, arranca el broker, la base de datos y Keycloak, y espera a que superen sus comprobaciones de salud |
 | `pnpm infra:down` | Detiene los servicios conservando los datos |
 | `pnpm infra:reset` | Detiene los servicios y **elimina los datos**: mensajes retenidos, sesiones y base de datos |
 | `pnpm infra:logs` | Muestra los registros en tiempo real |
@@ -157,7 +158,7 @@ pnpm infra:up          # arranca y espera a que ambos servicios estén sanos
 | PostgreSQL 18 | `postgres://127.0.0.1:5432` | Usuario, contraseña y base de datos en `.env` |
 | Keycloak 26 | `http://localhost:8180` | Realm `logicflows` con usuarios de prueba ([`infra/keycloak`](infra/keycloak)); consola de administración con las credenciales de `.env` |
 
-La configuración del broker está en [`infra/mosquitto`](infra/mosquitto): no admite clientes anónimos y una lista de control de acceso limita lo que puede hacer cada usuario ([ADR-0004](docs/adr/0004-mensajes-de-telemetria-y-topics-mqtt.md)). Los datos se conservan en volúmenes de Docker entre reinicios.
+La configuración del broker está en [`infra/mosquitto`](infra/mosquitto): no admite clientes anónimos y una lista de control de acceso limita lo que puede hacer cada usuario ([ADR-0004](docs/adr/0004-mensajes-de-telemetria-y-topics-mqtt.md)). `pnpm infra:up` construye con ella la imagen `broker`, la misma que se despliega en producción ([ADR-0010](docs/adr/0010-imagenes-de-la-infraestructura.md)); tras cambiar un fichero de `infra/mosquitto` basta con volver a ejecutarlo. Los datos se conservan en volúmenes de Docker entre reinicios.
 
 Para inspeccionar los mensajes publicados:
 
@@ -171,13 +172,15 @@ docker compose exec mosquitto mosquitto_sub -u api -P api-local -t 'logicflows/v
 
 ### Imágenes Docker
 
-Un único `Dockerfile` con una etapa por aplicación comparte la instalación y la compilación del monorepo:
+Un único `Dockerfile` con una etapa por aplicación comparte la instalación y la compilación del monorepo. Otras dos etapas empaquetan la infraestructura con su configuración ([ADR-0010](docs/adr/0010-imagenes-de-la-infraestructura.md)):
 
 | Imagen | Etapa | Base | Configuración |
 |---|---|---|---|
 | API | `api` | `node:24.21.0-alpine`, usuario `node` | Variables de la API en `.env.example`; comprobación de salud en `/health/live` |
 | Simulador | `simulator` | `node:24.21.0-alpine`, usuario `node` | Variables `MQTT_*` y `SIMULATOR_*`; `docker stop` detiene la célula de forma controlada |
 | Visor | `dashboard` | `nginx-unprivileged` (Alpine), puerto 8080 | `API_URL`: al arrancar se genera `config.json` con ella |
+| Broker | `broker` | `eclipse-mosquitto` (Alpine) con `infra/mosquitto` | `MQTT_API_PASSWORD` y `MQTT_SIMULATOR_PASSWORD` |
+| Proveedor de identidad | `identity` | Keycloak compilado para producción con PostgreSQL | `KC_HOSTNAME`, `KC_DB_*`, `LOGICFLOWS_VISOR_URL` y el administrador inicial ([`infra/keycloak`](infra/keycloak#imagen-de-producción)) |
 
 ```sh
 docker build --target api -t logicflows-api .
@@ -187,7 +190,7 @@ Las imágenes no contienen configuración de ningún entorno: la misma imagen si
 
 ### Registro de imágenes
 
-El workflow [Imágenes](.github/workflows/imagenes.yml) publica las tres imágenes en GitHub Container Registry, para `linux/amd64` y `linux/arm64`:
+El workflow [Imágenes](.github/workflows/imagenes.yml) publica las cinco imágenes en GitHub Container Registry, para `linux/amd64` y `linux/arm64`:
 
 | Evento | Etiquetas |
 |---|---|
