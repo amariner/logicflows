@@ -17,6 +17,7 @@ Un ADR aceptado no se reescribe. Si la decisión cambia, se crea un ADR nuevo qu
 | [0007](0007-acceso-a-datos-y-migraciones.md) | Acceso a datos y migraciones | Aceptado |
 | [0008](0008-plataforma-de-despliegue.md) | Plataforma de despliegue | Aceptado |
 | [0009](0009-autenticacion-y-autorizacion.md) | Autenticación y autorización | Aceptado |
+| [0010](0010-imagenes-de-la-infraestructura.md) | Imágenes del broker y del proveedor de identidad | Aceptado |
 
 ## Estados
 
