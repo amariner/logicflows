@@ -101,13 +101,20 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Construye las imágenes de las aplicaciones (Dockerfile de la raíz) y
-      # levanta el sistema completo con la configuración de ejemplo
+      # Construye las imágenes de las aplicaciones y del broker (Dockerfile de
+      # la raíz) y levanta el sistema completo con la configuración de ejemplo
       # (escenario normal del simulador, sin incidencias).
       - name: Construir las imágenes y levantar el sistema
         run: |
           cp .env.example .env
           docker compose --profile apps up -d --build --wait
+
+      # Imagen de producción de Keycloak (ADR-0010): arranca contra PostgreSQL,
+      # sin usuarios y con la dirección del visor de su entorno.
+      - name: Proveedor de identidad en modo producción
+        run: |
+          docker build --target identity -t logicflows-identity:local .
+          infra/keycloak/comprobar-produccion.sh
 
       - uses: pnpm/action-setup@v6
         with:
