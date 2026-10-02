@@ -1,0 +1,42 @@
+# Spike de LF-76 (no se fusiona): mide el tamaño y el tiempo de las consultas
+# del histórico en PostgreSQL 18 con 90 días de telemetría sintética.
+name: Spike LF-76 · medición del histórico
+
+on:
+  push:
+    branches: [spike/LF-76-medicion-historico]
+
+jobs:
+  medir:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        celulas: [1, 5]
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: logicflows
+          POSTGRES_PASSWORD: medicion
+          POSTGRES_DB: logicflows
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U logicflows" --health-interval 5s --health-retries 20
+    env:
+      PGHOST: localhost
+      PGUSER: logicflows
+      PGPASSWORD: medicion
+      PGDATABASE: logicflows
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Aplicar las migraciones
+        run: |
+          for f in apps/api/drizzle/*.sql; do
+            sed 's/--> statement-breakpoint//' "$f" | psql -v ON_ERROR_STOP=1 -q
+          done
+
+      - name: Medir con ${{ matrix.celulas }} célula(s) y 90 días
+        run: psql -v dias=90 -v celulas=${{ matrix.celulas }} -f herramientas/medicion-historico/medir.sql
