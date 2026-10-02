@@ -94,6 +94,57 @@ jobs:
       - name: Comprobar la accesibilidad del visor
         run: pnpm --filter @logicflows/dashboard test:a11y
 
+  android:
+    name: Android
+    runs-on: ubuntu-24.04
+    # Gradle descarga sus dependencias la primera vez; con la caché tarda
+    # unos 2 minutos (prueba de concepto de LF-12).
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+
+      # El runner trae el Android SDK; Capacitor 8 necesita JDK 21.
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      # Compila el visor, pone el config.json de la app y sincroniza el
+      # proyecto Android (ADR-0002).
+      - name: Sincronizar el proyecto Android
+        run: pnpm --filter @logicflows/dashboard android:sync
+
+      # cap sync reescribe las rutas a los plugins, que incluyen la versión de
+      # cada uno: lo versionado debe coincidir con lo que genera.
+      - name: Comprobar que la sincronización es reproducible
+        run: |
+          if [ -n "$(git status --porcelain apps/dashboard/android)" ]; then
+            git status --porcelain apps/dashboard/android
+            git diff apps/dashboard/android
+            echo "::error::El proyecto Android no coincide con cap sync: ejecutar pnpm --filter @logicflows/dashboard android:sync y versionar el resultado."
+            exit 1
+          fi
+
+      - name: Compilar el APK de depuración
+        working-directory: apps/dashboard/android
+        run: ./gradlew assembleDebug --no-daemon
+
+      # Para probar la PR en un móvil (ADR-0014). Se firma con una clave de
+      # depuración: no se instala encima de una versión publicada.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: logicflows-debug-apk
+          path: apps/dashboard/android/app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+
   system:
     name: Sistema completo
     runs-on: ubuntu-24.04
