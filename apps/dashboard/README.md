@@ -95,7 +95,11 @@ El proyecto Android está en `android/` y lo genera Capacitor 8 a partir de la b
   - El service worker de la PWA no se registra: la aplicación ya va dentro del APK.
 - **Vuelta del segundo plano**, también en el navegador. Si la conexión no estaba abierta, o pasaron más de 30 segundos, el visor recarga el estado y reconecta sin esperar. Mientras tanto indica «Conectando…»: Android congela la vista web y la red cambia en segundo plano, así que una conexión que parece abierta puede estar muerta.
 
-**Limitación:** el inicio de sesión todavía no funciona en la app. Keycloak devuelve al visor web, no a la app (LF-68).
+- **Inicio de sesión** (LF-68, RFC 8252):
+  - Se abre en el navegador del sistema (Custom Tabs, `@capacitor/browser`), nunca en la vista web.
+  - Keycloak vuelve a la app por su esquema propio, `io.github.amariner.logicflows:/callback`, y la app intercambia el código por los tokens con PKCE.
+  - Si se cierra el navegador sin terminar, el visor ofrece reintentar.
+  - En producción hay que habilitarlo una vez en Keycloak y en la API ([procedimiento](../../infra/keycloak/README.md#habilitar-la-app-android-en-producción-lf-68)).
 
 ## Compresión
 
