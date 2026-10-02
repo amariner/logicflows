@@ -1,0 +1,206 @@
+name: Previsualización
+
+# Cada pull request de este repositorio tiene su propio sistema completo en
+# Railway, el entorno pr-<número> (ADR-0012):
+# - en cada commit publica las imágenes de la PR, crea o actualiza el entorno,
+#   publica las direcciones en la PR y ejecuta contra él la prueba de extremo
+#   a extremo (LF-39) con el usuario prueba-e2e;
+# - al cerrar la PR, fusionada o no, borra el entorno con sus datos.
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, closed]
+
+# Los despliegues de una misma PR se encolan: cancelar uno a medias dejaría el
+# entorno a medio aplicar.
+concurrency:
+  group: previsualizacion-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: ghcr.io
+  # Versión con la que se validó infra/railway/previsualizacion.sh.
+  RAILWAY_CLI_VERSION: 5.63.1
+  PR: ${{ github.event.pull_request.number }}
+
+jobs:
+  images:
+    name: Publicar ${{ matrix.app }}
+    # Las PR desde forks no pueden publicar imágenes ni reciben los secretos.
+    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        app: [api, simulator, dashboard, broker, identity]
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      # Se compila la fusión de la PR con main, lo mismo que prueba la CI.
+      - uses: actions/checkout@v7
+
+      - id: tag
+        env:
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: echo "tag=pr-$PR-${SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Solo amd64, la arquitectura de Railway. Keycloak se construye con el
+      # realm de las previsualizaciones (identity-preview); las etiquetas pr-*
+      # nunca se despliegan en producción.
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: ${{ matrix.app == 'identity' && 'identity-preview' || matrix.app }}
+          platforms: linux/amd64
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/logicflows-${{ matrix.app }}:${{ steps.tag.outputs.tag }}
+          cache-from: type=gha,scope=${{ matrix.app }}
+
+  deploy:
+    name: Desplegar y probar
+    needs: images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Comprobar los secretos
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+          PREVIEW_SECRETS_SEED: ${{ secrets.PREVIEW_SECRETS_SEED }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+        run: |
+          missing=""
+          [ -n "$RAILWAY_API_TOKEN" ] || missing="$missing RAILWAY_API_TOKEN"
+          [ -n "$PREVIEW_SECRETS_SEED" ] || missing="$missing PREVIEW_SECRETS_SEED"
+          [ -n "$E2E_PASSWORD" ] || missing="$missing E2E_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "::error::Faltan los secretos:$missing (docs/despliegue.md#previsualizaciones-por-pull-request)."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+
+      # La CLI evalúa .railway/railway.ts con el Node.js del sistema.
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Instalar la CLI de Railway
+        run: npm install --global "@railway/cli@$RAILWAY_CLI_VERSION"
+
+      - name: Desplegar la previsualización
+        id: preview
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+          PREVIEW_SECRETS_SEED: ${{ secrets.PREVIEW_SECRETS_SEED }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          LOGICFLOWS_IMAGE_TAG: ${{ needs.images.outputs.tag }}
+        run: infra/railway/previsualizacion.sh desplegar "$PR"
+
+      - name: Publicar las direcciones en la pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ needs.images.outputs.tag }}
+          DASHBOARD: ${{ steps.preview.outputs.dashboard }}
+          API: ${{ steps.preview.outputs.api }}
+          IDENTITY: ${{ steps.preview.outputs.identity }}
+          BROKER: ${{ steps.preview.outputs.broker }}
+        run: |
+          {
+            echo '<!-- previsualizacion -->'
+            echo '### Previsualización'
+            echo
+            echo "Sistema completo de esta PR con las imágenes \`$TAG\`. Se borra, con sus datos, al cerrar la PR."
+            echo
+            echo "| Servicio | Dirección |"
+            echo "|---|---|"
+            echo "| Visor | $DASHBOARD |"
+            echo "| API | $API/docs |"
+            echo "| Keycloak | $IDENTITY |"
+            echo "| Broker para células | \`$BROKER\` |"
+            echo
+            echo 'Usuario de solo lectura: `prueba-e2e`, con la contraseña del secreto `E2E_PASSWORD`.'
+          } > comentario.md
+          comment=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+            --jq '[.[] | select(.body | startswith("<!-- previsualizacion -->"))][0].id // empty')
+          if [ -n "$comment" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$comment" -F body=@comentario.md > /dev/null
+          else
+            gh pr comment "$PR" --repo "$REPO" --body-file comentario.md
+          fi
+
+      - name: Instalar Chromium
+        run: pnpm --filter @logicflows/dashboard exec playwright install --with-deps chromium
+
+      - name: Prueba de extremo a extremo
+        id: e2e
+        env:
+          E2E_BASE_URL: ${{ steps.preview.outputs.dashboard }}
+          E2E_USERNAME: prueba-e2e
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+        run: pnpm test:e2e
+
+      - name: Trazas de Playwright si falla
+        if: failure() && steps.e2e.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: trazas-previsualizacion
+          path: apps/dashboard/test-results/
+          retention-days: 7
+
+  destroy:
+    name: Borrar la previsualización
+    if: github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Instalar la CLI de Railway
+        run: npm install --global "@railway/cli@$RAILWAY_CLI_VERSION"
+
+      - name: Borrar el entorno
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+        run: infra/railway/previsualizacion.sh destruir "$PR"
+
+      - name: Indicarlo en la pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          comment=$(gh api "repos/$REPO/issues/$PR/comments" --paginate \
+            --jq '[.[] | select(.body | startswith("<!-- previsualizacion -->"))][0].id // empty')
+          if [ -n "$comment" ]; then
+            printf '%s\n' '<!-- previsualizacion -->' '### Previsualización' '' \
+              'Borrada al cerrar la pull request, con todos sus datos.' > comentario.md
+            gh api -X PATCH "repos/$REPO/issues/comments/$comment" -F body=@comentario.md > /dev/null
+          fi

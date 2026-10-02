@@ -3,7 +3,8 @@
 LogicFlows se despliega en [Railway](https://railway.com) ([ADR-0008](adr/0008-plataforma-de-despliegue.md)). Este documento describe:
 
 - el entorno de producción, su configuración y sus secretos (LF-48);
-- cómo se despliega una versión y cómo se vuelve atrás (LF-49).
+- cómo se despliega una versión y cómo se vuelve atrás (LF-49);
+- las previsualizaciones por pull request (LF-53).
 
 La infraestructura está descrita como código en [`.railway/railway.ts`](../.railway/railway.ts) ([ADR-0011](adr/0011-infraestructura-como-codigo.md)).
 
@@ -83,6 +84,52 @@ Se devuelve `VERSION` a la etiqueta anterior con una pull request (`git revert` 
 
 Una migración que borre o renombre no puede ir en la misma versión que el código que deja de usarlo.
 
+## Previsualizaciones por pull request
+
+Cada pull request de una rama de este repositorio tiene su propio sistema completo en Railway: el entorno `pr-<número>`, con visor, API, simulador, broker, Keycloak y PostgreSQL ([ADR-0012](adr/0012-previsualizaciones-por-pull-request.md)). Lo gestiona el flujo `Previsualización`:
+
+1. **En cada commit** publica en GHCR las cinco imágenes de la PR con la etiqueta `pr-<número>-<commit>`. Keycloak usa la variante `identity-preview`, con el usuario de prueba.
+2. Ejecuta [`infra/railway/previsualizacion.sh`](../infra/railway/previsualizacion.sh) `desplegar`:
+   - crea el entorno vacío si no existe y aplica `.railway/railway.ts`;
+   - crea los usuarios de PostgreSQL con `usuarios.sql`, como en producción;
+   - espera a que el despliegue nuevo de cada servicio esté sano.
+3. Publica las direcciones en un comentario de la PR, que se actualiza en cada commit.
+4. Ejecuta la prueba de extremo a extremo contra la previsualización con el usuario `prueba-e2e`.
+5. **Al cerrar la PR**, fusionada o no, borra el entorno con sus volúmenes.
+
+**Probado el 2 de octubre de 2026** con el entorno `pr-9999` y las imágenes de `main`:
+
+- crear desde cero tardó unos 130 segundos y actualizar, unos 125, hasta que los seis servicios estuvieron sanos;
+- borrar es asíncrono: el script espera a que el entorno desaparezca;
+- Railway solo admite un entorno nuevo cada 30 segundos por espacio de trabajo: el script reintenta;
+- producción siguió sin diferencias en el plan durante todas las pruebas.
+
+Las direcciones se derivan del número: `https://logicflows-pr-<número>-dashboard.up.railway.app`, y lo mismo con `api`, `identity` y `broker`.
+
+**Qué no comparte con producción.** El entorno se crea vacío: no copia datos, variables ni secretos. Los volúmenes son instancias propias de cada entorno (comprobado el 2 de octubre de 2026: las de `pr-9999` empezaron vacías). Los secretos son un HMAC del nombre del entorno con una semilla que solo tiene la CI. Son estables entre commits y no se sellan, porque Railway solo permite sellar desde la web.
+
+**Secretos de GitHub que necesita.** Los crea el titular de la cuenta:
+
+| Secreto | Qué es | Cómo se crea |
+|---|---|---|
+| `RAILWAY_API_TOKEN` | Token de **cuenta** de Railway. Un token de proyecto está limitado a un entorno y no puede crear otros. | En Railway, *Account Settings → Tokens*. Después, `gh secret set RAILWAY_API_TOKEN --repo amariner/logicflows`. |
+| `PREVIEW_SECRETS_SEED` | Semilla de los secretos de las previsualizaciones | `openssl rand -hex 32 \| gh secret set PREVIEW_SECRETS_SEED --repo amariner/logicflows` |
+| `E2E_PASSWORD` | Contraseña del usuario de solo lectura de la prueba; el mismo secreto que usa la de producción | [Alta del usuario](../infra/keycloak/README.md#usuario-de-la-prueba-de-producción-lf-57) |
+
+El token de cuenta también alcanza producción. Por eso el flujo solo se ejecuta en PR de ramas del propio repositorio y nunca aplica cambios destructivos.
+
+**A mano.** Con la CLI de Railway con sesión iniciada:
+
+```sh
+LOGICFLOWS_IMAGE_TAG=pr-12-abc1234 PREVIEW_SECRETS_SEED=... E2E_PASSWORD=... \
+  infra/railway/previsualizacion.sh desplegar 12
+infra/railway/previsualizacion.sh destruir 12
+```
+
+El script deja la carpeta enlazada al entorno de la previsualización. Después hay que volver a producción: `railway link -p logicflows -e production`.
+
+**Coste.** Cada previsualización abierta cuesta unos 0,50 USD al día. Una PR olvidada sigue costando, y si se alcanza el límite de gasto de la cuenta, Railway detiene todo, producción incluida.
+
 ## Configuración y secretos
 
 Toda la configuración son variables de entorno del servicio en Railway. Hay tres tipos:
@@ -153,7 +200,7 @@ Una variable sellada no se puede leer, pero sí sustituir. Para rotar un secreto
   2. Comprobar en el registro `Created temporary admin user`.
   3. Vaciar el comando de inicio (`startCommand: ""`) y volver a desplegar.
 - **La región por defecto es `us-west`.** En `.railway/railway.ts` cada servicio declara sus réplicas en Ámsterdam (`europe-west4-drams3a`).
-- **Un dominio generado no se crea desde `.railway/railway.ts`.** Se crea con `railway domain --service <servicio> --port <puerto>` y después se declara en el fichero con el nombre que asignó Railway.
+- **Un dominio con nombre aleatorio no se crea desde `.railway/railway.ts`.** Se crea con `railway domain --service <servicio> --port <puerto>` y después se declara en el fichero con el nombre que asignó Railway. Un dominio `*.up.railway.app` con un nombre elegido, como los de las previsualizaciones, sí se crea desde el fichero (comprobado el 2 de octubre de 2026).
 - **El montaje de un volumen se declara con la ruta como clave:** `volumeMounts: { '/mosquitto/data': brokerData }`.
 - **Sellar una variable solo es posible desde la web**, no con la CLI ni con la API.
 - **Aviso de dominio público:** Railway marca las variables que usan `RAILWAY_PUBLIC_DOMAIN` porque el tráfico entre servicios que sale por Internet se factura como salida de red. En `KC_HOSTNAME`, `LOGICFLOWS_VISOR_URL`, `CORS_ORIGINS` y la configuración del visor es lo correcto: es la dirección que ve el navegador. La API descarga por la dirección pública las claves de Keycloak con las que valida los tokens; son pocos kilobytes y se guardan en caché.

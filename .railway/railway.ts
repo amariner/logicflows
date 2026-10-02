@@ -1,14 +1,20 @@
 // Infraestructura de LogicFlows en Railway (ADR-0011): servicios, imágenes,
-// dominios, volúmenes y comprobaciones de salud del entorno de producción.
+// dominios, volúmenes y comprobaciones de salud de cada entorno.
 //
-// Cada cambio llega por pull request: la CI publica el plan en la PR y, al
-// fusionarla, aplica exactamente ese plan. Desplegar una versión es cambiar
-// VERSION por una etiqueta ya promocionada en GitHub Container Registry
-// (vX.Y.Z), nunca por una que haya que compilar. Volver atrás es devolver
-// VERSION a la etiqueta anterior.
-//
-// Los secretos no están aquí: preserve() conserva el valor sellado que ya
-// tiene cada variable en Railway (docs/despliegue.md).
+// Hay dos tipos de entorno:
+// - production: cada cambio llega por pull request; la CI publica el plan en
+//   la PR y, al fusionarla, aplica exactamente ese plan. Desplegar una versión
+//   es cambiar VERSION por una etiqueta ya promocionada en GitHub Container
+//   Registry (vX.Y.Z), nunca por una que haya que compilar. Volver atrás es
+//   devolver VERSION a la etiqueta anterior. Los secretos no están aquí:
+//   preserve() conserva el valor sellado que ya tiene cada variable en Railway
+//   (docs/despliegue.md).
+// - pr-<número>: la previsualización de una pull request (ADR-0012). La crea,
+//   actualiza y borra infra/railway/previsualizacion.sh, que da las imágenes
+//   de la PR (LOGICFLOWS_IMAGE_TAG), la semilla de los secretos
+//   (PREVIEW_SECRETS_SEED) y la contraseña del usuario de prueba (E2E_PASSWORD).
+//   No hereda nada de producción.
+import { createHmac } from 'node:crypto';
 import { defineRailway, image, postgres, preserve, project, service, volume } from 'railway/iac';
 
 /** Versión desplegada en producción: etiqueta de las imágenes en GHCR. */
@@ -17,9 +23,52 @@ const VERSION = 'sha-edbfac9';
 /** Ámsterdam: latencia baja desde España y datos dentro de la UE. */
 const REGION = 'europe-west4-drams3a';
 
-const imagen = (app: string) => image(`ghcr.io/amariner/logicflows-${app}:${VERSION}`);
+/** Variable de entorno obligatoria al evaluar el fichero para una previsualización. */
+function required(name: string): string {
+  const value = process.env[name];
+  if (value === undefined || value === '') {
+    throw new Error(`Falta la variable de entorno ${name} (infra/railway/previsualizacion.sh)`);
+  }
+  return value;
+}
 
-export default defineRailway(() => {
+export default defineRailway((ctx) => {
+  const environment = ctx.environmentName ?? '';
+  const production = environment === 'production';
+  if (!production && !/^pr-\d+$/.test(environment)) {
+    throw new Error(`Entorno no previsto: «${environment}». Solo production o pr-<número>.`);
+  }
+
+  const tag = production ? VERSION : required('LOGICFLOWS_IMAGE_TAG');
+  const imagen = (app: string) => image(`ghcr.io/amariner/logicflows-${app}:${tag}`);
+
+  // Dominios: los de producción los asignó Railway; los de una previsualización
+  // se derivan de su nombre, así que se conocen antes de desplegar.
+  const domain = (app: string, productionDomain: string) =>
+    production ? productionDomain : `logicflows-${environment}-${app}.up.railway.app`;
+  const brokerDomain = domain('broker', 'broker-production-c580.up.railway.app');
+  const identityDomain = domain('identity', 'identity-production-e786.up.railway.app');
+  const apiDomain = domain('api', 'api-production-f218.up.railway.app');
+  const dashboardDomain = domain('dashboard', 'dashboard-production-6f89.up.railway.app');
+
+  // En producción, las variables se conservan como están en Railway. En una
+  // previsualización se fijan aquí, con los dominios del propio entorno.
+  const config = (value: string) => (production ? preserve() : value);
+
+  // Secretos de una previsualización: HMAC del entorno y el nombre con una
+  // semilla que solo tiene la CI. Distintos en cada PR, estables entre commits
+  // y sin estado que guardar (ADR-0012). previsualizacion.sh calcula igual las
+  // contraseñas de PostgreSQL.
+  const previewSecret = (name: string) =>
+    createHmac('sha256', required('PREVIEW_SECRETS_SEED'))
+      .update(`${environment}:${name}`)
+      .digest('hex');
+  const secret = (name: string) => (production ? preserve() : previewSecret(name));
+
+  const visorUrl = `https://${dashboardDomain}`;
+  const issuer = `https://${identityDomain}/realms/logicflows`;
+  const mqttUrl = 'mqtt://broker.railway.internal:1883';
+
   const Postgres = postgres('Postgres', { region: REGION });
   Postgres.networking = { privateNetworkEndpoint: 'postgres' };
   const postgresVolume = volume('postgres-volume', {
@@ -39,26 +88,33 @@ export default defineRailway(() => {
     volumeMounts: { '/mosquitto/data': brokerData },
     // Las células de planta se conectan por MQTT sobre WebSocket con TLS
     // (wss://, ADR-0008). La API y el simulador usan la red privada.
-    networking: { serviceDomains: { 'broker-production-c580.up.railway.app': { port: 9001 } } },
-    env: { MQTT_API_PASSWORD: preserve(), MQTT_SIMULATOR_PASSWORD: preserve() },
+    networking: { serviceDomains: { [brokerDomain]: { port: 9001 } } },
+    env: {
+      MQTT_API_PASSWORD: secret('mqtt-api'),
+      MQTT_SIMULATOR_PASSWORD: secret('mqtt-simulator'),
+    },
   });
 
+  // En las previsualizaciones, Keycloak usa la imagen con el usuario de la
+  // prueba de extremo a extremo (identity-preview), publicada con la etiqueta
+  // de la PR. La de producción no tiene usuarios (ADR-0010).
   const identity = service('identity', {
     source: imagen('identity'),
     start: '',
     replicas: { [REGION]: 1 },
-    networking: { serviceDomains: { 'identity-production-e786.up.railway.app': { port: 8080 } } },
+    networking: { serviceDomains: { [identityDomain]: { port: 8080 } } },
     // El documento de descubrimiento existe cuando Keycloak ha arrancado y
     // tiene el realm importado.
     healthcheck: '/realms/logicflows/.well-known/openid-configuration',
     healthcheckTimeout: 300,
     env: {
       PORT: '8080',
-      KC_DB_PASSWORD: preserve(),
-      KC_DB_URL: preserve(),
-      KC_DB_USERNAME: preserve(),
-      KC_HOSTNAME: preserve(),
-      LOGICFLOWS_VISOR_URL: preserve(),
+      KC_DB_PASSWORD: secret('db-keycloak'),
+      KC_DB_URL: config('jdbc:postgresql://postgres.railway.internal:5432/keycloak'),
+      KC_DB_USERNAME: config('keycloak'),
+      KC_HOSTNAME: config(`https://${identityDomain}`),
+      LOGICFLOWS_VISOR_URL: config(visorUrl),
+      ...(production ? {} : { LOGICFLOWS_E2E_PASSWORD: required('E2E_PASSWORD') }),
     },
   });
 
@@ -68,19 +124,21 @@ export default defineRailway(() => {
   const api = service('api', {
     source: imagen('api'),
     replicas: { [REGION]: 1 },
-    networking: { serviceDomains: { 'api-production-f218.up.railway.app': { port: 3000 } } },
+    networking: { serviceDomains: { [apiDomain]: { port: 3000 } } },
     healthcheck: '/health/ready',
     healthcheckTimeout: 120,
     env: {
       PORT: '3000',
-      AUTH_ISSUER: preserve(),
-      CORS_ORIGINS: preserve(),
-      DATABASE_URL: preserve(),
-      LOG_LEVEL: preserve(),
-      MQTT_API_PASSWORD: preserve(),
-      MQTT_URL: preserve(),
-      REALTIME_TICKET_SECRET: preserve(),
-      TRUST_PROXY_HOPS: preserve(),
+      AUTH_ISSUER: config(issuer),
+      CORS_ORIGINS: config(visorUrl),
+      DATABASE_URL: production
+        ? preserve()
+        : `postgresql://logicflows:${previewSecret('db-api')}@postgres.railway.internal:5432/logicflows`,
+      LOG_LEVEL: config('info'),
+      MQTT_API_PASSWORD: secret('mqtt-api'),
+      MQTT_URL: config(mqttUrl),
+      REALTIME_TICKET_SECRET: secret('tiques'),
+      TRUST_PROXY_HOPS: config('1'),
     },
   });
 
@@ -89,24 +147,24 @@ export default defineRailway(() => {
     source: imagen('simulator'),
     replicas: { [REGION]: 1 },
     env: {
-      LOG_LEVEL: preserve(),
-      MQTT_SIMULATOR_PASSWORD: preserve(),
-      MQTT_URL: preserve(),
-      SIMULATOR_CELL_ID: preserve(),
-      SIMULATOR_SITE_ID: preserve(),
+      LOG_LEVEL: config('info'),
+      MQTT_SIMULATOR_PASSWORD: secret('mqtt-simulator'),
+      MQTT_URL: config(mqttUrl),
+      SIMULATOR_CELL_ID: config('cell-01'),
+      SIMULATOR_SITE_ID: config('demo'),
     },
   });
 
   const dashboard = service('dashboard', {
     source: imagen('dashboard'),
     replicas: { [REGION]: 1 },
-    networking: { serviceDomains: { 'dashboard-production-6f89.up.railway.app': { port: 8080 } } },
+    networking: { serviceDomains: { [dashboardDomain]: { port: 8080 } } },
     healthcheck: '/config.json',
     env: {
       PORT: '8080',
-      API_URL: preserve(),
-      AUTH_CLIENT_ID: preserve(),
-      AUTH_ISSUER: preserve(),
+      API_URL: config(`https://${apiDomain}`),
+      AUTH_CLIENT_ID: config('logicflows-visor'),
+      AUTH_ISSUER: config(issuer),
     },
   });
 
