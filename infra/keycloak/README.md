@@ -38,6 +38,17 @@ docker build --target identity -t logicflows-identity:local .
 infra/keycloak/comprobar-produccion.sh
 ```
 
+## Imagen de las previsualizaciones
+
+La etapa `identity-preview` es la imagen de producción con un único usuario: `prueba-e2e`, solo con `viewer` y con el perfil completo ([ADR-0012](../../docs/adr/0012-previsualizaciones-por-pull-request.md)). La genera `realm-produccion.mjs --previsualizacion`. La contraseña se toma al importar de `LOGICFLOWS_E2E_PASSWORD`, que en las previsualizaciones recibe el secreto `E2E_PASSWORD`. Sin esa variable la imagen no arranca: Keycloak guardaría como contraseña el texto literal `${LOGICFLOWS_E2E_PASSWORD}`, que es público.
+
+Solo se publica con las etiquetas `pr-*` de las previsualizaciones y nunca se despliega en producción. Prueba (también en la CI):
+
+```sh
+docker build --target identity-preview -t logicflows-identity:preview .
+infra/keycloak/comprobar-previsualizacion.sh
+```
+
 ## Alta y primer acceso en producción (LF-48)
 
 La consola se abre en la dirección pública de `identity`, añadiendo `/admin/`. Las cuentas se crean en el realm correspondiente:

@@ -7,6 +7,9 @@
 # incluida (ADR-0010):
 #   docker build --target broker -t logicflows-broker .
 #   docker build --target identity -t logicflows-identity .
+# La variante de Keycloak de las previsualizaciones lleva un usuario de prueba
+# (ADR-0012):
+#   docker build --target identity-preview -t logicflows-identity:preview .
 # La configuración se da al arrancar con variables de entorno (.env.example):
 # la misma imagen sirve para cualquier entorno.
 
@@ -102,4 +105,17 @@ EXPOSE 8080 9000
 # La imagen no incluye curl: se consulta el puerto de gestión con bash.
 HEALTHCHECK --interval=10s --timeout=5s --start-period=60s --retries=10 \
   CMD ["bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/9000 && printf 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+CMD ["start", "--optimized", "--import-realm"]
+
+# Realm de las previsualizaciones por pull request (ADR-0012): el de producción
+# más el usuario de solo lectura de la prueba de extremo a extremo.
+FROM identity-realm AS identity-preview-realm
+RUN node realm-produccion.mjs realm-logicflows.json logicflows.json --previsualizacion
+
+# Proveedor de identidad de las previsualizaciones. Nunca se despliega en
+# producción. Sin LOGICFLOWS_E2E_PASSWORD no arranca: Keycloak importaría como
+# contraseña el texto literal de la variable, que está en el repositorio.
+FROM identity AS identity-preview
+COPY --from=identity-preview-realm /realm/logicflows.json /opt/keycloak/data/import/realm-logicflows.json
+ENTRYPOINT ["/bin/bash", "-c", "if [ -z \"$LOGICFLOWS_E2E_PASSWORD\" ]; then echo 'Falta LOGICFLOWS_E2E_PASSWORD' >&2; exit 1; fi; exec /opt/keycloak/bin/kc.sh \"$@\"", "kc.sh"]
 CMD ["start", "--optimized", "--import-realm"]
