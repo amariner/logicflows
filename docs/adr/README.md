@@ -20,6 +20,7 @@ Un ADR aceptado no se reescribe. Si la decisión cambia, se crea un ADR nuevo qu
 | [0010](0010-imagenes-de-la-infraestructura.md) | Imágenes del broker y del proveedor de identidad | Aceptado |
 | [0011](0011-infraestructura-como-codigo.md) | Infraestructura de Railway como código | Aceptado |
 | [0012](0012-previsualizaciones-por-pull-request.md) | Previsualizaciones por pull request | Aceptado |
+| [0013](0013-observabilidad.md) | Observabilidad del sistema desplegado | Aceptado |
 
 ## Estados
 
