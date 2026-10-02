@@ -26,9 +26,13 @@ const visor = realm.clients?.find((client) => client.clientId === 'logicflows-vi
 if (visor === undefined) {
   throw new Error('El realm no define el cliente logicflows-visor');
 }
-visor.redirectUris = ['${LOGICFLOWS_VISOR_URL}/*'];
-visor.webOrigins = ['${LOGICFLOWS_VISOR_URL}'];
-visor.attributes['post.logout.redirect.uris'] = '${LOGICFLOWS_VISOR_URL}/*';
+// La app Android (LF-68) vuelve por su esquema propio (RFC 8252) y su vista
+// web tiene el origen https://localhost, que necesita para pedir los tokens.
+const APP_SCHEME_URIS = 'io.github.amariner.logicflows:/*';
+visor.redirectUris = ['${LOGICFLOWS_VISOR_URL}/*', APP_SCHEME_URIS];
+visor.webOrigins = ['${LOGICFLOWS_VISOR_URL}', 'https://localhost'];
+// Keycloak separa con ## las direcciones de este atributo.
+visor.attributes['post.logout.redirect.uris'] = `\${LOGICFLOWS_VISOR_URL}/*##${APP_SCHEME_URIS}`;
 
 const production = JSON.stringify(realm, null, 2);
 if (/"(username|password|credentials)"/.test(production)) {

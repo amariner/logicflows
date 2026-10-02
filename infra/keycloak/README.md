@@ -95,6 +95,30 @@ Ante **«Ha tardado demasiado en identificarse. Inicie de nuevo la identificaci�
 
 Caduca el intento de identificación, no la cuenta ni sus roles o contraseña. No hace falta crear otro usuario, restablecer la contraseña ni reiniciar los servicios. No reutilizar como enlace de entrada la URL intermedia de Keycloak: contiene parámetros temporales del flujo. No guardar esas URL, contraseñas ni tokens en documentación o incidencias.
 
+### Habilitar la app Android en producción (LF-68)
+
+La app Android inicia sesión en el navegador del sistema y vuelve por su esquema propio, `io.github.amariner.logicflows:/callback` (RFC 8252). Su vista web tiene el origen `https://localhost`. `realm-produccion.mjs` ya incluye estos valores, pero el realm de producción existe desde LF-48 y `--import-realm` no modifica un realm existente. Por eso, una sola vez, hay que hacer dos cambios a mano:
+
+1. **Keycloak.** En la consola, realm `logicflows`, abrir **Clients → logicflows-visor → Settings** y añadir, sin quitar las del visor web:
+   - en **Valid redirect URIs**: `io.github.amariner.logicflows:/*`;
+   - en **Valid post logout redirect URIs**: `io.github.amariner.logicflows:/*`;
+   - en **Web origins**: `https://localhost`.
+
+   Pulsar **Save**.
+2. **API.** Añadir el origen de la app a `CORS_ORIGINS` del servicio `api`. Cambiar la variable redespliega la API; el tiempo real se corta unos segundos y el visor se reconecta solo:
+
+   ```sh
+   railway variables -s api -e production --set "CORS_ORIGINS=https://dashboard-production-6f89.up.railway.app,https://localhost"
+   ```
+3. **Comprobar** con el APK de depuración de cualquier PR (artefacto `logicflows-debug-apk`):
+   - el inicio de sesión se abre en el navegador del sistema;
+   - al terminar, vuelve a la app;
+   - la app muestra la célula **En directo**.
+
+   Cerrar sesión debe devolver a la app y pedir otra vez el inicio de sesión.
+
+Permitir `https://localhost` en la API no expone nada nuevo: la API exige un token en cada petición y no usa cookies. Una página que se sirva en `https://localhost` en el ordenador de alguien no tiene ese token.
+
 ### Sustituir el administrador temporal
 
 El alta del usuario del visor no sustituye al administrador temporal de `master`. Para completar la administración permanente:
