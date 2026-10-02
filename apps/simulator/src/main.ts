@@ -16,6 +16,8 @@ const config = loadConfig(process.env);
 const logger = pino({
   level: config.logLevel,
   base: { service: 'simulator', siteId: config.siteId, cellId: config.cellId },
+  // Railway filtra por nivel solo si es texto: «info», no 30 (ADR-0013).
+  formatters: { level: (label) => ({ level: label }) },
 });
 
 const sessionId = uuidv7();
