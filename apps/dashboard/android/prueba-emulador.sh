@@ -36,7 +36,8 @@ wait_for() {
     fi
     sleep 2
   done
-  fail "$description: no ocurrió en 2 minutos"
+  echo "✗ $description: no ocurrió en 2 minutos" >&2
+  return 1
 }
 
 loaded() { adb logcat -d | grep -q 'Loading app at https://localhost'; }
@@ -59,11 +60,30 @@ sleep "${ESPERA_ARRANQUE:-60}"
 
 adb install -r "$apk" > /dev/null
 echo "✓ APK instalado"
-adb logcat -c
-adb shell am start -W -n "$package/.MainActivity" > /dev/null
 
-wait_for 'La vista web carga la aplicación' loaded
-wait_for 'Sin sesión, el inicio de sesión se abre en el navegador del sistema' login_in_browser
+# Google Play Services puede seguir reiniciándose en un emulador recién
+# arrancado y Android cierra con él las apps que usan su proveedor de
+# fuentes, como la vista web. Solo por ese motivo se relanza la app.
+killed_by_play_services() {
+  adb logcat -d | grep -q -E "Killing [0-9]+:$package/.*dying proc com.google.android.gms"
+}
+
+attempt=1
+while :; do
+  adb logcat -c
+  adb shell am start -W -n "$package/.MainActivity" > /dev/null
+  if wait_for 'La vista web carga la aplicación' loaded &&
+    wait_for 'Sin sesión, el inicio de sesión se abre en el navegador del sistema' login_in_browser; then
+    break
+  fi
+  if [ "$attempt" -ge 3 ] || ! killed_by_play_services; then
+    fail 'La app no llegó a abrir el inicio de sesión'
+  fi
+  echo "! Google Play Services cerró la app; intento $((attempt + 1)) de 3"
+  attempt=$((attempt + 1))
+  adb shell am force-stop "$package"
+  sleep 20
+done
 
 no_crash || fail 'La app se cerró con una excepción'
 echo '✓ Sin excepciones de la app'

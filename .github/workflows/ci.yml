@@ -166,7 +166,8 @@ jobs:
     # Prueba el APK que compila el trabajo Android, en un emulador (LF-74).
     needs: android
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    # Hasta tres intentos si Google Play Services cierra la app al arrancar.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 
