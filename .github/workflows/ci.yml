@@ -161,6 +161,46 @@ jobs:
           apksigner="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner"
           "$apksigner" verify --print-certs app/build/outputs/apk/release/app-release.apk
 
+  android-emulator:
+    name: Android en emulador
+    # Prueba el APK que compila el trabajo Android, en un emulador (LF-74).
+    needs: android
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v7
+        with:
+          name: logicflows-debug-apk
+          path: apk
+
+      # El emulador necesita aceleración por hardware (KVM) para arrancar en
+      # un tiempo razonable.
+      - name: Habilitar KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # Imagen con Google Play: trae Chrome, que abre el inicio de sesión.
+      - name: Probar la app en el emulador
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis_playstore
+          arch: x86_64
+          disable-animations: true
+          script: apps/dashboard/android/prueba-emulador.sh apk/app-debug.apk "$RUNNER_TEMP/emulador"
+
+      - name: Registro y captura si falla
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: android-emulador
+          path: ${{ runner.temp }}/emulador
+          retention-days: 7
+
   system:
     name: Sistema completo
     runs-on: ubuntu-24.04
