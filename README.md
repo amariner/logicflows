@@ -2,7 +2,7 @@
 
 Plataforma IIoT para monitorizar en tiempo real células robotizadas de paletizado: estado de la máquina, producción y alarmas, desde la web y desde el móvil.
 
-> **Estado:** [`v0.1.0`](CHANGELOG.md) publicada: **Hito 1 · Primera caja en pantalla**. En curso: **Hito 2 · Sistema desplegado**.
+> **Estado:** [`v0.2.0`](CHANGELOG.md) publicada: **Hito 2 · Sistema desplegado**, en producción en Railway. Siguiente: **Hito 3 · App Android (demo)**.
 
 <p>
   <img src="docs/imagenes/visor-escritorio.png" alt="Visor de LogicFlows en escritorio, tema oscuro: la célula cell-01 produciendo, con el contador de cajas, pallets, capa, ritmo y tiempo de ciclo" width="68%">
@@ -244,7 +244,7 @@ TypeScript está fijado en la versión 6.0 porque Angular 22 y typescript-eslint
 ## Documentación
 
 - [Registro de cambios](CHANGELOG.md)
-- [Guion de la demo](docs/demo.md)
+- Guiones de la demo: [Hito 1, en local](docs/demo.md) y [Hito 2, en producción](docs/demo-hito-2.md)
 - [Decisiones de arquitectura (ADR)](docs/adr/README.md)
 - [Despliegue en Railway: servicios, configuración, secretos y rotación](docs/despliegue.md)
 - [Guía de contribución y Definition of Done](CONTRIBUTING.md)
