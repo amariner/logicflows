@@ -76,6 +76,28 @@ Para ver los mensajes publicados:
 docker compose exec mosquitto mosquitto_sub -u api -P api-local -t 'logicflows/v1/#' -v
 ```
 
+## Histórico simulado
+
+`pnpm simulator:historico` genera N días de producción de la célula, hasta el momento actual, y los publica por MQTT en unos segundos (LF-77):
+
+```sh
+SIMULATOR_BACKFILL_DAYS=90 SIMULATOR_SCENARIO=turno pnpm simulator:historico
+```
+
+- **Reloj virtual.** El mismo simulador se ejecuta con un reloj virtual (`src/virtual-clock.ts`), que mueve los temporizadores sin esperar. Las marcas de tiempo son las simuladas, y la configuración (célula, formato, tiempos, escenario y `SIMULATOR_SEED`) es la del simulador. Con la misma semilla, el histórico se repite.
+- **Telemetría espaciada.** Se publica una cada 10 s como mucho, más una por cambio de estado. Los contadores son acumulados, así que la producción por periodo no cambia.
+- **Mensajes no retenidos y sin *Last Will*.** El histórico no pasa por estado actual de la célula.
+- **Rendimiento:** en local, 7 días son unos 63 000 mensajes, publicados en 17 s. La API tarda unos 40 s más en guardarlos, sin pérdidas.
+
+**Cuándo se puede cargar.** La API descarta una sesión anterior a la que ya conoce (ADR-0004). El histórico se carga, por tanto, en una célula sin datos más recientes:
+
+- en un entorno limpio, antes de arrancar el simulador en directo de esa célula;
+- o en otra célula, con `SIMULATOR_CELL_ID`.
+
+La API no avisa al móvil de las alarmas del histórico: solo avisa de las de los últimos 15 minutos (ADR-0015).
+
+Dentro de la imagen del simulador está como `node dist/backfill-main.js`.
+
 ## Configuración
 
 | Variable | Por defecto | Descripción |
@@ -120,5 +142,6 @@ La configuración se valida al arrancar: un valor no válido detiene el simulado
 |---|---|
 | `dev` | Ejecuta el código fuente con Node.js y lo reinicia al cambiar, sin compilar |
 | `build` · `start` | Compila a `dist` y ejecuta la versión compilada |
+| `historico` | Genera y publica N días de histórico simulado (`SIMULATOR_BACKFILL_DAYS`, 7 por defecto, hasta 120) |
 | `test` | Pruebas unitarias con cobertura |
 | `test:integration` | Prueba con un broker real que se reinicia a mitad de la prueba y un corte abrupto de red que dispara el *Last Will* (necesita Docker) |

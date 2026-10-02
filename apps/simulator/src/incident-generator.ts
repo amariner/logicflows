@@ -4,6 +4,8 @@ import type { Logger } from './broker.ts';
 import { FAULT_ALARMS } from './domain/alarms.ts';
 import type { AlarmDefinition } from './domain/alarms.ts';
 import type { Random } from './domain/random.ts';
+import { realScheduler } from './scheduler.ts';
+import type { Scheduled, Scheduler } from './scheduler.ts';
 import type { DurationRange, IncidentRates, NetworkChaos } from './scenarios.ts';
 
 /** Acciones que el generador puede provocar en la célula simulada. */
@@ -36,7 +38,8 @@ export class IncidentGenerator {
   readonly #network: (NetworkChaos & { readonly connection: Interruptible }) | null;
   readonly #random: Random;
   readonly #logger: Logger;
-  #timer: NodeJS.Timeout | undefined;
+  readonly #scheduler: Scheduler;
+  #timer: Scheduled | undefined;
 
   constructor(options: {
     target: IncidentTarget;
@@ -44,25 +47,27 @@ export class IncidentGenerator {
     network: (NetworkChaos & { readonly connection: Interruptible }) | null;
     random: Random;
     logger: Logger;
+    scheduler?: Scheduler;
   }) {
     this.#target = options.target;
     this.#rates = options.rates;
     this.#network = options.network;
     this.#random = options.random;
     this.#logger = options.logger;
+    this.#scheduler = options.scheduler ?? realScheduler;
   }
 
   start(): void {
     if (this.#rates === null && this.#network === null) {
       return;
     }
-    this.#timer = setInterval(() => {
+    this.#timer = this.#scheduler.every(TICK_MS, () => {
       this.tick();
-    }, TICK_MS);
+    });
   }
 
   stop(): void {
-    clearInterval(this.#timer);
+    this.#timer?.cancel();
   }
 
   /** Evalúa una vez cada incidencia. Público para poder probarlo. */
