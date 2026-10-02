@@ -36,8 +36,7 @@ function parseUrl(value: string): URL | null {
 }
 
 const isHttpUrl = (value: unknown): value is string =>
-  typeof value === 'string' &&
-  ['http:', 'https:'].includes(parseUrl(value)?.protocol ?? '');
+  typeof value === 'string' && ['http:', 'https:'].includes(parseUrl(value)?.protocol ?? '');
 
 function parseAuth(value: unknown): AuthSettings | null {
   if (value === undefined || value === null) {
