@@ -8,7 +8,7 @@ import type { Subscription } from 'rxjs';
 import { TelemetryStream } from '../ingestion/telemetry-stream.ts';
 import type { IngestedMessage } from '../ingestion/telemetry-stream.ts';
 import { METRIC_PREFIX, MetricsService } from '../metrics/metrics.service.ts';
-import { activationsToNotify, notificationFor } from './alarm-activations.ts';
+import { activationsToNotify, isRecent, notificationFor } from './alarm-activations.ts';
 import { FCM_CLIENT } from './fcm-client.ts';
 import type { FcmClient, SendResult } from './fcm-client.ts';
 import { PushRepository } from './push.repository.ts';
@@ -61,7 +61,11 @@ export class PushService implements OnModuleInit, OnModuleDestroy {
       return;
     }
     try {
-      for (const activation of activationsToNotify(decoded.message)) {
+      const now = Date.now();
+      const activations = activationsToNotify(decoded.message).filter((activation) =>
+        isRecent(activation, now),
+      );
+      for (const activation of activations) {
         if (await this.repository.markNotified(activation, new Date())) {
           await this.#broadcast(notificationFor(activation), activation.code);
         }

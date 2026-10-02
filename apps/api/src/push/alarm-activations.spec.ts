@@ -2,7 +2,13 @@ import { buildStateMessage } from '@logicflows/contract/testing';
 import type { Alarm } from '@logicflows/contract';
 import { describe, expect, it } from 'vitest';
 
-import { EMERGENCY_STOP_CODE, activationsToNotify, notificationFor } from './alarm-activations.ts';
+import {
+  EMERGENCY_STOP_CODE,
+  MAX_NOTIFICATION_AGE_MS,
+  activationsToNotify,
+  isRecent,
+  notificationFor,
+} from './alarm-activations.ts';
 
 const alarm = (code: string, severity: Alarm['severity']): Alarm => ({
   code,
@@ -85,5 +91,17 @@ describe('activaciones que avisan en el móvil (ADR-0015)', () => {
       collapseKey: `${activation.siteId}/${activation.cellId}`,
     });
     expect(JSON.stringify(notification)).not.toContain('Texto de ROB-001');
+  });
+
+  it('una activación antigua, como las de un histórico cargado, no avisa', () => {
+    const [activation] = activationsToNotify(
+      buildStateMessage({ state: 'FAULT', activeAlarms: [alarm('ROB-001', 'HIGH')] }),
+    );
+    if (activation === undefined) {
+      throw new Error('Se esperaba una activación');
+    }
+    const raisedAt = Date.parse(activation.raisedAt);
+    expect(isRecent(activation, raisedAt + MAX_NOTIFICATION_AGE_MS)).toBe(true);
+    expect(isRecent(activation, raisedAt + MAX_NOTIFICATION_AGE_MS + 1)).toBe(false);
   });
 });
