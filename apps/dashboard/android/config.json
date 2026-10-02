@@ -1,0 +1,7 @@
+{
+  "apiUrl": "https://api-production-f218.up.railway.app",
+  "auth": {
+    "issuer": "https://identity-production-e786.up.railway.app/realms/logicflows",
+    "clientId": "logicflows-visor"
+  }
+}

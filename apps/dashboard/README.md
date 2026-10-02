@@ -1,6 +1,6 @@
 # Visor
 
-Muestra el estado, las alarmas y los indicadores de las células en tiempo real. Una única base de código para web, PWA y Android, según [ADR-0002](../../docs/adr/0002-visor-multiplataforma.md): Ionic 9 y Angular 22 con componentes *standalone* y sin zone.js. Capacitor se incorporará con la aplicación Android (Hito 3).
+Muestra el estado, las alarmas y los indicadores de las células en tiempo real. Una única base de código para web, PWA y Android, según [ADR-0002](../../docs/adr/0002-visor-multiplataforma.md): Ionic 9 y Angular 22 con componentes *standalone* y sin zone.js. La app Android se genera con Capacitor desde este mismo código (Hito 3).
 
 ## Estado actual
 
@@ -80,6 +80,18 @@ El visor se puede instalar en el escritorio o en el móvil (LF-55, [ADR-0002](..
 
 La prueba de extremo a extremo comprueba el manifiesto, el service worker y el comportamiento sin conexión.
 
+## App Android
+
+El proyecto Android está en `android/` y lo genera Capacitor 8 a partir de la build de producción del visor (LF-65, [ADR-0002](../../docs/adr/0002-visor-multiplataforma.md)):
+
+- **Identificador** `io.github.amariner.logicflows` y nombre **LogicFlows**. El identificador no cambia nunca ([ADR-0014](../../docs/adr/0014-distribucion-de-la-app-android.md)).
+- **Configuración de producción.** La app lleva dentro `android/config.json` en lugar del `config.json` de desarrollo.
+- **Iconos y pantalla de arranque** derivados de los de la PWA (`public/icons`): icono adaptativo con fondo `#17324d`.
+- **`pnpm android:sync`** compila el visor, copia la configuración de la app y ejecuta `cap sync android`. Hay que ejecutarlo después de actualizar dependencias: `cap sync` escribe en `android/capacitor.settings.gradle` rutas del almacén de pnpm que incluyen la versión de cada plugin. Se versiona el resultado.
+- **No hace falta JDK ni Android SDK en local.** La CI compila el APK de depuración en cada pull request (trabajo **Android**) y lo deja como artefacto `logicflows-debug-apk` durante 7 días. Antes comprueba que `android:sync` no cambia nada de lo versionado.
+
+**Limitación:** el inicio de sesión todavía no funciona en la app. Keycloak devuelve al visor web, no a la app (LF-68).
+
 ## Compresión
 
 Los ficheros del visor se comprimen con gzip al construir la imagen y Nginx los sirve tal cual (`gzip_static`), sin comprimir en cada petición (LF-59). `config.json` no se comprime, porque se genera al arrancar. En una red móvil lenta («Fast 3G», CPU ×4), comprimir redujo lo transferido de 883 a 235 KB y el tiempo hasta ver datos de 8,0 a 4,5 s.
@@ -130,6 +142,7 @@ Los tipos de estados y mensajes se importan de `@logicflows/contract`. El empaqu
 |---|---|
 | `dev` | Servidor de desarrollo con recarga |
 | `build` | Build de producción en `www` |
+| `android:sync` | Build de producción con la configuración de la app y sincronización del proyecto Android |
 | `typecheck` | Comprueba los tipos de la aplicación y de las pruebas |
 | `lint` | ESLint, incluidas las plantillas |
 | `test` | Pruebas unitarias con Vitest y jsdom |
