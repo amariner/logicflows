@@ -1,6 +1,6 @@
 # Demo del Hito 1
 
-Guion para enseñar LogicFlows `v0.1.0` en unos 15 minutos: desde el arranque hasta una célula que falla, se recupera y sigue produciendo. Sirve para una demo en directo y como comprobación manual de que el sistema completo funciona.
+Guion para enseñar LogicFlows `v0.1.0` en unos 15 minutos: desde el arranque hasta una célula que falla, se recupera y sigue produciendo. Sirve para una demo en directo y como comprobación manual de que el sistema completo funciona. El sistema desplegado se enseña con la [demo del Hito 2](demo-hito-2.md).
 
 ## Preparación
 
