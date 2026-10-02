@@ -24,6 +24,9 @@ describe('configuración de la API', () => {
       AUTH_ROLES_CLAIM: 'realm_access.roles',
       REALTIME_TICKET_SECRET: 'secreto-de-tiques-de-al-menos-32-caracteres',
       RATE_LIMIT_PER_MINUTE: 300,
+      HISTORY_AGGREGATION_INTERVAL_MS: 30_000,
+      HISTORY_RAW_RETENTION_DAYS: 0,
+      HISTORY_EVENTS_RETENTION_DAYS: 0,
       TRUST_PROXY_HOPS: 0,
       CORS_ORIGINS: ['http://localhost:4200'],
     });

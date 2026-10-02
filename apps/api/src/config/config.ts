@@ -54,6 +54,15 @@ const configSchema = z.object({
   REALTIME_TICKET_SECRET: z.string().min(32),
   /** Peticiones por minuto que admite la API de cada cliente antes de responder 429. */
   RATE_LIMIT_PER_MINUTE: z.coerce.number().int().positive().default(300),
+  /** Cada cuánto se recalculan las horas pendientes del histórico (ADR-0016). */
+  HISTORY_AGGREGATION_INTERVAL_MS: z.coerce.number().int().min(1_000).default(30_000),
+  /**
+   * Días que se conserva la telemetría en bruto (ADR-0016: 30). 0 la conserva
+   * siempre; es el valor por defecto hasta tener copias de seguridad (LF-82).
+   */
+  HISTORY_RAW_RETENTION_DAYS: z.coerce.number().int().min(0).max(3_650).default(0),
+  /** Días que se conservan los cambios de estado y de conexión (ADR-0016: 365). 0, siempre. */
+  HISTORY_EVENTS_RETENTION_DAYS: z.coerce.number().int().min(0).max(3_650).default(0),
   /**
    * Proxies de confianza delante de la API (balanceador de la plataforma). Con
    * 0 se usa la dirección de la conexión; con 1, la que añade el proxy en

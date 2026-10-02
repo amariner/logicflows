@@ -1,5 +1,5 @@
 import { CELL_EVENTS, CELL_STATES, WAITING_REASONS } from '@logicflows/contract';
-import type { Alarm } from '@logicflows/contract';
+import type { Alarm, AlarmSeverity } from '@logicflows/contract';
 import {
   bigserial,
   boolean,
@@ -9,6 +9,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -150,4 +151,44 @@ export const pushNotifiedAlarms = pgTable(
       table.raisedAt,
     ),
   ],
+);
+
+/**
+ * Resumen de cada hora de cada célula (ADR-0016): producción, segundos por
+ * situación, paradas por causa y alarmas activadas. Se recalcula a partir del
+ * dato en bruto y es lo que leen las consultas por periodo.
+ */
+export const cellHourly = pgTable(
+  'cell_hourly',
+  {
+    siteId: text('site_id').notNull(),
+    cellId: text('cell_id').notNull(),
+    hour: instant('hour').notNull(),
+    boxes: integer('boxes').notNull(),
+    pallets: integer('pallets').notNull(),
+    /** Segundos por situación (`TimeBucket` de src/history/hour-summary.ts). */
+    seconds: jsonb('seconds').$type<Partial<Record<string, number>>>().notNull(),
+    /** Paradas por causa, con sus segundos y las veces que empezaron. */
+    stops: jsonb('stops')
+      .$type<Partial<Record<string, { seconds: number; count: number }>>>()
+      .notNull(),
+    alarms: jsonb('alarms').$type<Partial<Record<AlarmSeverity, number>>>().notNull(),
+    computedAt: instant('computed_at').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.siteId, table.cellId, table.hour] })],
+);
+
+/**
+ * Horas que hay que recalcular porque llegó un mensaje que las afecta. Se
+ * marcan al guardar cada mensaje y las vacía el proceso de agregación.
+ */
+export const cellHourlyPending = pgTable(
+  'cell_hourly_pending',
+  {
+    siteId: text('site_id').notNull(),
+    cellId: text('cell_id').notNull(),
+    hour: instant('hour').notNull(),
+    markedAt: instant('marked_at').notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.siteId, table.cellId, table.hour] })],
 );

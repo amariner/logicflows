@@ -150,6 +150,9 @@ Se valida al arrancar; un valor no válido detiene la API indicando qué variabl
 | `REALTIME_TICKET_SECRET` | — | Secreto de al menos 32 caracteres para firmar los tiques; el mismo en todas las instancias (obligatoria) |
 | `METRICS_TOKEN` | — | Token de al menos 32 caracteres con el que se piden las métricas en `/metrics`. Sin valor, la ruta no existe |
 | `FCM_SERVICE_ACCOUNT` | — | JSON de la cuenta de servicio de Firebase con la que se envían los avisos de alarmas. Sin valor, no se envían |
+| `HISTORY_AGGREGATION_INTERVAL_MS` | `30000` | Cada cuánto se agregan las horas pendientes del histórico |
+| `HISTORY_RAW_RETENTION_DAYS` | `0` | Días de telemetría en bruto que se conservan; 0, sin límite |
+| `HISTORY_EVENTS_RETENTION_DAYS` | `0` | Días de cambios de estado y de conexión que se conservan; 0, sin límite |
 
 ## Varias instancias
 
@@ -168,6 +171,22 @@ Los logs se emiten en JSON con pino (`nestjs-pino`): una línea por evento con e
 ## Métricas
 
 `/metrics` publica en formato Prometheus las métricas de la ingesta, del tiempo real, de la salud y de cada célula, además de las estándar de Node.js ([ADR-0013](../../docs/adr/0013-observabilidad.md)). Cada módulo registra las suyas en `MetricsService`, un registro propio de la aplicación. El panel y las alertas que las usan, y cómo leerlos, están en [Observabilidad](../../infra/grafana/README.md).
+
+## Histórico agregado por hora
+
+El histórico se resume por célula y hora en `cell_hourly`: cajas, pallets, segundos en cada situación, paradas por causa y alarmas activadas ([ADR-0016](../../docs/adr/0016-almacenamiento-del-historico.md), [indicadores de planta](../../docs/indicadores-de-planta.md)).
+
+- **Horas pendientes.** Al guardar un mensaje, su hora queda en `cell_hourly_pending`; un estado o una conexión marcan también la hora siguiente. La migración `0002` marca todas las horas que ya tenían datos.
+- **Agregación.** `HistoryAggregator` recalcula hasta 200 horas pendientes cada `HISTORY_AGGREGATION_INTERVAL_MS` (30 s por defecto):
+  - **Bloqueo:** un bloqueo consultivo de PostgreSQL hace que solo trabaje una réplica a la vez.
+  - **Idempotencia:** el resultado no depende de cuántas veces se calcule una hora.
+  - **Un solo reloj:** las marcas y el inicio del cálculo usan el de PostgreSQL, así que un mensaje que llega mientras se calcula deja la hora pendiente.
+- **Producción de una hora.** La consulta solo lee las muestras de esa hora y la última anterior de cada sesión, no todo el histórico.
+- **Retención.** `RetentionService` borra por lotes el dato en bruto más antiguo que `HISTORY_RAW_RETENTION_DAYS` (telemetría) y `HISTORY_EVENTS_RETENTION_DAYS` (estados y conexiones).
+  - Conserva siempre el último mensaje de cada célula.
+  - No borra mientras queden horas antiguas sin agregar.
+  - Con 0, el valor por defecto, no borra nada: en producción se activará con 30 y 365 días cuando haya copias de seguridad (LF-82).
+- **Métrica:** `logicflows_history_pending_hours` indica cuántas horas faltan por agregar.
 
 ## Avisos de alarmas
 
