@@ -15,10 +15,11 @@ Un ADR aceptado no se reescribe. Si la decisión cambia, se crea un ADR nuevo qu
 | [0005](0005-paquete-del-contrato.md) | Paquete compartido del contrato de telemetría | Aceptado |
 | [0006](0006-canal-de-tiempo-real.md) | Canal de tiempo real entre la API y el visor | Aceptado |
 | [0007](0007-acceso-a-datos-y-migraciones.md) | Acceso a datos y migraciones | Aceptado |
-| [0008](0008-plataforma-de-despliegue.md) | Plataforma de despliegue | Aceptado |
+| [0008](0008-plataforma-de-despliegue.md) | Plataforma de despliegue | Aceptado; previsualizaciones sustituidas por ADR-0012 |
 | [0009](0009-autenticacion-y-autorizacion.md) | Autenticación y autorización | Aceptado |
 | [0010](0010-imagenes-de-la-infraestructura.md) | Imágenes del broker y del proveedor de identidad | Aceptado |
 | [0011](0011-infraestructura-como-codigo.md) | Infraestructura de Railway como código | Aceptado |
+| [0012](0012-previsualizaciones-por-pull-request.md) | Previsualizaciones por pull request | Aceptado |
 
 ## Estados
 
