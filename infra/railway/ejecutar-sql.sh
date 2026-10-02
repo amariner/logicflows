@@ -51,11 +51,16 @@ railway api 'mutation($s:String!,$e:String!,$c:String!){ serviceInstanceUpdate(s
 railway service scale --service "$service" europe-west4-drams3a=1 sfo=0 > /dev/null
 railway service redeploy --service "$service" --from-source --yes > /dev/null
 
+# Se leen los registros enteros antes de buscar: con `railway logs | grep -q`,
+# grep cierra la tubería al encontrar el texto y la CLI aborta, lo que con
+# pipefail haría fallar el script aunque el SQL hubiera terminado bien.
+logs=""
 for _ in $(seq 1 60); do
   sleep 5
-  if railway logs --service "$service" --deployment 2> /dev/null | grep -qE 'SQL-COMPLETADO|ERROR|FATAL'; then
+  logs="$(railway logs --service "$service" --deployment 2> /dev/null || true)"
+  if grep -qE 'SQL-COMPLETADO|ERROR|FATAL' <<< "$logs"; then
     break
   fi
 done
-railway logs --service "$service" --deployment 2> /dev/null | grep -vE '^\s*$|Starting Container'
-railway logs --service "$service" --deployment 2> /dev/null | grep -q SQL-COMPLETADO
+grep -vE '^\s*$|Starting Container' <<< "$logs" || true
+grep -q SQL-COMPLETADO <<< "$logs"
