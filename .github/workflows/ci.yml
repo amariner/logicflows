@@ -116,6 +116,13 @@ jobs:
           docker build --target identity -t logicflows-identity:local .
           infra/keycloak/comprobar-produccion.sh
 
+      # Variante de las previsualizaciones (ADR-0012): el usuario de la prueba
+      # de extremo a extremo y nada más.
+      - name: Proveedor de identidad de las previsualizaciones
+        run: |
+          docker build --target identity-preview -t logicflows-identity:preview .
+          infra/keycloak/comprobar-previsualizacion.sh
+
       - uses: pnpm/action-setup@v6
         with:
           cache: true

@@ -3,12 +3,20 @@
 // - elimina los usuarios de prueba;
 // - toma las direcciones del visor de la variable LOGICFLOWS_VISOR_URL, que
 //   Keycloak sustituye al importar el realm.
-// Uso: node realm-produccion.mjs <realm local> <realm de producción>
+// Con --previsualizacion genera el realm de las previsualizaciones por pull
+// request (ADR-0012): el de producción más el usuario de solo lectura de la
+// prueba de extremo a extremo, con la contraseña de LOGICFLOWS_E2E_PASSWORD.
+// Uso: node realm-produccion.mjs <realm local> <realm generado> [--previsualizacion]
 import { readFileSync, writeFileSync } from 'node:fs';
 
-const [source, target] = process.argv.slice(2);
+const [source, target, mode] = process.argv.slice(2);
 if (source === undefined || target === undefined) {
-  throw new Error('Uso: node realm-produccion.mjs <realm local> <realm de producción>');
+  throw new Error(
+    'Uso: node realm-produccion.mjs <realm local> <realm generado> [--previsualizacion]',
+  );
+}
+if (mode !== undefined && mode !== '--previsualizacion') {
+  throw new Error(`Opción desconocida: ${mode}`);
 }
 
 const realm = JSON.parse(readFileSync(source, 'utf8'));
@@ -22,8 +30,26 @@ visor.redirectUris = ['${LOGICFLOWS_VISOR_URL}/*'];
 visor.webOrigins = ['${LOGICFLOWS_VISOR_URL}'];
 visor.attributes['post.logout.redirect.uris'] = '${LOGICFLOWS_VISOR_URL}/*';
 
-const output = JSON.stringify(realm, null, 2);
-if (/"(username|password|credentials)"/.test(output)) {
+const production = JSON.stringify(realm, null, 2);
+if (/"(username|password|credentials)"/.test(production)) {
   throw new Error('El realm de producción no puede contener usuarios ni credenciales');
 }
-writeFileSync(target, `${output}\n`);
+
+if (mode === '--previsualizacion') {
+  // Perfil completo y email verificado: Keycloak no pide completar datos en el
+  // primer acceso (VERIFY_PROFILE) y la prueba entra directamente.
+  realm.users = [
+    {
+      username: 'prueba-e2e',
+      firstName: 'Prueba',
+      lastName: 'de extremo a extremo',
+      email: 'prueba-e2e@logicflows.local',
+      emailVerified: true,
+      enabled: true,
+      credentials: [{ type: 'password', value: '${LOGICFLOWS_E2E_PASSWORD}', temporary: false }],
+      realmRoles: ['viewer'],
+    },
+  ];
+}
+
+writeFileSync(target, `${JSON.stringify(realm, null, 2)}\n`);
