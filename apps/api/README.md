@@ -6,12 +6,13 @@ NestJS 12 sobre Node.js, con módulos ES y TypeScript estricto.
 
 ## Estado actual
 
-Esqueleto operativo (LF-23), ingesta de telemetría (LF-26), canal de tiempo real (LF-27), persistencia en PostgreSQL (LF-32), API REST (LF-33) y autenticación (LF-50).
+Esqueleto operativo (LF-23), ingesta de telemetría (LF-26), canal de tiempo real (LF-27), persistencia en PostgreSQL (LF-32), API REST (LF-33), autenticación (LF-50) y métricas (LF-54).
 
 | Ruta | Contenido |
 |---|---|
 | `GET /health/live` | Vivacidad: el proceso responde. Si falla, el orquestador reinicia la API. |
 | `GET /health/ready` | Disponibilidad: la API está conectada al broker MQTT y a PostgreSQL. Responde `503` si falta alguno. |
+| `GET /metrics` | Métricas en formato Prometheus para Grafana Cloud ([ADR-0013](../../docs/adr/0013-observabilidad.md)). Exige `METRICS_TOKEN`; sin la variable responde `404`. |
 | `GET /api/v1/cells` | Estado actual de todas las células. |
 | `GET /api/v1/sites/{siteId}/cells/{cellId}` | Estado actual de una célula. |
 | `GET /api/v1/sites/{siteId}/cells/{cellId}/production?from&to` | Cajas y pallets producidos en un periodo. |
@@ -20,7 +21,7 @@ Esqueleto operativo (LF-23), ingesta de telemetría (LF-26), canal de tiempo rea
 | `GET /docs/openapi.json` | Documento OpenAPI. |
 | `WS /realtime?ticket=…` | Canal de tiempo real hacia el visor ([ADR-0006](../../docs/adr/0006-canal-de-tiempo-real.md)). |
 
-Todas las rutas de `/api/v1` y el canal de tiempo real exigen autenticación; las de salud y la documentación, no.
+Todas las rutas de `/api/v1` y el canal de tiempo real exigen autenticación; las de salud y la documentación, no. `/metrics` usa su propio token.
 
 ## Autenticación y autorización
 
@@ -145,6 +146,7 @@ Se valida al arrancar; un valor no válido detiene la API indicando qué variabl
 | `RATE_LIMIT_PER_MINUTE` | `300` | Peticiones por minuto de cada cliente antes de responder `429` |
 | `TRUST_PROXY_HOPS` | `0` | Proxies de confianza delante de la API |
 | `REALTIME_TICKET_SECRET` | — | Secreto de al menos 32 caracteres para firmar los tiques; el mismo en todas las instancias (obligatoria) |
+| `METRICS_TOKEN` | — | Token de al menos 32 caracteres con el que se piden las métricas en `/metrics`. Sin valor, la ruta no existe |
 
 ## Varias instancias
 
@@ -158,7 +160,11 @@ Una prueba de integración lo comprueba con dos instancias. Las sesiones de las 
 
 ## Registro
 
-Los logs se emiten en JSON con pino (`nestjs-pino`): una línea por evento con el nivel, la marca de tiempo, el servicio y el contexto. Cada petición HTTP se registra con su método, ruta, estado y duración, excepto las comprobaciones de salud. Las cabeceras `Authorization` y `Cookie` se ocultan.
+Los logs se emiten en JSON con pino (`nestjs-pino`): una línea por evento con el nivel, la marca de tiempo, el servicio y el contexto. El nivel va como texto (`"level":"info"`), que es lo que Railway sabe filtrar. Cada petición HTTP se registra con su método, ruta, estado y duración, excepto las comprobaciones de salud y las recogidas de métricas. Las cabeceras `Authorization` y `Cookie` se ocultan.
+
+## Métricas
+
+`/metrics` publica en formato Prometheus las métricas de la ingesta, del tiempo real, de la salud y de cada célula, además de las estándar de Node.js ([ADR-0013](../../docs/adr/0013-observabilidad.md)). Cada módulo registra las suyas en `MetricsService`, un registro propio de la aplicación. El panel y las alertas que las usan, y cómo leerlos, están en [Observabilidad](../../infra/grafana/README.md).
 
 ## Estructura
 
@@ -174,6 +180,7 @@ Los logs se emiten en JSON con pino (`nestjs-pino`): una línea por evento con e
 | `src/ingestion/` | Suscripción MQTT, guardia de secuencia, indicador de salud del broker y flujo interno |
 | `src/database/` | Esquema, conexión, migraciones e indicador de salud de PostgreSQL |
 | `src/persistence/` | Guardado de los mensajes, consultas de producción y recuperación del estado |
+| `src/metrics/` | Registro de métricas y ruta `/metrics` |
 | `src/realtime/` | Información de cada célula y canal WebSocket hacia el visor |
 | `drizzle/` | Migraciones SQL versionadas |
 | `src/testing/` | Ayudantes de las pruebas de integración: broker con Testcontainers y aplicación completa |

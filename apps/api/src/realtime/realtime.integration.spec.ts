@@ -11,6 +11,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { WebSocket } from 'ws';
 
 import { MqttIngestionService } from '../ingestion/mqtt-ingestion.service.ts';
+import { MetricsService } from '../metrics/metrics.service.ts';
 import { createApp } from '../testing/app.ts';
 import { RealtimeTickets } from './realtime-tickets.ts';
 import { testIssuer } from '../testing/auth.ts';
@@ -91,6 +92,28 @@ describe('canal de tiempo real con un broker real', () => {
     await app.close();
     await database.stop();
     await broker.container.stop();
+  });
+
+  it('la métrica de clientes cuenta solo los autorizados y conectados', async () => {
+    const connected = async () => {
+      const metric = await app
+        .get(MetricsService)
+        .registry.getSingleMetric('logicflows_realtime_clients')
+        ?.get();
+      return metric?.values[0]?.value;
+    };
+    const before = await connected();
+    const client = await connect();
+    expect(await connected()).toBe((before ?? 0) + 1);
+
+    const rejected = new WebSocket(`${url}?ticket=no-valido`);
+    await new Promise((resolve) => rejected.once('close', resolve));
+    expect(await connected()).toBe((before ?? 0) + 1);
+
+    client.socket.close();
+    await vi.waitFor(async () => {
+      expect(await connected()).toBe(before);
+    });
   });
 
   it('envía una instantánea al conectar', async () => {

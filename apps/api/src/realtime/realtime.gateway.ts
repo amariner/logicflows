@@ -6,10 +6,12 @@ import type { RealtimeMessage } from '@logicflows/contract';
 import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import type { OnGatewayConnection, OnGatewayInit } from '@nestjs/websockets';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { Gauge } from 'prom-client';
 import type { Subscription } from 'rxjs';
 import { WebSocket } from 'ws';
 import type { Server } from 'ws';
 
+import { METRIC_PREFIX, MetricsService } from '../metrics/metrics.service.ts';
 import { CellStateStore } from './cell-state.store.ts';
 import { RealtimeTickets } from './realtime-tickets.ts';
 
@@ -38,7 +40,19 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnMo
     private readonly store: CellStateStore,
     private readonly tickets: RealtimeTickets,
     @InjectPinoLogger(RealtimeGateway.name) private readonly logger: PinoLogger,
-  ) {}
+    metrics: MetricsService,
+  ) {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- collect() recibe el indicador como this.
+    const gateway = this;
+    new Gauge({
+      name: `${METRIC_PREFIX}realtime_clients`,
+      help: 'Clientes del canal de tiempo real conectados y autorizados.',
+      registers: [metrics.registry],
+      collect() {
+        this.set(gateway.#authorizedClients());
+      },
+    });
+  }
 
   afterInit(): void {
     this.#updates = this.store.updates$.subscribe((cell) => {
@@ -98,6 +112,18 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnMo
         client.send(payload);
       }
     }
+  }
+
+  #authorizedClients(): number {
+    let count = 0;
+    // El servidor no existe hasta que la aplicación escucha.
+    const server = this.server as Server | undefined;
+    for (const client of server?.clients ?? []) {
+      if (client.readyState === WebSocket.OPEN && this.#authorized.has(client)) {
+        count++;
+      }
+    }
+    return count;
   }
 
   #send(client: WebSocket, message: RealtimeMessage): void {
