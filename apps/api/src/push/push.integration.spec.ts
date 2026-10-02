@@ -28,18 +28,20 @@ import type { FcmClient, SendResult } from './fcm-client.ts';
 import { PushRepository } from './push.repository.ts';
 
 const SESSION = testUuid(20);
+/** Hace `seconds` segundos: los avisos solo salen para alarmas recientes. */
+const ago = (seconds: number) => new Date(Date.now() - seconds * 1000).toISOString();
 
 const collision: Alarm = {
   code: 'ROB-001',
   severity: 'HIGH',
   message: 'Colisión del robot detectada',
-  raisedAt: '2026-10-05T08:00:00.000Z',
+  raisedAt: ago(120),
 };
 const emergency: Alarm = {
   code: 'SAF-001',
   severity: 'CRITICAL',
   message: 'Parada de emergencia activada',
-  raisedAt: '2026-10-05T08:05:00.000Z',
+  raisedAt: ago(60),
 };
 
 /** FCM falso: guarda cada envío y responde lo que indique la prueba por token. */
@@ -201,11 +203,22 @@ describe('avisos de alarmas en el móvil (ADR-0015)', () => {
       state: 'FAULT',
       event: 'fault',
       previousState: 'STOPPED',
-      activeAlarms: [{ ...collision, raisedAt: '2026-10-05T09:00:00.000Z' }],
+      activeAlarms: [{ ...collision, raisedAt: ago(30) }],
     });
     await eventually(async () => {
       expect((await devices()).map((d) => d.token)).toEqual(['movil-a']);
     });
+  });
+
+  it('no avisa de alarmas antiguas, como las de un histórico cargado', async () => {
+    await publishState({
+      state: 'FAULT',
+      event: null,
+      previousState: 'FAULT',
+      activeAlarms: [{ ...collision, code: 'ROB-002', raisedAt: ago(3 * 24 * 3600) }],
+    });
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+    expect(fcm.sent).toHaveLength(0);
   });
 
   it('cada usuario solo puede dar de baja sus dispositivos', async () => {

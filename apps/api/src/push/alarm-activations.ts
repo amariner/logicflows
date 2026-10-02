@@ -55,6 +55,16 @@ export function activationsToNotify(message: StateMessage): AlarmActivation[] {
   return activations;
 }
 
+/**
+ * Antigüedad máxima de una activación para avisar. Una alarma de hace más
+ * tiempo no sirve como aviso: llega por un histórico cargado (LF-77) o por
+ * mensajes retenidos tras una caída larga de la API.
+ */
+export const MAX_NOTIFICATION_AGE_MS = 15 * 60_000;
+
+export const isRecent = (activation: AlarmActivation, nowMs: number): boolean =>
+  nowMs - Date.parse(activation.raisedAt) <= MAX_NOTIFICATION_AGE_MS;
+
 /** Contenido de un aviso. Nunca lleva el texto de la alarma (ADR-0015). */
 export interface PushNotification {
   readonly title: string;
