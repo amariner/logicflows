@@ -10,6 +10,8 @@ import type { PalletFormat } from './domain/production.ts';
 import type { Random } from './domain/random.ts';
 import type { MessageFactory } from './messages.ts';
 import { withTimeout } from './mqtt/connection.ts';
+import { realScheduler } from './scheduler.ts';
+import type { Scheduled, Scheduler } from './scheduler.ts';
 
 export interface SimulatorOptions {
   readonly format: PalletFormat;
@@ -29,6 +31,12 @@ export interface SimulatorOptions {
   readonly restartDelayMs: number;
   /** Intervalo máximo entre dos mensajes de telemetría (ADR-0004). */
   readonly heartbeatMs: number;
+  /**
+   * Intervalo mínimo entre dos telemetrías por cajas. En directo es 0: una
+   * por caja. Al generar un histórico se espacian para no publicar millones
+   * de mensajes; los contadores son acumulados y la producción no cambia.
+   */
+  readonly minTelemetryIntervalMs?: number;
 }
 
 export interface SimulatorDependencies {
@@ -37,6 +45,7 @@ export interface SimulatorDependencies {
   readonly logger: Logger;
   readonly now?: () => number;
   readonly random?: Random;
+  readonly scheduler?: Scheduler;
 }
 
 const RETAINED_QOS1: PublishOptions = { qos: 1, retain: true };
@@ -68,9 +77,10 @@ export class Simulator {
   readonly #now: () => number;
   readonly #random: Random;
   readonly #cell: PalletizingCell;
-  readonly #timers = new Set<NodeJS.Timeout>();
-  #boxTimer: NodeJS.Timeout | undefined;
-  #heartbeatTimer: NodeJS.Timeout | undefined;
+  readonly #scheduler: Scheduler;
+  readonly #timers = new Set<Scheduled>();
+  #boxTimer: Scheduled | undefined;
+  #heartbeatTimer: Scheduled | undefined;
   #lastTelemetryAtMs = Number.NEGATIVE_INFINITY;
 
   constructor(options: SimulatorOptions, dependencies: SimulatorDependencies) {
@@ -80,6 +90,7 @@ export class Simulator {
     this.#logger = dependencies.logger;
     this.#now = dependencies.now ?? Date.now;
     this.#random = dependencies.random ?? Math.random;
+    this.#scheduler = dependencies.scheduler ?? realScheduler;
     this.#cell = new PalletizingCell(options.format, this.#now());
   }
 
@@ -92,20 +103,20 @@ export class Simulator {
       this.#logger.info({}, 'Conectado al broker');
       this.#publishSnapshot();
     });
-    this.#heartbeatTimer = setInterval(() => {
+    this.#heartbeatTimer = this.#scheduler.every(this.#options.heartbeatMs, () => {
       this.#heartbeat();
-    }, this.#options.heartbeatMs);
+    });
     this.#startSequence();
   }
 
   /** Detiene la célula de forma controlada y anuncia la desconexión. */
   async stop(): Promise<void> {
     for (const timer of this.#timers) {
-      clearTimeout(timer);
+      timer.cancel();
     }
     this.#timers.clear();
-    clearInterval(this.#heartbeatTimer);
-    clearTimeout(this.#boxTimer);
+    this.#heartbeatTimer?.cancel();
+    this.#boxTimer?.cancel();
     this.#boxTimer = undefined;
     if (this.#cell.accepts('stop')) {
       this.#transition('stop');
@@ -254,10 +265,10 @@ export class Simulator {
   }
 
   #afterDelay(delayMs: number, action: () => void): void {
-    const timer = setTimeout(() => {
+    const timer = this.#scheduler.after(delayMs, () => {
       this.#timers.delete(timer);
       action();
-    }, delayMs);
+    });
     this.#timers.add(timer);
   }
 
@@ -265,7 +276,10 @@ export class Simulator {
     const palletsBefore = this.#cell.production(this.#now()).palletsTotal;
     const production = this.#cell.processBox(this.#now());
     this.#logger.debug({ boxesTotal: production.boxesTotal }, 'Caja paletizada');
-    this.#publishTelemetry();
+    const minInterval = this.#options.minTelemetryIntervalMs ?? 0;
+    if (this.#now() - this.#lastTelemetryAtMs >= minInterval) {
+      this.#publishTelemetry();
+    }
 
     const palletCompleted = production.palletsTotal > palletsBefore;
     if (palletCompleted) {
@@ -297,7 +311,7 @@ export class Simulator {
     if (running && this.#boxTimer === undefined) {
       this.#scheduleNextBox(0);
     } else if (!running && this.#boxTimer !== undefined) {
-      clearTimeout(this.#boxTimer);
+      this.#boxTimer.cancel();
       this.#boxTimer = undefined;
     }
   }
@@ -309,10 +323,10 @@ export class Simulator {
       this.#options.cycleVariation,
       this.#random,
     );
-    this.#boxTimer = setTimeout(() => {
+    this.#boxTimer = this.#scheduler.after(extraDelayMs + cycle, () => {
       this.#boxTimer = undefined;
       this.#processBox();
-    }, extraDelayMs + cycle);
+    });
   }
 
   #publishSnapshot(): void {

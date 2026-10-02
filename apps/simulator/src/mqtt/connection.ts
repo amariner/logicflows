@@ -8,8 +8,11 @@ export interface MqttConnectionOptions {
   readonly username: string;
   readonly password: string;
   readonly clientId: string;
-  /** Mensaje que el broker publica si la conexión se pierde (ADR-0004). */
-  readonly will: { readonly topic: string; readonly payload: string };
+  /**
+   * Mensaje que el broker publica si la conexión se pierde (ADR-0004). La
+   * carga de un histórico no lo usa: no representa a la célula en directo.
+   */
+  readonly will?: { readonly topic: string; readonly payload: string };
   readonly logger: Logger;
   readonly reconnectPeriodMs?: number;
 }
@@ -26,7 +29,11 @@ export function connectToBroker(options: MqttConnectionOptions): BrokerConnectio
     connectTimeout: 5_000,
     // La telemetría con QoS 0 no se acumula mientras no hay conexión.
     queueQoSZero: false,
-    will: { topic: options.will.topic, payload: options.will.payload, qos: 1, retain: true },
+    ...(options.will === undefined
+      ? {}
+      : {
+          will: { topic: options.will.topic, payload: options.will.payload, qos: 1, retain: true },
+        }),
   });
 
   client.on('reconnect', () => {
