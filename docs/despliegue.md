@@ -42,6 +42,8 @@ Los flujos necesitan el secreto de repositorio `RAILWAY_TOKEN`: un token de proy
 
 Sin el token, los dos flujos fallan con un aviso. Las PR desde forks no lo reciben y no calculan el plan.
 
+Para esperar a que terminen los despliegues, `Railway apply` usa también `RAILWAY_API_TOKEN`, el token de cuenta de las [previsualizaciones](#previsualizaciones-por-pull-request), con el mismo método que ya funciona en ellas.
+
 **Comprobaciones de salud.** Railway no envía tráfico a un despliegue nuevo hasta que su comprobación responde; si no lo hace a tiempo, el anterior sigue atendiendo.
 
 | Servicio | Comprobación | Espera máxima |
@@ -56,7 +58,7 @@ La API aplica las migraciones pendientes antes de empezar a escuchar ([ADR-0007]
 
 1. **Etiquetar.** Con todas las comprobaciones en verde en `main`, se etiqueta el commit (`git tag v0.2.0 && git push origin v0.2.0`). El flujo `Imágenes` asigna esa versión a las imágenes ya publicadas del commit, sin recompilar. Si el commit no tiene imágenes, falla.
 2. **Proponer.** En una pull request se cambia `VERSION` en `.railway/railway.ts` a la etiqueta nueva. El plan de la PR debe mostrar solo el cambio de imagen de los cinco servicios.
-3. **Fusionar.** `Railway apply` despliega los cinco servicios y cada uno pasa su comprobación de salud antes de recibir tráfico.
+3. **Fusionar.** `Railway apply` despliega los cinco servicios y cada uno pasa su comprobación de salud antes de recibir tráfico. El flujo no termina hasta que todos los despliegues nuevos están en `SUCCESS`, con [`infra/railway/esperar-despliegues.sh`](../infra/railway/esperar-despliegues.sh). Si alguno falla, el flujo falla y la prueba no se ejecuta (LF-73).
 4. **Comprobar.** El flujo `Prueba de producción` se ejecuta solo al terminar el despliegue. Si falla, se vuelve atrás.
 
 **Prueba tras el despliegue (LF-57).** Cuando `Railway apply` termina bien, el flujo `Prueba de producción` ejecuta la prueba de extremo a extremo contra el visor de producción:

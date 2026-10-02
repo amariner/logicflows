@@ -78,38 +78,6 @@ services() {
   railway service list --environment "$environment" --json
 }
 
-# Espera a que los servicios indicados tengan un despliegue correcto posterior
-# a $since. Si al cabo de un minuto un servicio no tiene despliegue nuevo, es
-# que el cambio no le afectaba y vale el que tiene.
-wait_for() {
-  local since="$1" deadline=$((SECONDS + 900)) grace=$((SECONDS + 60)) pending expired
-  shift
-  while :; do
-    expired=false
-    [ "$SECONDS" -ge "$grace" ] && expired=true
-    pending="$(services | jq -r --arg since "$since" --argjson grace "$expired" \
-      --args '[$ARGS.positional[]] as $wanted
-        | map(select(.name as $n | $wanted | index($n)))
-        | ($wanted - map(.name)) + map(select(
-            .latestDeployment == null
-            or .latestDeployment.status != "SUCCESS"
-            or (.latestDeployment.createdAt < $since and ($grace | not))
-          ) | "\(.name) (\(.latestDeployment.status // "sin desplegar"))")
-        | join(", ")' "$@")"
-    [ -z "$pending" ] && return 0
-    if [ "$SECONDS" -ge "$deadline" ]; then
-      echo "Sin desplegar a tiempo: $pending" >&2
-      return 1
-    fi
-    if grep -qE 'FAILED|CRASHED|REMOVED' <<< "$pending" && [ "$SECONDS" -ge "$grace" ]; then
-      echo "Despliegue fallido: $pending" >&2
-      return 1
-    fi
-    echo "Esperando: $pending"
-    sleep 15
-  done
-}
-
 created=false
 if exists; then
   echo "Actualizando la previsualización $environment con $LOGICFLOWS_IMAGE_TAG"
@@ -132,7 +100,7 @@ since="$(date -u +%Y-%m-%dT%H:%M:%S)"
 
 # Usuarios y bases de datos de la API y de Keycloak, como en producción. Es
 # idempotente: en cada commit solo confirma que siguen ahí.
-wait_for "1970-01-01" Postgres
+"$root/infra/railway/esperar-despliegues.sh" "$environment" 1970-01-01T00:00:00 Postgres
 API_PASSWORD="$(secret db-api)" KEYCLOAK_PASSWORD="$(secret db-keycloak)" \
   "$root/infra/railway/ejecutar-sql.sh" "$environment" "$root/infra/postgres/usuarios.sql" \
   API_PASSWORD KEYCLOAK_PASSWORD
@@ -149,7 +117,7 @@ for app in api identity; do
   fi
 done
 
-wait_for "$since" "${APPS[@]}"
+"$root/infra/railway/esperar-despliegues.sh" "$environment" "$since" "${APPS[@]}"
 
 dashboard="https://logicflows-$environment-dashboard.up.railway.app"
 api="https://logicflows-$environment-api.up.railway.app"
