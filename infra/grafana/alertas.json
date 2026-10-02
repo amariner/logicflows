@@ -1,0 +1,183 @@
+{
+  "title": "logicflows",
+  "interval": 60,
+  "rules": [
+    {
+      "uid": "lf-api-sin-metricas",
+      "title": "API sin responder",
+      "condition": "C",
+      "for": "1m",
+      "noDataState": "OK",
+      "execErrState": "Error",
+      "labels": {
+        "servicio": "logicflows",
+        "severidad": "critica"
+      },
+      "annotations": {
+        "summary": "Grafana no recibe las métricas de la API desde hace 5 minutos",
+        "description": "La API no responde en /metrics: está caída, Railway no la enruta o el token de las métricas ya no coincide.",
+        "runbook_url": "https://github.com/amariner/logicflows/blob/main/infra/grafana/README.md#api-sin-responder"
+      },
+      "notification_settings": {
+        "receiver": "__RECEPTOR__"
+      },
+      "data": [
+        {
+          "refId": "A",
+          "relativeTimeRange": {
+            "from": 600,
+            "to": 0
+          },
+          "datasourceUid": "__ORIGEN__",
+          "model": {
+            "refId": "A",
+            "expr": "absent_over_time(logicflows_dependency_up{job=\"logicflows-api\"}[5m])",
+            "instant": true,
+            "range": false,
+            "intervalMs": 60000,
+            "maxDataPoints": 43200
+          }
+        },
+        {
+          "refId": "C",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
+            "refId": "C",
+            "type": "threshold",
+            "expression": "A",
+            "conditions": [
+              {
+                "evaluator": {
+                  "type": "gt",
+                  "params": [0]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "uid": "lf-api-dependencia-caida",
+      "title": "API sin una dependencia",
+      "condition": "C",
+      "for": "2m",
+      "noDataState": "OK",
+      "execErrState": "Error",
+      "labels": {
+        "servicio": "logicflows",
+        "severidad": "critica"
+      },
+      "annotations": {
+        "summary": "La API no llega a {{ $labels.dependency }}",
+        "description": "La API responde, pero /health/ready falla: sin {{ $labels.dependency }} no recibe telemetría o no la guarda.",
+        "runbook_url": "https://github.com/amariner/logicflows/blob/main/infra/grafana/README.md#api-sin-una-dependencia"
+      },
+      "notification_settings": {
+        "receiver": "__RECEPTOR__"
+      },
+      "data": [
+        {
+          "refId": "A",
+          "relativeTimeRange": {
+            "from": 600,
+            "to": 0
+          },
+          "datasourceUid": "__ORIGEN__",
+          "model": {
+            "refId": "A",
+            "expr": "min by (dependency) (logicflows_dependency_up{job=\"logicflows-api\"})",
+            "instant": true,
+            "range": false,
+            "intervalMs": 60000,
+            "maxDataPoints": 43200
+          }
+        },
+        {
+          "refId": "C",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
+            "refId": "C",
+            "type": "threshold",
+            "expression": "A",
+            "conditions": [
+              {
+                "evaluator": {
+                  "type": "lt",
+                  "params": [1]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "uid": "lf-celula-sin-publicar",
+      "title": "Célula sin publicar",
+      "condition": "C",
+      "for": "1m",
+      "noDataState": "OK",
+      "execErrState": "Error",
+      "labels": {
+        "servicio": "logicflows",
+        "severidad": "alta"
+      },
+      "annotations": {
+        "summary": "La célula {{ $labels.site_id }}/{{ $labels.cell_id }} lleva más de 60 s sin publicar",
+        "description": "La telemetría debería llegar al menos cada 10 s (ADR-0004). La célula está desconectada, parada sin publicar o el broker no la acepta.",
+        "runbook_url": "https://github.com/amariner/logicflows/blob/main/infra/grafana/README.md#célula-sin-publicar"
+      },
+      "notification_settings": {
+        "receiver": "__RECEPTOR__"
+      },
+      "data": [
+        {
+          "refId": "A",
+          "relativeTimeRange": {
+            "from": 600,
+            "to": 0
+          },
+          "datasourceUid": "__ORIGEN__",
+          "model": {
+            "refId": "A",
+            "expr": "time() - max by (site_id, cell_id) (logicflows_cell_last_message_timestamp_seconds{job=\"logicflows-api\"})",
+            "instant": true,
+            "range": false,
+            "intervalMs": 60000,
+            "maxDataPoints": 43200
+          }
+        },
+        {
+          "refId": "C",
+          "relativeTimeRange": {
+            "from": 0,
+            "to": 0
+          },
+          "datasourceUid": "__expr__",
+          "model": {
+            "refId": "C",
+            "type": "threshold",
+            "expression": "A",
+            "conditions": [
+              {
+                "evaluator": {
+                  "type": "gt",
+                  "params": [60]
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
