@@ -135,6 +135,9 @@ export default defineRailway((ctx) => {
         ? preserve()
         : `postgresql://logicflows:${previewSecret('db-api')}@postgres.railway.internal:5432/logicflows`,
       LOG_LEVEL: config('info'),
+      // Token con el que Grafana Cloud recoge /metrics (ADR-0013). Solo en
+      // producción: sin la variable, la ruta no existe.
+      ...(production ? { METRICS_TOKEN: preserve() } : {}),
       MQTT_API_PASSWORD: secret('mqtt-api'),
       MQTT_URL: config(mqttUrl),
       REALTIME_TICKET_SECRET: secret('tiques'),
