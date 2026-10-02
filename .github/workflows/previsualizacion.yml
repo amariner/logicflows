@@ -1,15 +1,17 @@
 name: Previsualización
 
-# Cada pull request de este repositorio tiene su propio sistema completo en
-# Railway, el entorno pr-<número> (ADR-0012):
-# - en cada commit publica las imágenes de la PR, crea o actualiza el entorno,
-#   publica las direcciones en la PR y ejecuta contra él la prueba de extremo
-#   a extremo (LF-39) con el usuario prueba-e2e;
-# - al cerrar la PR, fusionada o no, borra el entorno con sus datos.
+# Previsualización bajo demanda (ADR-0012): una pull request de este
+# repositorio con la etiqueta «previsualizacion» tiene su propio sistema
+# completo en Railway, el entorno pr-<número>:
+# - al poner la etiqueta y en cada commit posterior, publica las imágenes de
+#   la PR, crea o actualiza el entorno, publica las direcciones en la PR y
+#   ejecuta contra él la prueba de extremo a extremo (LF-39) con prueba-e2e;
+# - al quitar la etiqueta o cerrar la PR, borra el entorno con sus datos.
+# Sin la etiqueta no se publica nada ni se usa Railway.
 on:
   pull_request:
     branches: [main]
-    types: [opened, synchronize, reopened, closed]
+    types: [opened, synchronize, reopened, labeled, unlabeled, closed]
 
 # Los despliegues de una misma PR se encolan: cancelar uno a medias dejaría el
 # entorno a medio aplicar.
@@ -29,8 +31,13 @@ env:
 jobs:
   images:
     name: Publicar ${{ matrix.app }}
-    # Las PR desde forks no pueden publicar imágenes ni reciben los secretos.
-    if: github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    # Solo con la etiqueta, y nunca desde forks: no pueden publicar imágenes
+    # ni reciben los secretos. Poner otra etiqueta no vuelve a desplegar.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      contains(github.event.pull_request.labels.*.name, 'previsualizacion') &&
+      github.event.action != 'closed' && github.event.action != 'unlabeled' &&
+      (github.event.action != 'labeled' || github.event.label.name == 'previsualizacion')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
@@ -135,7 +142,7 @@ jobs:
             echo '<!-- previsualizacion -->'
             echo '### Previsualización'
             echo
-            echo "Sistema completo de esta PR con las imágenes \`$TAG\`. Se borra, con sus datos, al cerrar la PR."
+            echo "Sistema completo de esta PR con las imágenes \`$TAG\`. Se borra, con sus datos, al quitar la etiqueta \`previsualizacion\` o cerrar la PR."
             echo
             echo "| Servicio | Dirección |"
             echo "|---|---|"
@@ -175,7 +182,10 @@ jobs:
 
   destroy:
     name: Borrar la previsualización
-    if: github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      ((github.event.action == 'closed' && contains(github.event.pull_request.labels.*.name, 'previsualizacion')) ||
+      (github.event.action == 'unlabeled' && github.event.label.name == 'previsualizacion'))
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -201,6 +211,6 @@ jobs:
             --jq '[.[] | select(.body | startswith("<!-- previsualizacion -->"))][0].id // empty')
           if [ -n "$comment" ]; then
             printf '%s\n' '<!-- previsualizacion -->' '### Previsualización' '' \
-              'Borrada al cerrar la pull request, con todos sus datos.' > comentario.md
+              'Borrada con todos sus datos. Para volver a crearla, poner la etiqueta `previsualizacion`.' > comentario.md
             gh api -X PATCH "repos/$REPO/issues/comments/$comment" -F body=@comentario.md > /dev/null
           fi

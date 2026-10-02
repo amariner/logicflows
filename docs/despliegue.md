@@ -86,16 +86,16 @@ Una migración que borre o renombre no puede ir en la misma versión que el cód
 
 ## Previsualizaciones por pull request
 
-Cada pull request de una rama de este repositorio tiene su propio sistema completo en Railway: el entorno `pr-<número>`, con visor, API, simulador, broker, Keycloak y PostgreSQL ([ADR-0012](adr/0012-previsualizaciones-por-pull-request.md)). Lo gestiona el flujo `Previsualización`:
+Una pull request de una rama de este repositorio puede tener su propio sistema completo en Railway: el entorno `pr-<número>`, con visor, API, simulador, broker, Keycloak y PostgreSQL ([ADR-0012](adr/0012-previsualizaciones-por-pull-request.md)). **Es bajo demanda:** se pide poniendo la etiqueta `previsualizacion` en la PR (`gh pr edit <número> --add-label previsualizacion`). Conviene pedirla cuando hay algo que ver en marcha o cuando la PR cambia el despliegue (`.railway/`, `Dockerfile`, `infra/`). Lo gestiona el flujo `Previsualización`:
 
-1. **En cada commit** publica en GHCR las cinco imágenes de la PR con la etiqueta `pr-<número>-<commit>`. Keycloak usa la variante `identity-preview`, con el usuario de prueba.
+1. **Al poner la etiqueta y en cada commit posterior** publica en GHCR las cinco imágenes de la PR con la etiqueta `pr-<número>-<commit>`. Keycloak usa la variante `identity-preview`, con el usuario de prueba.
 2. Ejecuta [`infra/railway/previsualizacion.sh`](../infra/railway/previsualizacion.sh) `desplegar`:
    - crea el entorno vacío si no existe y aplica `.railway/railway.ts`;
    - crea los usuarios de PostgreSQL con `usuarios.sql`, como en producción;
    - espera a que el despliegue nuevo de cada servicio esté sano.
 3. Publica las direcciones en un comentario de la PR, que se actualiza en cada commit.
 4. Ejecuta la prueba de extremo a extremo contra la previsualización con el usuario `prueba-e2e`.
-5. **Al cerrar la PR**, fusionada o no, borra el entorno con sus volúmenes.
+5. **Al quitar la etiqueta o cerrar la PR**, fusionada o no, borra el entorno con sus volúmenes.
 
 **Probado el 2 de octubre de 2026** con el entorno `pr-9999` y las imágenes de `main`:
 
@@ -128,7 +128,7 @@ infra/railway/previsualizacion.sh destruir 12
 
 El script deja la carpeta enlazada al entorno de la previsualización. Después hay que volver a producción: `railway link -p logicflows -e production`.
 
-**Coste.** Cada previsualización abierta cuesta unos 0,50 USD al día. Una PR olvidada sigue costando, y si se alcanza el límite de gasto de la cuenta, Railway detiene todo, producción incluida.
+**Coste.** Cada previsualización cuesta unos 0,50 USD al día mientras existe. Quitar la etiqueta la borra sin cerrar la PR. Una PR con la etiqueta y olvidada sigue costando, y si se alcanza el límite de gasto de la cuenta, Railway detiene todo, producción incluida.
 
 ## Configuración y secretos
 
