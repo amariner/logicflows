@@ -90,6 +90,11 @@ El proyecto Android está en `android/` y lo genera Capacitor 8 a partir de la b
 - **`pnpm android:sync`** compila el visor, copia la configuración de la app y ejecuta `cap sync android`. Hay que ejecutarlo después de actualizar dependencias: `cap sync` escribe en `android/capacitor.settings.gradle` rutas del almacén de pnpm que incluyen la versión de cada plugin. Se versiona el resultado.
 - **No hace falta JDK ni Android SDK en local.** La CI compila el APK de depuración en cada pull request (trabajo **Android**) y lo deja como artefacto `logicflows-debug-apk` durante 7 días. Antes comprueba que `android:sync` no cambia nada de lo versionado.
 
+- **Comportamiento de app** (LF-70):
+  - El botón atrás retrocede en la navegación y, en la pantalla inicial, cierra la app.
+  - El service worker de la PWA no se registra: la aplicación ya va dentro del APK.
+- **Vuelta del segundo plano**, también en el navegador. Si la conexión no estaba abierta, o pasaron más de 30 segundos, el visor recarga el estado y reconecta sin esperar. Mientras tanto indica «Conectando…»: Android congela la vista web y la red cambia en segundo plano, así que una conexión que parece abierta puede estar muerta.
+
 **Limitación:** el inicio de sesión todavía no funciona en la app. Keycloak devuelve al visor web, no a la app (LF-68).
 
 ## Compresión

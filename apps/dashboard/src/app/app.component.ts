@@ -1,5 +1,7 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, viewChild } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { App } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import {
   IonApp,
   IonButton,
@@ -17,6 +19,7 @@ import {
   IonRouterOutlet,
   IonSplitPane,
   IonToast,
+  Platform,
 } from '@ionic/angular';
 import type { ToastButton } from '@ionic/angular';
 import { addIcons } from 'ionicons';
@@ -24,6 +27,7 @@ import { gridSharp, logOutSharp } from 'ionicons/icons';
 
 import { AuthService } from './core/auth/auth';
 import { AppUpdateService } from './core/pwa/app-update';
+import { exitOnRootBackButton } from './core/native/back-button';
 import { RealtimeService } from './core/realtime/realtime.service';
 
 interface MenuEntry {
@@ -73,6 +77,7 @@ export class AppComponent {
       },
     },
   ];
+  private readonly outlet = viewChild.required(IonRouterOutlet);
   protected readonly menu: readonly MenuEntry[] = [
     { title: 'Células', url: '/cells', icon: 'grid-sharp' },
   ];
@@ -83,6 +88,13 @@ export class AppComponent {
 
   constructor() {
     addIcons({ gridSharp, logOutSharp });
+    if (Capacitor.isNativePlatform()) {
+      exitOnRootBackButton(
+        inject(Platform),
+        () => this.outlet().canGoBack(),
+        () => App.exitApp(),
+      );
+    }
     // El canal de tiempo real se abre al arrancar, una vez cargada la
     // configuración y comprobada la sesión.
     const realtime = inject(RealtimeService);
