@@ -93,6 +93,12 @@ El proyecto Android está en `android/` y lo genera Capacitor 8 a partir de la b
 - **Comportamiento de app** (LF-70):
   - El botón atrás retrocede en la navegación y, en la pantalla inicial, cierra la app.
   - El service worker de la PWA no se registra: la aplicación ya va dentro del APK.
+- **Avisos de alarmas** (LF-69, [ADR-0015](../../docs/adr/0015-avisos-de-alarmas-en-el-movil.md)):
+  - Tras iniciar sesión, la app pide permiso de notificaciones, crea el canal «Alarmas» y registra su token de Firebase Cloud Messaging en la API.
+  - Tocar un aviso abre las células.
+  - En el menú, **Avisos de alarmas** permite desactivarlos en el dispositivo.
+  - Al cerrar sesión, el dispositivo se da de baja.
+  - La app necesita `android/app/google-services.json`, del proyecto de Firebase. Sin él se compila igual, pero no recibe avisos.
 - **Vuelta del segundo plano**, también en el navegador. Si la conexión no estaba abierta, o pasaron más de 30 segundos, el visor recarga el estado y reconecta sin esperar. Mientras tanto indica «Conectando…»: Android congela la vista web y la red cambia en segundo plano, así que una conexión que parece abierta puede estar muerta.
 
 - **Inicio de sesión** (LF-68, RFC 8252):

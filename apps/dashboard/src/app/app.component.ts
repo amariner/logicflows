@@ -19,6 +19,7 @@ import {
   IonRouterOutlet,
   IonSplitPane,
   IonToast,
+  IonToggle,
   Platform,
 } from '@ionic/angular';
 import type { ToastButton } from '@ionic/angular';
@@ -27,6 +28,7 @@ import { gridSharp, logOutSharp } from 'ionicons/icons';
 
 import { AuthService } from './core/auth/auth';
 import { AppUpdateService } from './core/pwa/app-update';
+import { AlarmNotificationsService } from './core/native/alarm-notifications';
 import { exitOnRootBackButton } from './core/native/back-button';
 import { RealtimeService } from './core/realtime/realtime.service';
 
@@ -64,11 +66,13 @@ interface MenuEntry {
     IonRouterOutlet,
     IonSplitPane,
     IonToast,
+    IonToggle,
   ],
 })
 export class AppComponent {
   protected readonly auth = inject(AuthService);
   protected readonly updates = inject(AppUpdateService);
+  protected readonly notifications = inject(AlarmNotificationsService);
   protected readonly updateButtons: ToastButton[] = [
     {
       text: 'Actualizar',
@@ -81,6 +85,20 @@ export class AppComponent {
   protected readonly menu: readonly MenuEntry[] = [
     { title: 'Células', url: '/cells', icon: 'grid-sharp' },
   ];
+
+  /** Al cerrar sesión, el dispositivo deja de recibir avisos (ADR-0015). */
+  protected async logout(): Promise<void> {
+    try {
+      await this.notifications.forgetDevice();
+    } catch {
+      // La sesión se cierra igualmente; la API olvida el token cuando FCM lo invalide.
+    }
+    this.auth.logout();
+  }
+
+  protected toggleNotifications(event: CustomEvent<{ checked: boolean }>): void {
+    void this.notifications.setEnabled(event.detail.checked);
+  }
 
   protected reload(): void {
     window.location.reload();
@@ -101,6 +119,7 @@ export class AppComponent {
     void this.auth.ensureSession().then((authenticated) => {
       if (authenticated) {
         realtime.start();
+        void this.notifications.start();
       }
     });
   }

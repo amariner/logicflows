@@ -32,7 +32,17 @@
             @if (auth.userName(); as name) {
               <ion-note>Sesión de {{ name }}</ion-note>
             }
-            <ion-button fill="clear" expand="block" (click)="auth.logout()">
+            @if (notifications.available) {
+              <ion-item lines="none">
+                <ion-toggle
+                  [checked]="notifications.enabled()"
+                  (ionChange)="toggleNotifications($event)"
+                >
+                  Avisos de alarmas
+                </ion-toggle>
+              </ion-item>
+            }
+            <ion-button fill="clear" expand="block" (click)="logout()">
               <ion-icon aria-hidden="true" slot="start" name="log-out-sharp" />
               Cerrar sesión
             </ion-button>
