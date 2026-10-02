@@ -20,6 +20,13 @@ export const WEB_SOCKET_FACTORY = new InjectionToken<(url: string) => WebSocket>
 const keyOf = (cell: CellSnapshot) => `${cell.siteId}/${cell.cellId}`;
 
 /**
+ * Tras más tiempo en segundo plano, una conexión que parece abierta puede
+ * estar muerta sin saberlo: Android congela la vista web de la app y la red
+ * del móvil cambia mientras tanto (LF-70).
+ */
+export const STALE_AFTER_HIDDEN_MS = 30_000;
+
+/**
  * Información de las células en tiempo real. Al arrancar la carga por REST y
  * abre el canal de tiempo real (ADR-0006), que aporta una instantánea y cada
  * cambio; reconecta con espera creciente si se pierde la conexión. Las dos
@@ -29,6 +36,11 @@ const keyOf = (cell: CellSnapshot) => `${cell.siteId}/${cell.cellId}`;
  * Con inicio de sesión, cada conexión usa un tique de un solo uso pedido a la
  * API (ADR-0009). Si la API cierra la conexión porque caducó la sesión, se
  * pide un tique nuevo y se reconecta enseguida.
+ *
+ * Al volver a primer plano (la pestaña o la app Android), si la conexión no
+ * está abierta o se pasó demasiado tiempo en segundo plano, se recarga el
+ * estado y se reconecta sin esperar: nunca se muestra como actual un dato de
+ * antes de pasar a segundo plano.
  */
 @Injectable({ providedIn: 'root' })
 export class RealtimeService {
@@ -42,6 +54,9 @@ export class RealtimeService {
   #attempt = 0;
   #reconnectTimer: ReturnType<typeof setTimeout> | undefined;
   #stopped = true;
+  /** Cambia en cada reconexión forzada: invalida los tiques pedidos antes. */
+  #generation = 0;
+  #hiddenAt: number | undefined;
 
   /** Estado de la conexión con la API. */
   readonly connection = this.#connection.asReadonly();
@@ -54,7 +69,12 @@ export class RealtimeService {
   );
 
   constructor() {
+    const onVisibilityChange = () => {
+      this.#onVisibilityChange();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
     inject(DestroyRef).onDestroy(() => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       this.stop();
     });
   }
@@ -71,10 +91,40 @@ export class RealtimeService {
 
   stop(): void {
     this.#stopped = true;
+    this.#generation++;
     clearTimeout(this.#reconnectTimer);
     this.#socket?.close();
     this.#socket = undefined;
     this.#connection.set('closed');
+  }
+
+  #onVisibilityChange(): void {
+    if (document.visibilityState === 'hidden') {
+      this.#hiddenAt = Date.now();
+      return;
+    }
+    const hiddenFor = this.#hiddenAt === undefined ? 0 : Date.now() - this.#hiddenAt;
+    this.#hiddenAt = undefined;
+    if (this.#stopped) {
+      return;
+    }
+    const healthy = this.#connection() !== 'closed' && hiddenFor < STALE_AFTER_HIDDEN_MS;
+    if (!healthy) {
+      this.#reconnectNow();
+    }
+  }
+
+  /** Descarta la conexión actual, recarga el estado y reconecta sin esperar. */
+  #reconnectNow(): void {
+    clearTimeout(this.#reconnectTimer);
+    const previous = this.#socket;
+    // Primero se olvida: su cierre ya no debe programar otra reconexión.
+    this.#socket = undefined;
+    previous?.close();
+    this.#generation++;
+    this.#attempt = 0;
+    this.#loadInitialState();
+    this.#connect();
   }
 
   #connect(): void {
@@ -83,14 +133,18 @@ export class RealtimeService {
       this.#open(this.#config.config.realtimeUrl);
       return;
     }
+    const generation = this.#generation;
+    const current = () => !this.#stopped && generation === this.#generation;
     this.#ticketUrl().then(
       (url) => {
-        if (!this.#stopped) {
+        if (current()) {
           this.#open(url);
         }
       },
       () => {
-        this.#scheduleReconnect();
+        if (current()) {
+          this.#scheduleReconnect();
+        }
       },
     );
   }

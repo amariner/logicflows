@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FakeWebSocket } from '../../../testing/fake-web-socket';
 import { testProviders } from '../../../testing/providers';
-import { RealtimeService } from './realtime.service';
+import { RealtimeService, STALE_AFTER_HIDDEN_MS } from './realtime.service';
 
 const cell = (cellId: string, overrides: Partial<CellSnapshot> = {}): CellSnapshot => ({
   siteId: 'demo',
@@ -154,5 +154,84 @@ describe('canal de tiempo real del visor', () => {
     vi.advanceTimersByTime(60_000);
     expect(FakeWebSocket.instances).toHaveLength(1);
     expect(socket.closed).toBe(true);
+  });
+  describe('al volver a primer plano (LF-70)', () => {
+    let visibility: DocumentVisibilityState;
+
+    beforeEach(() => {
+      visibility = 'visible';
+      vi.spyOn(document, 'visibilityState', 'get').mockImplementation(() => visibility);
+    });
+
+    const setVisibility = (state: DocumentVisibilityState) => {
+      visibility = state;
+      document.dispatchEvent(new Event('visibilitychange'));
+    };
+
+    it('tras mucho tiempo en segundo plano, recarga y reconecta aunque la conexión pareciera abierta', () => {
+      service.start();
+      restRequest().flush([]);
+      const stale = FakeWebSocket.latest();
+      stale.open();
+
+      setVisibility('hidden');
+      vi.advanceTimersByTime(STALE_AFTER_HIDDEN_MS);
+      setVisibility('visible');
+
+      expect(stale.closed).toBe(true);
+      expect(FakeWebSocket.instances).toHaveLength(2);
+      // No se presenta como en directo hasta que abra la conexión nueva.
+      expect(service.connection()).toBe('connecting');
+      restRequest().flush([cell('cell-01')]);
+      expect(service.cells()).toHaveLength(1);
+      // El cierre del canal antiguo no programa otra reconexión.
+      stale.drop();
+      vi.advanceTimersByTime(60_000);
+      expect(FakeWebSocket.instances).toHaveLength(2);
+    });
+
+    it('una vuelta rápida con la conexión abierta no cambia nada', () => {
+      service.start();
+      restRequest().flush([]);
+      FakeWebSocket.latest().open();
+
+      setVisibility('hidden');
+      vi.advanceTimersByTime(STALE_AFTER_HIDDEN_MS - 1);
+      setVisibility('visible');
+
+      expect(FakeWebSocket.instances).toHaveLength(1);
+      expect(service.connection()).toBe('open');
+      TestBed.inject(HttpTestingController).verify();
+    });
+
+    it('si estaba esperando para reconectar, reconecta enseguida', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(1);
+      service.start();
+      restRequest().flush([]);
+      FakeWebSocket.latest().drop();
+      FakeWebSocket.latest().drop();
+      expect(service.connection()).toBe('closed');
+
+      setVisibility('hidden');
+      setVisibility('visible');
+
+      expect(FakeWebSocket.instances).toHaveLength(2);
+      restRequest().flush([]);
+      FakeWebSocket.latest().open();
+      expect(service.connection()).toBe('open');
+    });
+
+    it('detenido, no hace nada al volver', () => {
+      service.start();
+      restRequest().flush([]);
+      service.stop();
+
+      setVisibility('hidden');
+      vi.advanceTimersByTime(STALE_AFTER_HIDDEN_MS);
+      setVisibility('visible');
+
+      expect(FakeWebSocket.instances).toHaveLength(1);
+      TestBed.inject(HttpTestingController).verify();
+    });
   });
 });
