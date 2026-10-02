@@ -1,6 +1,7 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { isDevMode } from '@angular/core';
 import { bootstrapApplication } from '@angular/platform-browser';
+import { Capacitor } from '@capacitor/core';
 import {
   PreloadAllModules,
   RouteReuseStrategy,
@@ -26,8 +27,10 @@ bootstrapApplication(AppComponent, {
     provideHttpClient(withInterceptors([authInterceptor()])),
     provideAppConfig(),
     provideVisorAuth(),
-    // Visor instalable: solo en la build de producción (LF-55).
-    provideVisorServiceWorker(!isDevMode()),
+    // Visor instalable: solo en la build de producción (LF-55). En la app
+    // Android sobra: la aplicación ya va dentro del APK, y un service worker
+    // podría servir una versión anterior tras actualizarla (LF-70).
+    provideVisorServiceWorker(!isDevMode() && !Capacitor.isNativePlatform()),
   ],
 }).catch((error: unknown) => {
   console.error(error);
