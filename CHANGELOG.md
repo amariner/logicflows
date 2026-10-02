@@ -4,8 +4,26 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ## [Sin publicar]
 
+## [0.2.0] - 2026-10-02
+
+**Hito 2 · Sistema desplegado.** LogicFlows funciona en Internet: producción en Railway con inicio de sesión, una célula de demostración en directo, despliegues por versión descritos como código, una previsualización por pull request bajo demanda y métricas con alertas.
+
 ### Añadido
 
+- **Producción en Railway** (ADR-0008), en la región europe-west4 (Ámsterdam): visor, API, broker, proveedor de identidad, PostgreSQL y la célula de demostración, con dominios HTTPS. Cada servicio tiene su propio usuario de PostgreSQL, y los secretos están sellados con procedimientos de rotación probados (LF-48).
+- **Autenticación con OpenID Connect y Keycloak** (ADR-0009, LF-50 y LF-51):
+  - La API valida firma, caducidad, emisor y audiencia de los tokens.
+  - Roles `viewer` y `admin`.
+  - El visor inicia sesión con PKCE y obtiene tiques de un solo uso para el WebSocket.
+- **Imágenes del broker y del proveedor de identidad** (ADR-0010, LF-61): Mosquitto con su configuración y ACL, y Keycloak con el realm de producción sin usuarios. Local, CI y producción ejecutan la misma imagen.
+- **Previsualización por pull request bajo demanda** (ADR-0012, LF-53):
+  - Se pide con la etiqueta `previsualizacion`.
+  - Crea un entorno `pr-<n>` con las imágenes de la PR y ejecuta las pruebas de extremo a extremo contra él.
+  - Se borra al quitar la etiqueta o al cerrar la PR.
+- **Observabilidad** (ADR-0013, LF-54):
+  - La API publica métricas Prometheus en `/metrics`, protegidas con su propio token: ingesta, tiempo real, dependencias, cada célula y Node.js.
+  - Las tres aplicaciones escriben sus registros en JSON, que Railway filtra por campo y nivel.
+  - `infra/grafana/` describe como código el panel de producción y tres alertas para Grafana Cloud.
 - Prueba de extremo a extremo contra producción después de cada despliegue, con un usuario de solo lectura. Si falla, abre una incidencia con los pasos para volver atrás (LF-57).
 - Infraestructura de producción como código en `.railway/railway.ts` (ADR-0011, LF-49):
   - Cada PR que la cambia muestra el plan, y al fusionarla se aplica.
@@ -26,7 +44,19 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ### Cambiado
 
+- La protección de `main` exige pull request, *Rebase and merge* y las comprobaciones de la CI en verde, también para los administradores. El repositorio es público (LF-16).
 - Cada instancia de la API usa un identificador MQTT propio, derivado por defecto del nombre de su equipo o contenedor. Varias instancias pueden funcionar a la vez contra el mismo broker y la misma base de datos (LF-47).
+
+### Corregido
+
+- La API ya no se detiene si PostgreSQL cierra una conexión inactiva: la siguiente consulta abre otra y `/health/ready` informa mientras la base de datos no está disponible (LF-62).
+- Una prueba del tiempo real fallaba de forma intermitente porque publicaba antes de recibir la instantánea (LF-60).
+
+### Limitaciones conocidas
+
+- El panel y las alertas de Grafana Cloud necesitan que el titular de la cuenta los ponga en marcha (`infra/grafana/README.md`); hasta entonces, `/metrics` responde 404 en producción.
+- Las previsualizaciones que se olvidan abiertas no se borran solas: se borran al cerrar la PR.
+- Producción tiene una sola réplica de cada servicio; un despliegue corta unos segundos el tiempo real, y el visor se reconecta solo.
 
 ## [0.1.0] - 2026-10-01
 
@@ -69,5 +99,6 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 - La API mantiene el estado en memoria y no admite aún varias réplicas: cada instancia necesitaría su propio identificador de cliente MQTT.
 - La rama `main` no tiene protección técnica: la exige una decisión pendiente sobre la visibilidad del repositorio.
 
-[Sin publicar]: https://github.com/amariner/logicflows/compare/v0.1.0...HEAD
+[Sin publicar]: https://github.com/amariner/logicflows/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/amariner/logicflows/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/amariner/logicflows/releases/tag/v0.1.0
