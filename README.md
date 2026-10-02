@@ -87,6 +87,7 @@ Las decisiones relevantes se registran como ADR en [`docs/adr`](docs/adr/README.
 | [0011](docs/adr/0011-infraestructura-como-codigo.md) | Infraestructura de Railway como código: plan en cada PR y aplicación al fusionar |
 | [0012](docs/adr/0012-previsualizaciones-por-pull-request.md) | Previsualizaciones por pull request con las imágenes de la PR y un entorno propio descrito como código |
 | [0013](docs/adr/0013-observabilidad.md) | Observabilidad: métricas Prometheus de la API, panel y alertas en Grafana Cloud y registros JSON en Railway |
+| [0014](docs/adr/0014-distribucion-de-la-app-android.md) | App Android: APK firmado en cada release de GitHub, clave custodiada por el Tech Lead |
 
 ## Estructura
 
