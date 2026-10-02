@@ -13,13 +13,23 @@ import { firstValueFrom } from 'rxjs';
 
 import { AppConfigService } from '../config/app-config';
 import type { AppConfig } from '../config/app-config';
+import { APP_URL_SCHEME, NATIVE_AUTH_BRIDGE } from '../native/native-auth-bridge';
+
+/** Vuelta del proveedor a la app Android tras iniciar o cerrar sesión (LF-68). */
+export const APP_LOGIN_CALLBACK = `${APP_URL_SCHEME}:/callback`;
+export const APP_LOGOUT_CALLBACK = `${APP_URL_SCHEME}:/logout`;
 
 /**
  * Configuración OpenID Connect del visor (ADR-0009): Authorization Code con
  * PKCE como cliente público, token de acceso de vida corta renovado con un
- * token de refresco, y el token solo en las peticiones a la API.
+ * token de refresco, y el token solo en las peticiones a la API. En la app
+ * Android, el proveedor vuelve por el esquema propio de la app (LF-68).
  */
-export function openIdConfiguration(config: AppConfig, origin: string): OpenIdConfiguration {
+export function openIdConfiguration(
+  config: AppConfig,
+  origin: string,
+  native = false,
+): OpenIdConfiguration {
   if (config.auth === null) {
     // Sin inicio de sesión: la librería necesita una configuración, pero no se usa.
     return { authority: origin, clientId: 'sin-autenticacion', secureRoutes: [] };
@@ -27,8 +37,8 @@ export function openIdConfiguration(config: AppConfig, origin: string): OpenIdCo
   return {
     authority: config.auth.issuer,
     clientId: config.auth.clientId,
-    redirectUrl: `${origin}/cells`,
-    postLogoutRedirectUri: origin,
+    redirectUrl: native ? APP_LOGIN_CALLBACK : `${origin}/cells`,
+    postLogoutRedirectUri: native ? APP_LOGOUT_CALLBACK : origin,
     scope: 'openid profile',
     responseType: 'code',
     useRefreshToken: true,
@@ -47,7 +57,11 @@ export function provideVisorAuth(): EnvironmentProviders {
       provide: StsConfigLoader,
       useFactory: () =>
         new StsConfigStaticLoader(
-          openIdConfiguration(inject(AppConfigService).config, window.location.origin),
+          openIdConfiguration(
+            inject(AppConfigService).config,
+            window.location.origin,
+            inject(NATIVE_AUTH_BRIDGE).native,
+          ),
         ),
     },
   });
@@ -58,9 +72,12 @@ export function provideVisorAuth(): EnvironmentProviders {
 export class AuthService {
   readonly #config = inject(AppConfigService);
   readonly #oidc = inject(OidcSecurityService);
+  readonly #native = inject(NATIVE_AUTH_BRIDGE);
   readonly #userName = signal<string | null>(null);
   readonly #problem = signal<string | null>(null);
   #session: Promise<boolean> | undefined;
+  /** En la app, la sesión se resuelve cuando el proveedor vuelve a ella. */
+  #pendingLogin: ((authenticated: boolean) => void) | undefined;
 
   /** Nombre del usuario con sesión, para mostrarlo en el menú. */
   readonly userName = this.#userName.asReadonly();
@@ -70,6 +87,20 @@ export class AuthService {
    * proveedor. Mientras tanto no se redirige a ninguna parte.
    */
   readonly problem = this.#problem.asReadonly();
+
+  constructor() {
+    if (this.#native.native && this.enabled) {
+      this.#native.onAppUrlOpen((url) => {
+        void this.#onAppUrlOpen(url);
+      });
+      this.#native.onSystemBrowserClosed(() => {
+        // Se cerró el navegador sin volver con una sesión: se ofrece reintentar.
+        if (this.#pendingLogin !== undefined) {
+          this.#problem.set('No se completó el inicio de sesión.');
+        }
+      });
+    }
+  }
 
   get enabled(): boolean {
     return this.#config.config.auth !== null;
@@ -93,6 +124,10 @@ export class AuthService {
   }
 
   logout(): void {
+    if (this.#native.native) {
+      this.#oidc.logoff(undefined, { urlHandler: this.#openInSystemBrowser }).subscribe();
+      return;
+    }
     this.#oidc.logoff().subscribe();
   }
 
@@ -115,13 +150,57 @@ export class AuthService {
       return false;
     }
     if (result.isAuthenticated) {
-      const data = result.userData as { preferred_username?: unknown; name?: unknown } | null;
-      const name = data?.name ?? data?.preferred_username;
-      this.#userName.set(typeof name === 'string' ? name : null);
+      this.#acceptSession(result.userData);
       return true;
+    }
+    if (this.#native.native) {
+      return new Promise<boolean>((resolve) => {
+        this.#pendingLogin = resolve;
+        this.#oidc.authorize(undefined, { urlHandler: this.#openInSystemBrowser });
+      });
     }
     this.#oidc.authorize();
     return false;
+  }
+
+  readonly #openInSystemBrowser = (url: string): void => {
+    void this.#native.openInSystemBrowser(url);
+  };
+
+  /** Vuelta del proveedor a la app: completa el inicio de sesión o el cierre. */
+  async #onAppUrlOpen(url: string): Promise<void> {
+    if (url.startsWith(APP_LOGOUT_CALLBACK)) {
+      await this.#native.closeSystemBrowser();
+      // Sesión cerrada también en el proveedor: se vuelve a empezar.
+      window.location.reload();
+      return;
+    }
+    const resolve = this.#pendingLogin;
+    if (!url.startsWith(APP_LOGIN_CALLBACK) || resolve === undefined) {
+      return;
+    }
+    await this.#native.closeSystemBrowser();
+    let result;
+    try {
+      // Intercambia el código de la URL por los tokens, con PKCE.
+      result = await firstValueFrom(this.#oidc.checkAuth(url));
+    } catch {
+      result = undefined;
+    }
+    if (!result?.isAuthenticated) {
+      this.#problem.set('No se pudo completar el inicio de sesión.');
+      return;
+    }
+    this.#problem.set(null);
+    this.#acceptSession(result.userData);
+    this.#pendingLogin = undefined;
+    resolve(true);
+  }
+
+  #acceptSession(userData: unknown): void {
+    const data = userData as { preferred_username?: unknown; name?: unknown } | null;
+    const name = data?.name ?? data?.preferred_username;
+    this.#userName.set(typeof name === 'string' ? name : null);
   }
 
   #retryWhenOnline(): void {
