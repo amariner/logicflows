@@ -17,6 +17,8 @@ Esqueleto operativo (LF-23), ingesta de telemetría (LF-26), canal de tiempo rea
 | `GET /api/v1/sites/{siteId}/cells/{cellId}` | Estado actual de una célula. |
 | `GET /api/v1/sites/{siteId}/cells/{cellId}/production?from&to` | Cajas y pallets producidos en un periodo. |
 | `POST /api/v1/realtime/tickets` | Tique de un solo uso para abrir el canal de tiempo real. |
+| `POST /api/v1/push/devices` | Registra el token de FCM del dispositivo para recibir avisos de alarmas ([ADR-0015](../../docs/adr/0015-avisos-de-alarmas-en-el-movil.md)). |
+| `DELETE /api/v1/push/devices` | Da de baja un dispositivo del usuario. |
 | `GET /docs` | Documentación OpenAPI interactiva. |
 | `GET /docs/openapi.json` | Documento OpenAPI. |
 | `WS /realtime?ticket=…` | Canal de tiempo real hacia el visor ([ADR-0006](../../docs/adr/0006-canal-de-tiempo-real.md)). |
@@ -147,6 +149,7 @@ Se valida al arrancar; un valor no válido detiene la API indicando qué variabl
 | `TRUST_PROXY_HOPS` | `0` | Proxies de confianza delante de la API |
 | `REALTIME_TICKET_SECRET` | — | Secreto de al menos 32 caracteres para firmar los tiques; el mismo en todas las instancias (obligatoria) |
 | `METRICS_TOKEN` | — | Token de al menos 32 caracteres con el que se piden las métricas en `/metrics`. Sin valor, la ruta no existe |
+| `FCM_SERVICE_ACCOUNT` | — | JSON de la cuenta de servicio de Firebase con la que se envían los avisos de alarmas. Sin valor, no se envían |
 
 ## Varias instancias
 
@@ -165,6 +168,18 @@ Los logs se emiten en JSON con pino (`nestjs-pino`): una línea por evento con e
 ## Métricas
 
 `/metrics` publica en formato Prometheus las métricas de la ingesta, del tiempo real, de la salud y de cada célula, además de las estándar de Node.js ([ADR-0013](../../docs/adr/0013-observabilidad.md)). Cada módulo registra las suyas en `MetricsService`, un registro propio de la aplicación. El panel y las alertas que las usan, y cómo leerlos, están en [Observabilidad](../../infra/grafana/README.md).
+
+## Avisos de alarmas
+
+La API avisa en el móvil de las alarmas graves con Firebase Cloud Messaging ([ADR-0015](../../docs/adr/0015-avisos-de-alarmas-en-el-movil.md)):
+
+- **Qué avisa:** las alarmas `CRITICAL` y `HIGH` de cada mensaje `state`, y la parada de emergencia cuando la célula no trae una alarma crítica que la explique (`src/push/alarm-activations.ts`).
+- **Una vez por activación** (célula, `code` y `raisedAt`). La tabla `push_notified_alarms` y su restricción única lo garantizan también con mensajes repetidos, reinicios o varias réplicas.
+- **Contenido:** la gravedad y la célula, nunca el texto de la alarma. Caduca a la hora, y un aviso por célula sustituye al anterior.
+- **Dispositivos:** la app registra su token en `POST /api/v1/push/devices`. Los tokens que FCM ya no reconoce se borran solos.
+- **Métrica:** `logicflows_push_notifications_total{result}` cuenta los envíos por resultado.
+
+Sin `FCM_SERVICE_ACCOUNT`, el registro de dispositivos funciona, pero no se envía ningún aviso.
 
 ## Estructura
 

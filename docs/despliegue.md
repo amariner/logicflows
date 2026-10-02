@@ -146,13 +146,15 @@ Toda la configuración son variables de entorno del servicio en Railway. Hay tre
 |---|---|---|
 | `broker` | `MQTT_API_PASSWORD`, `MQTT_SIMULATOR_PASSWORD` | — |
 | `identity` | `KC_DB_PASSWORD`, `KC_BOOTSTRAP_ADMIN_PASSWORD` | `KC_HOSTNAME`, `KC_DB_URL`, `KC_DB_USERNAME=keycloak`, `LOGICFLOWS_VISOR_URL`, `KC_BOOTSTRAP_ADMIN_USERNAME` |
-| `api` | `DATABASE_URL`, `MQTT_API_PASSWORD`, `REALTIME_TICKET_SECRET`, `METRICS_TOKEN` | `MQTT_URL`, `AUTH_ISSUER`, `CORS_ORIGINS`, `TRUST_PROXY_HOPS=1`, `LOG_LEVEL` |
+| `api` | `DATABASE_URL`, `MQTT_API_PASSWORD`, `REALTIME_TICKET_SECRET`, `METRICS_TOKEN`, `FCM_SERVICE_ACCOUNT` | `MQTT_URL`, `AUTH_ISSUER`, `CORS_ORIGINS`, `TRUST_PROXY_HOPS=1`, `LOG_LEVEL` |
 | `simulator` | `MQTT_SIMULATOR_PASSWORD` | `MQTT_URL`, `SIMULATOR_SITE_ID`, `SIMULATOR_CELL_ID`, `LOG_LEVEL` |
 | `dashboard` | — | `API_URL`, `AUTH_ISSUER`, `AUTH_CLIENT_ID` |
 
 `DATABASE_URL` se sella entera porque contiene la contraseña.
 
 `METRICS_TOKEN` (`openssl rand -hex 32`) solo existe en producción: es el token con el que Grafana Cloud recoge `/metrics` ([ADR-0013](adr/0013-observabilidad.md)). Sin la variable, la ruta responde 404. Su puesta en marcha está en [Observabilidad](../infra/grafana/README.md).
+
+`FCM_SERVICE_ACCOUNT` solo existe en producción: es el JSON de la cuenta de servicio de Firebase con la que la API envía los avisos de alarmas ([ADR-0015](adr/0015-avisos-de-alarmas-en-el-movil.md)). Sin la variable, no se envían avisos. Se obtiene en la consola de Firebase, en *Configuración del proyecto → Cuentas de servicio → Generar nueva clave privada*, y se guarda en una línea: `railway variables -s api -e production --set "FCM_SERVICE_ACCOUNT=$(jq -c . cuenta.json)"`. Después se borra el fichero.
 
 Las contraseñas MQTT están en dos servicios: el broker las necesita para autenticar y cada cliente para conectarse. Se guarda una copia sellada en cada uno; no se usan referencias, porque una referencia muestra el valor resuelto a quien pueda leer las variables del servicio que la contiene.
 

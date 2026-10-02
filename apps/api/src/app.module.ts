@@ -11,6 +11,7 @@ import { HealthModule } from './health/health.module.ts';
 import { IngestionModule } from './ingestion/ingestion.module.ts';
 import { MetricsModule } from './metrics/metrics.module.ts';
 import { PersistenceModule } from './persistence/persistence.module.ts';
+import { PushModule } from './push/push.module.ts';
 import { RealtimeModule } from './realtime/realtime.module.ts';
 import { SecurityModule } from './security/security.module.ts';
 
@@ -43,6 +44,7 @@ import { SecurityModule } from './security/security.module.ts';
     IngestionModule,
     MetricsModule,
     PersistenceModule,
+    PushModule,
     RealtimeModule,
   ],
 })

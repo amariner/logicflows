@@ -2,6 +2,8 @@ import { hostname } from 'node:os';
 
 import { z } from 'zod';
 
+import { serviceAccountSchema } from '../push/fcm-client.ts';
+
 const CLIENT_ID_PREFIX = 'logicflows-api-';
 const MAX_CLIENT_ID_LENGTH = 64;
 
@@ -63,6 +65,31 @@ const configSchema = z.object({
    * (ADR-0013). Sin valor, la ruta no existe.
    */
   METRICS_TOKEN: z.string().min(32).optional(),
+  /**
+   * JSON de la cuenta de servicio de Firebase con la que se envían los avisos
+   * de alarmas (ADR-0015). Sin valor, no se envían.
+   */
+  FCM_SERVICE_ACCOUNT: z
+    .string()
+    .optional()
+    .transform((value, context) => {
+      if (value === undefined || value.trim() === '') {
+        return undefined;
+      }
+      let json: unknown;
+      try {
+        json = JSON.parse(value);
+      } catch {
+        context.addIssue({ code: 'custom', message: 'no es JSON' });
+        return z.NEVER;
+      }
+      const account = serviceAccountSchema.safeParse(json);
+      if (!account.success) {
+        context.addIssue({ code: 'custom', message: 'no es una cuenta de servicio de Firebase' });
+        return z.NEVER;
+      }
+      return account.data;
+    }),
   /** Orígenes autorizados a llamar a la API desde el navegador, separados por comas. */
   CORS_ORIGINS: z
     .string()

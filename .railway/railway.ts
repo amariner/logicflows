@@ -138,6 +138,9 @@ export default defineRailway((ctx) => {
       // Token con el que Grafana Cloud recoge /metrics (ADR-0013). Solo en
       // producción: sin la variable, la ruta no existe.
       ...(production ? { METRICS_TOKEN: preserve() } : {}),
+      // Cuenta de servicio de Firebase para los avisos de alarmas (ADR-0015).
+      // Solo en producción: sin la variable no se envían avisos.
+      ...(production ? { FCM_SERVICE_ACCOUNT: preserve() } : {}),
       MQTT_API_PASSWORD: secret('mqtt-api'),
       MQTT_URL: config(mqttUrl),
       REALTIME_TICKET_SECRET: secret('tiques'),
