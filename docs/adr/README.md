@@ -22,6 +22,7 @@ Un ADR aceptado no se reescribe. Si la decisión cambia, se crea un ADR nuevo qu
 | [0012](0012-previsualizaciones-por-pull-request.md) | Previsualizaciones por pull request | Aceptado |
 | [0013](0013-observabilidad.md) | Observabilidad del sistema desplegado | Aceptado |
 | [0014](0014-distribucion-de-la-app-android.md) | Distribución de la app Android de demostración | Aceptado |
+| [0015](0015-avisos-de-alarmas-en-el-movil.md) | Avisos de alarmas en el móvil | Aceptado |
 
 ## Estados
 
