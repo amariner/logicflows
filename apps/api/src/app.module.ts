@@ -9,6 +9,7 @@ import { DatabaseModule } from './database/database.module.ts';
 import type { AppConfig } from './config/config.ts';
 import { HealthModule } from './health/health.module.ts';
 import { IngestionModule } from './ingestion/ingestion.module.ts';
+import { MetricsModule } from './metrics/metrics.module.ts';
 import { PersistenceModule } from './persistence/persistence.module.ts';
 import { RealtimeModule } from './realtime/realtime.module.ts';
 import { SecurityModule } from './security/security.module.ts';
@@ -24,8 +25,11 @@ import { SecurityModule } from './security/security.module.ts';
           base: { service: 'api' },
           // Railway filtra por nivel solo si es texto: «info», no 30 (ADR-0013).
           formatters: { level: (label) => ({ level: label }) },
-          // Las comprobaciones de salud se repiten cada pocos segundos y no aportan al registro.
-          autoLogging: { ignore: (req) => req.url?.startsWith('/health') ?? false },
+          // Las comprobaciones de salud y la recogida de métricas se repiten
+          // cada pocos segundos y no aportan al registro.
+          autoLogging: {
+            ignore: (req) => /^\/(health|metrics)(\/|\?|$)/.test(req.url ?? ''),
+          },
           redact: ['req.headers.authorization', 'req.headers.cookie'],
         },
       }),
@@ -37,6 +41,7 @@ import { SecurityModule } from './security/security.module.ts';
     DatabaseModule,
     HealthModule,
     IngestionModule,
+    MetricsModule,
     PersistenceModule,
     RealtimeModule,
   ],

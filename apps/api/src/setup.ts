@@ -19,7 +19,7 @@ export const REST_PREFIX = 'api/v1';
 export async function configureApp(app: INestApplication): Promise<void> {
   const config = app.get<ConfigService<AppConfig, true>>(ConfigService);
   applyHttpSecurity(app, config.get('TRUST_PROXY_HOPS', { infer: true }));
-  app.setGlobalPrefix(REST_PREFIX, { exclude: ['health/live', 'health/ready'] });
+  app.setGlobalPrefix(REST_PREFIX, { exclude: ['health/live', 'health/ready', 'metrics'] });
   app.enableCors({
     origin: config.get('CORS_ORIGINS', { infer: true }),
     methods: ['GET', 'POST'],

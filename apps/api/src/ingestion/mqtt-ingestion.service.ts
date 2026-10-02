@@ -7,6 +7,7 @@ import type { MqttClient } from 'mqtt';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 import type { AppConfig } from '../config/config.ts';
+import { IngestionMetrics } from './ingestion.metrics.ts';
 import { SequenceGuard } from './sequence-guard.ts';
 import { TelemetryStream } from './telemetry-stream.ts';
 
@@ -27,6 +28,7 @@ export class MqttIngestionService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly config: ConfigService<AppConfig, true>,
     private readonly stream: TelemetryStream,
+    private readonly metrics: IngestionMetrics,
     @InjectPinoLogger(MqttIngestionService.name) private readonly logger: PinoLogger,
   ) {}
 
@@ -79,8 +81,10 @@ export class MqttIngestionService implements OnModuleInit, OnModuleDestroy {
   }
 
   #handle(topic: string, payload: string, retained: boolean): void {
+    this.metrics.received(topic);
     const decoded = decodeMessage(topic, payload);
     if (!decoded.ok) {
+      this.metrics.discarded(topic, decoded.reason);
       this.logger.warn(
         { topic, reason: decoded.reason, detail: decoded.detail },
         'Mensaje descartado',
@@ -90,6 +94,7 @@ export class MqttIngestionService implements OnModuleInit, OnModuleDestroy {
 
     const verdict = this.#guard.evaluate(decoded);
     if (!verdict.accept) {
+      this.metrics.discarded(topic, verdict.reason);
       // Los duplicados de QoS 1 y los retenidos ya procesados son esperables.
       const expected = verdict.reason === 'DUPLICATE' || retained;
       this.logger[expected ? 'debug' : 'warn'](
@@ -99,6 +104,7 @@ export class MqttIngestionService implements OnModuleInit, OnModuleDestroy {
       return;
     }
     if (verdict.missed > 0) {
+      this.metrics.missed(decoded.kind, verdict.missed);
       // Con QoS 0 las pérdidas de telemetría son esperables; las de estado no.
       this.logger[decoded.kind === 'state' ? 'warn' : 'debug'](
         { topic, missed: verdict.missed },
@@ -106,7 +112,9 @@ export class MqttIngestionService implements OnModuleInit, OnModuleDestroy {
       );
     }
 
+    const receivedAt = new Date();
+    this.metrics.accepted(decoded, receivedAt, retained);
     this.logger.debug({ topic, kind: decoded.kind }, 'Mensaje aceptado');
-    this.stream.publish({ decoded, receivedAt: new Date().toISOString() });
+    this.stream.publish({ decoded, receivedAt: receivedAt.toISOString() });
   }
 }

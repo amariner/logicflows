@@ -4,10 +4,11 @@ import { TerminusModule } from '@nestjs/terminus';
 import { DatabaseHealthIndicator } from '../database/database.health.ts';
 import { IngestionModule } from '../ingestion/ingestion.module.ts';
 import { HealthController } from './health.controller.ts';
+import { ReadinessMetrics } from './readiness.metrics.ts';
 
 @Module({
   imports: [TerminusModule.forRoot({ logger: false }), IngestionModule],
   controllers: [HealthController],
-  providers: [DatabaseHealthIndicator],
+  providers: [DatabaseHealthIndicator, ReadinessMetrics],
 })
 export class HealthModule {}

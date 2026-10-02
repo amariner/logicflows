@@ -58,6 +58,11 @@ const configSchema = z.object({
    * X-Forwarded-For. Es necesario para limitar por cliente y no por proxy.
    */
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
+  /**
+   * Secreto con el que Grafana Cloud pide las métricas en /metrics
+   * (ADR-0013). Sin valor, la ruta no existe.
+   */
+  METRICS_TOKEN: z.string().min(32).optional(),
   /** Orígenes autorizados a llamar a la API desde el navegador, separados por comas. */
   CORS_ORIGINS: z
     .string()
