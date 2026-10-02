@@ -30,9 +30,18 @@ fi
 environment="pr-$pr"
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 
+# Las órdenes de la CLI actúan sobre el proyecto enlazado. En la CI no hay
+# ninguno: se enlaza a producción solo como contexto, sin cambiar nada en ella.
+railway link --project "$PROJECT_ID" --environment production > /dev/null
+
+# Un error al consultar no puede confundirse con «no existe».
 exists() {
-  railway environment list --json |
-    jq -e --arg name "$environment" '.environments[] | select(.name == $name)' > /dev/null
+  local list
+  if ! list="$(railway environment list --json)"; then
+    echo "No se pueden consultar los entornos de Railway" >&2
+    exit 1
+  fi
+  jq -e --arg name "$environment" '.environments[] | select(.name == $name)' <<< "$list" > /dev/null
 }
 
 if [ "$action" = destruir ]; then
