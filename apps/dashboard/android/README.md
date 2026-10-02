@@ -10,7 +10,7 @@ Cada etiqueta `vX.Y.Z` lanza el flujo **App Android** (`.github/workflows/androi
 2. Lo firma con la clave del entorno `android-release` y comprueba la firma con `apksigner`.
 3. Lo adjunta como `logicflows-vX.Y.Z.apk` a la release de la etiqueta, con su SHA-256 y la huella del certificado. Si la release no existe, la crea con la sección de la versión de `CHANGELOG.md`.
 
-Sin la clave, el flujo falla y no publica nada. Para volver a publicar una versión: `gh workflow run android-release.yml --ref vX.Y.Z`.
+Sin la clave, el flujo falla y no publica nada. Para volver a publicar una versión a partir de `v0.3.0`: `gh workflow run android-release.yml --ref vX.Y.Z`.
 
 Cada pull request comprueba además la firma de release con una clave desechable creada por `crear-clave.sh`. Así, un cambio que rompa la firma falla en la PR y no al publicar.
 
@@ -52,7 +52,7 @@ Hace falta OpenSSL 3: en macOS, el de Homebrew (`/opt/homebrew/bin/openssl`). No
    unset ANDROID_KEYSTORE_PASSWORD
    ```
 
-6. Comprobar el flujo con la versión actual, que publicará su APK firmado: `gh workflow run android-release.yml --ref vX.Y.Z`.
+6. La primera versión que incluye este flujo es `v0.3.0`: al etiquetarla, el APK firmado aparecerá en su release. Las etiquetas anteriores no lo contienen, así que no se puede relanzar sobre ellas.
 
 ## Si la clave se filtra
 
