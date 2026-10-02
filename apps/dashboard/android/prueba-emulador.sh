@@ -65,8 +65,14 @@ adb shell pidof "$package" > /dev/null || fail 'La app se cerró durante el arra
 echo '✓ La app sigue en marcha'
 
 # Capacitor copia en el registro la consola de la vista web, con nivel E
-# para los errores.
-if adb logcat -d | grep -E ' E Capacitor/Console' ; then
-  fail 'Hay errores de JavaScript en la vista web'
+# para los errores. Solo cuentan los del visor (https://localhost/…): los
+# scripts que inyecta Capacitor no tienen fichero y se revisan en un móvil
+# (LF-71).
+if adb logcat -d | grep -E ' E Capacitor/Console: File: https://localhost/'; then
+  fail 'Hay errores de JavaScript en el visor'
+fi
+if adb logcat -d | grep -q -E ' E Capacitor/Console: File:  '; then
+  echo '! Errores en scripts inyectados por Capacitor (ver logcat):'
+  adb logcat -d | grep -E ' E Capacitor/Console: File:  ' | sed 's/^.*Msg: /  /' | sort -u
 fi
 echo '✓ Sin errores de JavaScript'
