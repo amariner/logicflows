@@ -15,6 +15,13 @@
       "when": 1790976269421,
       "tag": "0001_avisos-de-alarmas",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790984338210,
+      "tag": "0002_agregados-por-hora",
+      "breakpoints": true
     }
   ]
 }
