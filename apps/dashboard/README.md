@@ -89,6 +89,7 @@ El proyecto Android está en `android/` y lo genera Capacitor 8 a partir de la b
 - **Iconos y pantalla de arranque** derivados de los de la PWA (`public/icons`): icono adaptativo con fondo `#17324d`.
 - **`pnpm android:sync`** compila el visor, copia la configuración de la app y ejecuta `cap sync android`. Hay que ejecutarlo después de actualizar dependencias: `cap sync` escribe en `android/capacitor.settings.gradle` rutas del almacén de pnpm que incluyen la versión de cada plugin. Se versiona el resultado.
 - **No hace falta JDK ni Android SDK en local.** La CI compila el APK de depuración en cada pull request (trabajo **Android**) y lo deja como artefacto `logicflows-debug-apk` durante 7 días. Antes comprueba que `android:sync` no cambia nada de lo versionado.
+- **Prueba en emulador** (LF-74). El trabajo **Android en emulador** de la CI instala ese APK en un emulador con API 34 y ejecuta `android/prueba-emulador.sh`. Comprueba que la vista web carga sin errores del visor y que, sin sesión, el inicio de sesión se abre en el navegador del sistema. Encontró que `URL.canParse` no existe en vistas web anteriores a Chrome 120: una regla de ESLint lo impide.
 
 - **Comportamiento de app** (LF-70):
   - El botón atrás retrocede en la navegación y, en la pantalla inicial, cierra la app.
