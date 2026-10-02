@@ -1,6 +1,6 @@
 # ADR-0008: Plataforma de despliegue
 
-- **Estado:** Aceptado
+- **Estado:** Aceptado; las previsualizaciones, sustituidas por [ADR-0012](0012-previsualizaciones-por-pull-request.md)
 - **Fecha:** 2026-10-01
 - **Responsable:** Andreu Mariner, Tech Lead
 - **Tarea:** LF-44
