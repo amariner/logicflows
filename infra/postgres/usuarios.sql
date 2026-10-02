@@ -9,6 +9,12 @@
 --        -v keycloak_password="$KEYCLOAK_DB_PASSWORD" \
 --        -f infra/postgres/usuarios.sql
 
+-- Dos ejecuciones a la vez comprobarían las dos que falta un usuario e
+-- intentarían crearlo (lo hace el servicio temporal de ejecutar-sql.sh, que
+-- puede arrancar dos veces). El bloqueo las ejecuta una tras otra; se libera
+-- al cerrar la sesión.
+SELECT pg_advisory_lock(hashtext('logicflows-usuarios'));
+
 SELECT 'CREATE ROLE logicflows LOGIN'
 WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'logicflows') \gexec
 SELECT 'CREATE ROLE keycloak LOGIN'
