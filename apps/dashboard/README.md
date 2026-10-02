@@ -106,6 +106,7 @@ El proyecto Android está en `android/` y lo genera Capacitor 8 a partir de la b
   - Se abre en el navegador del sistema (Custom Tabs, `@capacitor/browser`), nunca en la vista web.
   - Keycloak vuelve a la app por su esquema propio, `io.github.amariner.logicflows:/callback`, y la app intercambia el código por los tokens con PKCE.
   - Si se cierra el navegador sin terminar, el visor ofrece reintentar.
+  - Si Android cierra la app mientras el inicio de sesión está en el navegador, al volver la app arranca con la URL de vuelta y completa la sesión con ella (LF-75). Por eso, en la app, el estado del inicio de sesión va al almacenamiento local, privado de la app; en el navegador sigue en `sessionStorage`.
   - En producción hay que habilitarlo una vez en Keycloak y en la API ([procedimiento](../../infra/keycloak/README.md#habilitar-la-app-android-en-producción-lf-68)).
 
 ## Compresión
