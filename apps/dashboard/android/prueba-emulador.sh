@@ -40,13 +40,17 @@ wait_for() {
 }
 
 loaded() { adb logcat -d | grep -q 'Loading app at https://localhost'; }
-# La actividad en primer plano es Chrome, el navegador del sistema de la
-# imagen: el inicio de sesión no se abrió dentro de la vista web. Comprobar
-# solo que la app ya no está delante daría por buena una app cerrada.
+# La app pide abrir el inicio de sesión de Keycloak en el navegador del
+# sistema (plugin Browser), no en la vista web, y pasa a segundo plano.
 login_in_browser() {
-  adb shell dumpsys activity activities |
-    grep -m1 -E 'topResumedActivity|mResumedActivity' |
-    grep -q 'com.android.chrome'
+  adb logcat -d | grep -q -E 'pluginId: Browser, methodName: open, methodData: \{"url":"https:[^"]*openid-connect\\?/auth' &&
+    adb logcat -d | grep -q 'Capacitor: App paused'
+}
+
+# Sin excepciones de Java en el proceso de la app. Que Android cierre la app
+# en segundo plano por falta de memoria no es un fallo.
+no_crash() {
+  ! adb logcat -d | grep -A2 'FATAL EXCEPTION' | grep -q "$package"
 }
 
 # En un emulador recién arrancado, Google Play Services sigue iniciándose y
@@ -61,8 +65,8 @@ adb shell am start -W -n "$package/.MainActivity" > /dev/null
 wait_for 'La vista web carga la aplicación' loaded
 wait_for 'Sin sesión, el inicio de sesión se abre en el navegador del sistema' login_in_browser
 
-adb shell pidof "$package" > /dev/null || fail 'La app se cerró durante el arranque'
-echo '✓ La app sigue en marcha'
+no_crash || fail 'La app se cerró con una excepción'
+echo '✓ Sin excepciones de la app'
 
 # Capacitor copia en el registro la consola de la vista web, con nivel E
 # para los errores. Solo cuentan los del visor (https://localhost/…): los
