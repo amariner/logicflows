@@ -1,0 +1,119 @@
+name: App Android
+
+# Publica la app Android firmada en cada versión (ADR-0014, LF-67): compila
+# el APK de release de la etiqueta vX.Y.Z, lo firma con la clave del entorno
+# android-release y lo adjunta a su release de GitHub con su SHA-256 y la
+# huella del certificado. Si la release no existe, la crea con las notas de
+# CHANGELOG.md. Sin la clave, falla: nunca publica un APK sin firmar.
+on:
+  push:
+    tags: ['v*.*.*']
+  # Para volver a publicar una versión, se lanza sobre su etiqueta:
+  # gh workflow run android-release.yml --ref vX.Y.Z
+  workflow_dispatch:
+
+concurrency:
+  group: android-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Publicar el APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # Los secretos de la clave solo existen en este entorno, limitado a las
+    # etiquetas v*.
+    environment: android-release
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - name: Comprobar la versión y la clave
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::$TAG no es una versión vX.Y.Z."
+            exit 1
+          fi
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS; do
+            if [ -z "${!name}" ]; then
+              echo "::error::Falta el secreto $name en el entorno android-release (apps/dashboard/android/README.md)."
+              exit 1
+            fi
+          done
+
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Sincronizar el proyecto Android
+        run: pnpm --filter @logicflows/dashboard android:sync
+
+      - name: Compilar y firmar el APK
+        working-directory: apps/dashboard/android
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/release.p12"
+          trap 'rm -f "$ANDROID_KEYSTORE_FILE"' EXIT
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$ANDROID_KEYSTORE_FILE"
+          LOGICFLOWS_VERSION="${TAG#v}" ./gradlew assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/logicflows-$TAG.apk"
+
+      # apksigner rechaza un APK sin firmar o con la firma rota.
+      - name: Verificar la firma
+        id: firma
+        run: |
+          apk="$RUNNER_TEMP/logicflows-$TAG.apk"
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner"
+          certs="$("$apksigner" verify --print-certs "$apk")"
+          echo "$certs"
+          echo "huella=$(grep -m1 'certificate SHA-256 digest' <<< "$certs" | awk '{print $NF}')" >> "$GITHUB_OUTPUT"
+          echo "suma=$(sha256sum "$apk" | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+      - name: Adjuntar a la release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HUELLA: ${{ steps.firma.outputs.huella }}
+          SUMA: ${{ steps.firma.outputs.suma }}
+        run: |
+          apk="$RUNNER_TEMP/logicflows-$TAG.apk"
+          if ! gh release view "$TAG" > /dev/null 2>&1; then
+            # Las notas de la versión son su sección de CHANGELOG.md.
+            version="${TAG#v}"
+            awk -v v="$version" '$0 ~ "^## \\[" v "\\]" {f=1; next} /^## \[/ {f=0} f' CHANGELOG.md > "$RUNNER_TEMP/notas.md"
+            gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$RUNNER_TEMP/notas.md"
+          fi
+          gh release upload "$TAG" "$apk" --clobber
+          # La sección del APK va al final; al volver a publicar se sustituye.
+          gh release view "$TAG" --json body --jq .body |
+            awk '/^### App Android/ {exit} {print}' > "$RUNNER_TEMP/cuerpo.md"
+          {
+            echo '### App Android'
+            echo
+            echo "\`logicflows-$TAG.apk\`, firmado (ADR-0014). Antes de instalarlo por primera vez, comprobar:"
+            echo
+            echo "- SHA-256 del fichero: \`$SUMA\`"
+            echo "- Huella SHA-256 del certificado: \`$HUELLA\`"
+          } >> "$RUNNER_TEMP/cuerpo.md"
+          gh release edit "$TAG" --notes-file "$RUNNER_TEMP/cuerpo.md"

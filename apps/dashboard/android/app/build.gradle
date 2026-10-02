@@ -1,5 +1,17 @@
 apply plugin: 'com.android.application'
 
+// Versión de la app a partir de la etiqueta vX.Y.Z (ADR-0014). La CI la da
+// en LOGICFLOWS_VERSION, sin la v; en local y en las PR es 0.0.1.
+def appVersion = System.getenv('LOGICFLOWS_VERSION') ?: '0.0.1'
+if (!(appVersion ==~ /\d+\.\d+\.\d+/)) {
+    throw new GradleException("LOGICFLOWS_VERSION no es X.Y.Z: ${appVersion}")
+}
+def (appMajor, appMinor, appPatch) = appVersion.tokenize('.').collect { it as int }
+
+// Clave de firma de ADR-0014: solo existe en el entorno android-release de
+// GitHub. Sin ella, el APK de release sale sin firmar y no se publica.
+def releaseKeystore = System.getenv('ANDROID_KEYSTORE_FILE')
+
 android {
     namespace = "io.github.amariner.logicflows"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +19,9 @@ android {
         applicationId "io.github.amariner.logicflows"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // Cada versión publicada debe tener un versionCode mayor (v0.3.0 → 300).
+        versionCode appMajor * 10000 + appMinor * 100 + appPatch
+        versionName appVersion
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +29,23 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (releaseKeystore) {
+                storeFile file(releaseKeystore)
+                storeType 'pkcs12'
+                storePassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+                keyAlias System.getenv('ANDROID_KEY_ALIAS')
+                // En PKCS12, la clave comparte la contraseña del almacén.
+                keyPassword System.getenv('ANDROID_KEYSTORE_PASSWORD')
+            }
+        }
+    }
     buildTypes {
         release {
+            if (releaseKeystore) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
