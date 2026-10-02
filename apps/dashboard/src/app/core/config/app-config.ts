@@ -23,10 +23,21 @@ export interface AppConfig {
   readonly auth: AuthSettings | null;
 }
 
+/**
+ * La URL si es válida. No usa `URL.canParse`: no existe en las vistas web de
+ * Android anteriores a Chrome 120, que siguen en muchos móviles (LF-74).
+ */
+function parseUrl(value: string): URL | null {
+  try {
+    return new URL(value);
+  } catch {
+    return null;
+  }
+}
+
 const isHttpUrl = (value: unknown): value is string =>
   typeof value === 'string' &&
-  URL.canParse(value) &&
-  ['http:', 'https:'].includes(new URL(value).protocol);
+  ['http:', 'https:'].includes(parseUrl(value)?.protocol ?? '');
 
 function parseAuth(value: unknown): AuthSettings | null {
   if (value === undefined || value === null) {
@@ -54,7 +65,7 @@ export function parseAppConfig(value: unknown): AppConfig {
     throw new Error('config.json no válido: falta apiUrl');
   }
   const { apiUrl } = value;
-  if (typeof apiUrl !== 'string' || !URL.canParse(apiUrl)) {
+  if (typeof apiUrl !== 'string' || parseUrl(apiUrl) === null) {
     throw new Error('config.json no válido: apiUrl no es una URL');
   }
   const api = new URL(apiUrl);

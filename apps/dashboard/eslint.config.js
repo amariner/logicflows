@@ -19,6 +19,16 @@ export default tseslint.config(
         'error',
         { type: 'attribute', prefix: 'app', style: 'camelCase' },
       ],
+      // La app Android corre en la vista web del móvil, que puede ser antigua
+      // (LF-74): APIs recientes que fallan en ella.
+      'no-restricted-properties': [
+        'error',
+        {
+          object: 'URL',
+          property: 'canParse',
+          message: 'No existe antes de Chrome 120: usar new URL() dentro de try (LF-74).',
+        },
+      ],
     },
   },
   {

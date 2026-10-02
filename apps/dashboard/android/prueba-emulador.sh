@@ -40,12 +40,18 @@ wait_for() {
 }
 
 loaded() { adb logcat -d | grep -q 'Loading app at https://localhost'; }
-# La actividad en primer plano ya no es la app: es el navegador del sistema.
+# La actividad en primer plano es Chrome, el navegador del sistema de la
+# imagen: el inicio de sesión no se abrió dentro de la vista web. Comprobar
+# solo que la app ya no está delante daría por buena una app cerrada.
 login_in_browser() {
-  local top
-  top="$(adb shell dumpsys activity activities | grep -m1 -E 'topResumedActivity|mResumedActivity' || true)"
-  [ -n "$top" ] && ! grep -q "$package" <<< "$top"
+  adb shell dumpsys activity activities |
+    grep -m1 -E 'topResumedActivity|mResumedActivity' |
+    grep -q 'com.android.chrome'
 }
+
+# En un emulador recién arrancado, Google Play Services sigue iniciándose y
+# Android puede cerrar las apps que dependen de él. Se le da tiempo.
+sleep "${ESPERA_ARRANQUE:-60}"
 
 adb install -r "$apk" > /dev/null
 echo "✓ APK instalado"
