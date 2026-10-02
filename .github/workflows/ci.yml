@@ -145,6 +145,22 @@ jobs:
           path: apps/dashboard/android/app/build/outputs/apk/debug/*.apk
           retention-days: 7
 
+      # La firma de release, con una clave desechable creada con el mismo
+      # script que la de verdad (LF-67): si esto falla, fallaría la
+      # publicación de la siguiente versión.
+      - name: Firma de release con una clave desechable
+        working-directory: apps/dashboard/android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: clave-desechable-de-la-ci
+          ANDROID_KEY_ALIAS: logicflows
+          LOGICFLOWS_VERSION: 0.0.2
+        run: |
+          export ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/desechable.p12"
+          ./crear-clave.sh "$ANDROID_KEYSTORE_FILE"
+          ./gradlew assembleRelease --no-daemon
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner"
+          "$apksigner" verify --print-certs app/build/outputs/apk/release/app-release.apk
+
   system:
     name: Sistema completo
     runs-on: ubuntu-24.04
