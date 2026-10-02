@@ -86,6 +86,7 @@ Las decisiones relevantes se registran como ADR en [`docs/adr`](docs/adr/README.
 | [0010](docs/adr/0010-imagenes-de-la-infraestructura.md) | Imágenes propias del broker y de Keycloak con su configuración; realm de producción sin usuarios |
 | [0011](docs/adr/0011-infraestructura-como-codigo.md) | Infraestructura de Railway como código: plan en cada PR y aplicación al fusionar |
 | [0012](docs/adr/0012-previsualizaciones-por-pull-request.md) | Previsualizaciones por pull request con las imágenes de la PR y un entorno propio descrito como código |
+| [0013](docs/adr/0013-observabilidad.md) | Observabilidad: métricas Prometheus de la API, panel y alertas en Grafana Cloud y registros JSON en Railway |
 
 ## Estructura
 
