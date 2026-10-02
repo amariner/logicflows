@@ -1,8 +1,13 @@
 import { TestBed } from '@angular/core/testing';
-import { OidcSecurityService } from 'angular-auth-oidc-client';
+import {
+  AbstractSecurityStorage,
+  DefaultLocalStorageService,
+  DefaultSessionStorageService,
+  OidcSecurityService,
+} from 'angular-auth-oidc-client';
 import { of, throwError } from 'rxjs';
 import type { Observable } from 'rxjs';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TEST_AUTH, testProviders } from '../../../testing/providers';
 import { parseAppConfig } from '../config/app-config';
@@ -50,6 +55,11 @@ const setup = (options: {
 };
 
 describe('sesión del visor', () => {
+  it('en el navegador, el estado del inicio de sesión vive en sessionStorage', () => {
+    setup({ auth: true, oidc: fakeOidc(true) });
+    expect(TestBed.inject(AbstractSecurityStorage)).toBeInstanceOf(DefaultSessionStorageService);
+  });
+
   it('sin proveedor de identidad no pide sesión ni token', async () => {
     const auth = setup({ auth: false });
     expect(auth.enabled).toBe(false);
@@ -105,7 +115,7 @@ describe('sesión del visor', () => {
 });
 
 /** App nativa falsa: la prueba decide cuándo vuelve el proveedor a la app. */
-const fakeNative = () => {
+const fakeNative = (launch?: string) => {
   let urlHandler: (url: string) => void = () => undefined;
   let closedHandler: () => void = () => undefined;
   return {
@@ -118,6 +128,7 @@ const fakeNative = () => {
     onSystemBrowserClosed: (handler: () => void) => {
       closedHandler = handler;
     },
+    launchUrl: vi.fn(() => Promise.resolve(launch)),
     openApp: (url: string) => {
       urlHandler(url);
     },
@@ -210,6 +221,37 @@ describe('sesión en la app Android (LF-68)', () => {
     native.openApp(`${APP_LOGIN_CALLBACK}?code=caducado`);
     await settle();
     expect(auth.problem()).toBe('No se pudo completar el inicio de sesión.');
+  });
+
+  describe('si Android cerró la app mientras estaba en el navegador (LF-75)', () => {
+    const CALLBACK = `${APP_LOGIN_CALLBACK}?code=abc&state=xyz`;
+
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it('completa la sesión con la URL de arranque, sin abrir otra vez el inicio de sesión', async () => {
+      const oidc = nativeOidc();
+      const auth = setup({ auth: true, oidc, native: fakeNative(CALLBACK) });
+      expect(await auth.ensureSession()).toBe(true);
+      expect(oidc.checkAuth).toHaveBeenCalledWith(CALLBACK);
+      expect(oidc.authorize).not.toHaveBeenCalled();
+    });
+
+    it('no reutiliza la misma URL de arranque al recargar', async () => {
+      localStorage.setItem('logicflows.inicio-de-sesion', CALLBACK);
+      const oidc = nativeOidc();
+      const auth = setup({ auth: true, oidc, native: fakeNative(CALLBACK) });
+      void auth.ensureSession();
+      await settle();
+      expect(oidc.checkAuth).toHaveBeenCalledWith();
+      expect(oidc.authorize).toHaveBeenCalledTimes(1);
+    });
+
+    it('guarda el estado del inicio de sesión en el almacenamiento local de la app', () => {
+      setup({ auth: true, oidc: nativeOidc(), native: fakeNative() });
+      expect(TestBed.inject(AbstractSecurityStorage)).toBeInstanceOf(DefaultLocalStorageService);
+    });
   });
 
   it('cierra la sesión en el proveedor también desde el navegador del sistema', () => {

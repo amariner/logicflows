@@ -1,7 +1,10 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject, makeEnvironmentProviders, signal } from '@angular/core';
 import type { EnvironmentProviders } from '@angular/core';
 import type { CanActivateFn } from '@angular/router';
 import {
+  AbstractSecurityStorage,
+  DefaultLocalStorageService,
+  DefaultSessionStorageService,
   LogLevel,
   OidcSecurityService,
   StsConfigLoader,
@@ -18,6 +21,9 @@ import { APP_URL_SCHEME, NATIVE_AUTH_BRIDGE } from '../native/native-auth-bridge
 /** Vuelta del proveedor a la app Android tras iniciar o cerrar sesión (LF-68). */
 export const APP_LOGIN_CALLBACK = `${APP_URL_SCHEME}:/callback`;
 export const APP_LOGOUT_CALLBACK = `${APP_URL_SCHEME}:/logout`;
+
+/** Última URL de arranque ya usada para iniciar sesión: no se reutiliza. */
+const HANDLED_LAUNCH_URL_KEY = 'logicflows.inicio-de-sesion';
 
 /**
  * Configuración OpenID Connect del visor (ADR-0009): Authorization Code con
@@ -50,21 +56,37 @@ export function openIdConfiguration(
   };
 }
 
-/** Proveedores del inicio de sesión. La configuración se lee de `config.json`. */
+/**
+ * Proveedores del inicio de sesión. La configuración se lee de `config.json`.
+ * En el navegador, el estado del inicio de sesión y los tokens viven en
+ * `sessionStorage`. En la app, en el almacenamiento local, privado de la app:
+ * Android puede cerrarla mientras el inicio de sesión está en el navegador, y
+ * al volver hace falta el verificador PKCE (LF-75).
+ */
 export function provideVisorAuth(): EnvironmentProviders {
-  return provideAuth({
-    loader: {
-      provide: StsConfigLoader,
-      useFactory: () =>
-        new StsConfigStaticLoader(
-          openIdConfiguration(
-            inject(AppConfigService).config,
-            window.location.origin,
-            inject(NATIVE_AUTH_BRIDGE).native,
+  return makeEnvironmentProviders([
+    provideAuth({
+      loader: {
+        provide: StsConfigLoader,
+        useFactory: () =>
+          new StsConfigStaticLoader(
+            openIdConfiguration(
+              inject(AppConfigService).config,
+              window.location.origin,
+              inject(NATIVE_AUTH_BRIDGE).native,
+            ),
           ),
-        ),
+      },
+    }),
+    // Después de provideAuth, para sustituir su almacenamiento por defecto.
+    {
+      provide: AbstractSecurityStorage,
+      useFactory: () =>
+        inject(NATIVE_AUTH_BRIDGE).native
+          ? new DefaultLocalStorageService()
+          : new DefaultSessionStorageService(),
     },
-  });
+  ]);
 }
 
 /** Sesión del usuario del visor. */
@@ -141,9 +163,13 @@ export class AuthService {
       this.#retryWhenOnline();
       return false;
     }
+    const callback = await this.#pendingLaunchCallback();
     let result;
     try {
-      result = await firstValueFrom(this.#oidc.checkAuth());
+      // Si la app arrancó con la vuelta de Keycloak, se completa con ella.
+      result = await firstValueFrom(
+        callback === undefined ? this.#oidc.checkAuth() : this.#oidc.checkAuth(callback),
+      );
     } catch {
       this.#problem.set('No se puede contactar con el servicio de inicio de sesión.');
       this.#retryWhenOnline();
@@ -161,6 +187,27 @@ export class AuthService {
     }
     this.#oidc.authorize();
     return false;
+  }
+
+  /**
+   * La vuelta de Keycloak con la que arrancó la app, si Android la cerró
+   * mientras el inicio de sesión estaba en el navegador (LF-75). Cada URL se
+   * usa una sola vez: recargar la vista web no cambia la URL de arranque.
+   */
+  async #pendingLaunchCallback(): Promise<string | undefined> {
+    if (!this.#native.native) {
+      return undefined;
+    }
+    const url = await this.#native.launchUrl();
+    if (!url?.startsWith(APP_LOGIN_CALLBACK)) {
+      return undefined;
+    }
+    if (localStorage.getItem(HANDLED_LAUNCH_URL_KEY) === url) {
+      return undefined;
+    }
+    localStorage.setItem(HANDLED_LAUNCH_URL_KEY, url);
+    await this.#native.closeSystemBrowser();
+    return url;
   }
 
   readonly #openInSystemBrowser = (url: string): void => {

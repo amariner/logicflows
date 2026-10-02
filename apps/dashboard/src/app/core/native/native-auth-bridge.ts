@@ -23,6 +23,12 @@ export interface NativeAuthBridge {
   onAppUrlOpen(handler: (url: string) => void): void;
   /** Se cerró el navegador del sistema, con o sin terminar el inicio de sesión. */
   onSystemBrowserClosed(handler: () => void): void;
+  /**
+   * URL con la que se abrió la app. Si Android la cerró mientras el inicio de
+   * sesión estaba en el navegador, la vuelta de Keycloak llega por aquí y no
+   * por `onAppUrlOpen` (LF-75).
+   */
+  launchUrl(): Promise<string | undefined>;
 }
 
 export const NATIVE_AUTH_BRIDGE = new InjectionToken<NativeAuthBridge>('NATIVE_AUTH_BRIDGE', {
@@ -40,5 +46,6 @@ export const NATIVE_AUTH_BRIDGE = new InjectionToken<NativeAuthBridge>('NATIVE_A
     onSystemBrowserClosed: (handler) => {
       void Browser.addListener('browserFinished', handler);
     },
+    launchUrl: async () => (await App.getLaunchUrl())?.url,
   }),
 });
