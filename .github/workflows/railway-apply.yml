@@ -31,12 +31,17 @@ jobs:
       name: production
       url: https://dashboard-production-6f89.up.railway.app
     steps:
-      - name: Comprobar el token de Railway
+      - name: Comprobar los tokens de Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
         run: |
           if [ -z "$RAILWAY_TOKEN" ]; then
             echo "::error::Falta el secreto RAILWAY_TOKEN: un token de proyecto de Railway para production (docs/despliegue.md)."
+            exit 1
+          fi
+          if [ -z "$RAILWAY_API_TOKEN" ]; then
+            echo "::error::Falta el secreto RAILWAY_API_TOKEN: un token de cuenta de Railway para esperar a los despliegues (docs/despliegue.md)."
             exit 1
           fi
 
@@ -72,7 +77,21 @@ jobs:
           echo "Plan de la PR #$pr (ejecución $run)"
           gh run download "$run" --repo "$REPO" --name railway-plan
 
+      - name: Anotar el inicio del despliegue
+        id: inicio
+        run: echo "desde=$(date -u +%Y-%m-%dT%H:%M:%S)" >> "$GITHUB_OUTPUT"
+
       - name: Aplicar el plan
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: railway config apply --plan railway-plan.json --yes --confirm-destructive
+
+      # apply lanza los despliegues sin esperar a que terminen. El flujo solo
+      # acaba bien cuando están en marcha, para que la prueba de producción
+      # compruebe la versión nueva y no la anterior (LF-73). Consultar los
+      # despliegues necesita el token de cuenta, como las previsualizaciones.
+      - name: Esperar a que terminen los despliegues
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+          DESDE: ${{ steps.inicio.outputs.desde }}
+        run: infra/railway/esperar-despliegues.sh production "$DESDE" broker identity api simulator dashboard
