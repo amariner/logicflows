@@ -111,3 +111,43 @@ export const telemetrySamples = pgTable(
     index('telemetry_samples_cell_time_idx').on(table.siteId, table.cellId, table.sourceTimestamp),
   ],
 );
+
+/**
+ * Dispositivos que reciben los avisos de alarmas (ADR-0015): el token de
+ * Firebase Cloud Messaging de cada instalación de la app y su usuario.
+ */
+export const pushDevices = pgTable(
+  'push_devices',
+  {
+    token: text('token').primaryKey(),
+    /** Sujeto (`sub`) del usuario en el proveedor de identidad. */
+    userId: text('user_id').notNull(),
+    registeredAt: instant('registered_at').notNull(),
+  },
+  (table) => [index('push_devices_user_idx').on(table.userId)],
+);
+
+/**
+ * Activaciones de alarmas ya avisadas. La restricción única garantiza un
+ * solo aviso por activación aunque el mensaje llegue repetido, la API se
+ * reinicie o haya varias réplicas (ADR-0015).
+ */
+export const pushNotifiedAlarms = pgTable(
+  'push_notified_alarms',
+  {
+    id: bigserial('id', { mode: 'number' }).primaryKey(),
+    siteId: text('site_id').notNull(),
+    cellId: text('cell_id').notNull(),
+    code: text('code').notNull(),
+    raisedAt: instant('raised_at').notNull(),
+    notifiedAt: instant('notified_at').notNull(),
+  },
+  (table) => [
+    uniqueIndex('push_notified_alarms_activation_uq').on(
+      table.siteId,
+      table.cellId,
+      table.code,
+      table.raisedAt,
+    ),
+  ],
+);

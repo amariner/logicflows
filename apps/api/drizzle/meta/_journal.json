@@ -8,6 +8,13 @@
       "when": 1790811463927,
       "tag": "0000_estado-y-produccion",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790976269421,
+      "tag": "0001_avisos-de-alarmas",
+      "breakpoints": true
     }
   ]
 }

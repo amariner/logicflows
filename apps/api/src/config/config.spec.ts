@@ -29,6 +29,24 @@ describe('configuración de la API', () => {
     });
   });
 
+  it('lee la cuenta de servicio de Firebase para los avisos (ADR-0015)', () => {
+    const account = {
+      type: 'service_account',
+      project_id: 'logicflows-avisos',
+      client_email: 'avisos@logicflows-avisos.iam.gserviceaccount.com',
+      private_key: '-----BEGIN PRIVATE KEY-----\nMIIE\n-----END PRIVATE KEY-----\n',
+    };
+    const config = validateConfig({ ...required, FCM_SERVICE_ACCOUNT: JSON.stringify(account) });
+    expect(config.FCM_SERVICE_ACCOUNT).toEqual({
+      project_id: account.project_id,
+      client_email: account.client_email,
+      private_key: account.private_key,
+    });
+    expect(
+      validateConfig({ ...required, FCM_SERVICE_ACCOUNT: '' }).FCM_SERVICE_ACCOUNT,
+    ).toBeUndefined();
+  });
+
   it('admite varios orígenes para CORS', () => {
     const config = validateConfig({
       ...required,
@@ -88,6 +106,14 @@ describe('configuración de la API', () => {
     ['un nivel de registro desconocido', { ...required, LOG_LEVEL: 'verbose' }],
     ['un broker que no es MQTT', { ...required, MQTT_URL: 'http://broker:1883' }],
     ['un identificador MQTT demasiado largo', { ...required, MQTT_CLIENT_ID: 'x'.repeat(65) }],
+    [
+      'una cuenta de servicio de Firebase que no es JSON',
+      { ...required, FCM_SERVICE_ACCOUNT: '{' },
+    ],
+    [
+      'una cuenta de servicio de Firebase incompleta',
+      { ...required, FCM_SERVICE_ACCOUNT: JSON.stringify({ project_id: 'x' }) },
+    ],
   ])('rechaza %s', (_case, env) => {
     expect(() => validateConfig(env)).toThrow('Configuración no válida');
   });
