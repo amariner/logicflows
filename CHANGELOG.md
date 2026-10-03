@@ -6,6 +6,7 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ### Añadido
 
+- **«Hoy» se actualiza solo** cada minuto en la vista de histórico (LF-87).
 - **Registro de estados y alarmas** (LF-84): `GET …/events` devuelve los cambios de estado, con sus alarmas y su duración, y los de conexión de un periodo. La vista de histórico los muestra.
 - **Vista de histórico en el visor** (LF-81): desde la tarjeta de cada célula, la producción de hoy, de 7 o de 30 días, con su disponibilidad, su rendimiento y las paradas por causa. Incluye un gráfico accesible con su tabla equivalente.
 - **Histórico e indicadores de planta en la API** (LF-80): `GET /api/v1/sites/{siteId}/cells/{cellId}/history` devuelve la producción, los tiempos, la disponibilidad, el rendimiento y las paradas por causa de un periodo, en total y por horas o por días en la zona horaria pedida. El ritmo nominal se configura con `NOMINAL_BOXES_PER_HOUR` y `NOMINAL_BOXES_PER_HOUR_BY_CELL`.

@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { routes } from '../../app.routes';
 import { RealtimeService } from '../../core/realtime/realtime.service';
+import { HISTORY_REFRESH_MS } from './history.page';
 import type { ConnectionState } from '../../core/realtime/realtime.service';
 import { testProviders } from '../../../testing/providers';
 import type { CellEvents, CellHistory, PeriodIndicators } from './history.types';
@@ -76,12 +77,13 @@ const HISTORY: CellHistory = {
   periods: [indicators()],
 };
 
-async function open(connection = signal<ConnectionState>('closed')) {
+async function open(connection = signal<ConnectionState>('closed'), refreshMs = 60_000) {
   TestBed.configureTestingModule({
     providers: [
       ...testProviders(),
       provideRouter(routes),
       { provide: RealtimeService, useValue: { connection } },
+      { provide: HISTORY_REFRESH_MS, useValue: refreshMs },
     ],
   });
   const harness = await RouterTestingHarness.create();
@@ -169,5 +171,63 @@ describe('página del histórico', () => {
     await harness.fixture.whenStable();
     http.expectOne((candidate) => candidate.url === URL).flush(HISTORY);
     flushEvents(http);
+  });
+
+  describe('actualización de «Hoy» (LF-87)', () => {
+    const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    it('con «Hoy», se vuelve a pedir sola sin mostrar «Cargando»', async () => {
+      const { harness, http } = await open(signal<ConnectionState>('open'), 30);
+      http.expectOne((candidate) => candidate.url === URL).flush(HISTORY);
+      flushEvents(http);
+      await harness.fixture.whenStable();
+      await wait(80);
+      const refresh = http
+        .match((candidate) => candidate.url === URL)
+        .filter((request) => !request.cancelled);
+      expect(refresh).toHaveLength(1);
+      expect(text(harness)).not.toContain('Cargando');
+      expect(text(harness)).toContain('Paradas por causa');
+      for (const request of refresh) {
+        request.flush({ ...HISTORY, summary: indicators({ boxes: 900 }) });
+      }
+      for (const request of http.match((candidate) => candidate.url === EVENTS_URL)) {
+        if (!request.cancelled) {
+          request.flush(EVENTS);
+        }
+      }
+      await harness.fixture.whenStable();
+      expect(text(harness)).toContain('900');
+      harness.fixture.destroy();
+      http.match(() => true);
+    });
+
+    it('un fallo al actualizar no borra lo que se ve', async () => {
+      const { harness, http } = await open(signal<ConnectionState>('open'), 30);
+      http.expectOne((candidate) => candidate.url === URL).flush(HISTORY);
+      flushEvents(http);
+      await harness.fixture.whenStable();
+      await wait(80);
+      for (const request of http.match((candidate) => candidate.url === URL)) {
+        if (!request.cancelled) {
+          request.flush('error', { status: 500, statusText: 'Error' });
+        }
+      }
+      http.match((candidate) => candidate.url === EVENTS_URL);
+      await harness.fixture.whenStable();
+      expect(text(harness)).toContain('Paradas por causa');
+      expect(text(harness)).not.toContain('No se pudo cargar');
+      harness.fixture.destroy();
+      http.match(() => true);
+    });
+
+    it('sin conexión, o con 7 días, no se actualiza', async () => {
+      const { harness, http } = await open(signal<ConnectionState>('closed'), 20);
+      http.expectOne((candidate) => candidate.url === URL).flush(HISTORY);
+      flushEvents(http);
+      await harness.fixture.whenStable();
+      await wait(80);
+      http.expectNone((candidate) => candidate.url === URL);
+    });
   });
 });
