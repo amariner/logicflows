@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "877427356285",
+    "project_id": "logicflows-fc609",
+    "storage_bucket": "logicflows-fc609.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:877427356285:android:405e1e90560e7adf627714",
+        "android_client_info": {
+          "package_name": "io.github.amariner.logicflows"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDCj4AUNykORK7qd7gtNbwf1ClA-xh2GyA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
