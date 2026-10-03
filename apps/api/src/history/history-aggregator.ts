@@ -7,7 +7,7 @@ import { Gauge } from 'prom-client';
 import type { AppConfig } from '../config/config.ts';
 import { METRIC_PREFIX, MetricsService } from '../metrics/metrics.service.ts';
 import { HistoryRepository } from './history.repository.ts';
-import { summarizeHour } from './hour-summary.ts';
+import { HOUR_MS, summarizeHour } from './hour-summary.ts';
 
 /** Horas que se recalculan como mucho en cada pasada. */
 const BATCH = 200;
@@ -67,10 +67,14 @@ export class HistoryAggregator implements OnModuleInit, OnModuleDestroy {
           const production = await repository.hourProduction(pending);
           await repository.saveHour(
             pending,
-            summarizeHour({ ...timeline, ...production }),
+            summarizeHour({ ...timeline, ...production, until: computedFrom.getTime() }),
             computedFrom,
           );
-          await repository.clearPending(pending, computedFrom);
+          // Una hora que no ha terminado sigue pendiente: se completa en las
+          // siguientes pasadas, aunque la célula no envíe nada más.
+          if (computedFrom.getTime() >= pending.hour.getTime() + HOUR_MS) {
+            await repository.clearPending(pending, computedFrom);
+          }
           processed++;
         }
       });
