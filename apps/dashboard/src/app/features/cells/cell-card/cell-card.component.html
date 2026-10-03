@@ -40,6 +40,11 @@
     @if (view.componentsLabel !== null) {
       <p class="components" data-testid="components">{{ view.componentsLabel }}</p>
     }
+    @let day = today() ?? noSummary;
+    <p class="today" data-testid="today">
+      Hoy: <strong>{{ day.boxes }}</strong> cajas · disponibilidad
+      <strong>{{ day.availability }}</strong>
+    </p>
     <ion-button
       class="history-link"
       fill="clear"

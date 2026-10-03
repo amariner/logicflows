@@ -34,6 +34,13 @@ describe('tarjeta de célula', () => {
     expect(link?.getAttribute('aria-label')).toBe('Histórico de cell-01');
   });
 
+  it('muestra lo que lleva hoy la célula, o «—» sin datos (LF-91)', async () => {
+    const card = await render(buildCellView());
+    expect(
+      card.querySelector('[data-testid="today"]')?.textContent.replace(/\s+/g, ' ').trim(),
+    ).toBe('Hoy: — cajas · disponibilidad —');
+  });
+
   it('en estado normal no destaca la tarjeta', async () => {
     const card = await render(buildCellView());
     expect(card.querySelector('ion-card')?.classList.contains('attention')).toBe(false);

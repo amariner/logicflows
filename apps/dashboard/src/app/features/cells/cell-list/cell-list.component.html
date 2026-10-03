@@ -3,7 +3,7 @@
 } @else {
   <ul class="grid">
     @for (cell of cells(); track cell.id) {
-      <li><app-cell-card [cell]="cell" /></li>
+      <li><app-cell-card [cell]="cell" [today]="today().get(cell.id) ?? null" /></li>
     }
   </ul>
 }
