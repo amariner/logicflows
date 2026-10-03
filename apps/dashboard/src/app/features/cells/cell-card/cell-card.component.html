@@ -40,5 +40,15 @@
     @if (view.componentsLabel !== null) {
       <p class="components" data-testid="components">{{ view.componentsLabel }}</p>
     }
+    <ion-button
+      class="history-link"
+      fill="clear"
+      size="small"
+      [routerLink]="['/cells', view.siteId, view.cellId, 'history']"
+      [attr.aria-label]="'Histórico de ' + view.cellId"
+    >
+      <ion-icon slot="start" aria-hidden="true" name="bar-chart-sharp" />
+      Histórico
+    </ion-button>
   </ion-card-content>
 </ion-card>

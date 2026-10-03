@@ -79,11 +79,65 @@ export const CELLS: CellSnapshot[] = [
 
 const API = 'http://api.test';
 
+const hourly = (hour: number, boxes: number) => ({
+  from: `2026-10-05T${String(hour).padStart(2, '0')}:00:00.000Z`,
+  to: `2026-10-05T${String(hour + 1).padStart(2, '0')}:00:00.000Z`,
+  boxes,
+  pallets: Math.floor(boxes / 40),
+  seconds: {
+    total: 3600,
+    noData: 0,
+    outOfProduction: 0,
+    planned: 3600,
+    running: 3300,
+    stopped: 300,
+  },
+  availability: 3300 / 3600,
+  performance: boxes / 825,
+  stops: [
+    { cause: 'FAULT', alarmCode: 'ROB-001', seconds: 240, count: 1 },
+    { cause: 'STARVED', alarmCode: null, seconds: 60, count: 2 },
+  ],
+  alarms: { CRITICAL: 0, HIGH: 1, MEDIUM: 0, LOW: 0 },
+});
+
+/** Histórico de una célula (LF-80): ocho horas de un turno. */
+export const HISTORY = {
+  siteId: 'demo',
+  cellId: 'cell-01',
+  from: '2026-10-05T06:00:00.000Z',
+  to: '2026-10-05T14:00:00.000Z',
+  resolution: 'hour',
+  timeZone: 'Europe/Madrid',
+  nominalBoxesPerHour: 900,
+  summary: {
+    ...hourly(6, 6000),
+    to: '2026-10-05T14:00:00.000Z',
+    seconds: {
+      total: 28_800,
+      noData: 0,
+      outOfProduction: 0,
+      planned: 28_800,
+      running: 26_400,
+      stopped: 2400,
+    },
+    performance: 6000 / 6600,
+    stops: [
+      { cause: 'FAULT', alarmCode: 'ROB-001', seconds: 1920, count: 8 },
+      { cause: 'STARVED', alarmCode: null, seconds: 480, count: 16 },
+    ],
+  },
+  periods: [690, 750, 800, 420, 760, 810, 780, 990].map((boxes, index) => hourly(6 + index, boxes)),
+};
+
 /** Simula la API: configuración, estado por REST y canal de tiempo real. */
 export async function mockApi(page: Page): Promise<void> {
   await page.route('**/config.json', (route) => route.fulfill({ json: { apiUrl: API } }));
   await page.route(`${API}/api/v1/cells`, (route) =>
     route.fulfill({ json: CELLS, headers: { 'access-control-allow-origin': '*' } }),
+  );
+  await page.route(/\/api\/v1\/sites\/[^/]+\/cells\/[^/]+\/history\?/, (route) =>
+    route.fulfill({ json: HISTORY, headers: { 'access-control-allow-origin': '*' } }),
   );
   await page.routeWebSocket(`ws://api.test/realtime`, (socket) => {
     socket.send(JSON.stringify({ type: 'snapshot', cells: CELLS }));

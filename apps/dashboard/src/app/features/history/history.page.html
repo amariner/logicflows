@@ -1,0 +1,101 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button routerLink="/cells" routerDirection="back" aria-label="Volver a las células">
+        <ion-icon slot="icon-only" aria-hidden="true" name="arrow-back-sharp" />
+      </ion-button>
+    </ion-buttons>
+    <ion-title>Histórico</ion-title>
+    <ion-buttons slot="end">
+      <app-connection-status [state]="connection()" />
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <!-- Región enfocable: permite desplazar el contenido con el teclado (WCAG 2.1.1). -->
+  <section class="history" tabindex="0" aria-label="Histórico">
+    <h1 class="cell">
+      {{ cellId }} <span>· Planta {{ siteId }}</span>
+    </h1>
+    <div class="periods" role="group" aria-label="Periodo">
+      @for (period of periods; track period.value) {
+        <ion-button
+          size="small"
+          [fill]="period.value === choice() ? 'solid' : 'outline'"
+          [attr.aria-pressed]="period.value === choice()"
+          (click)="select(period.value)"
+        >
+          {{ period.label }}
+        </ion-button>
+      }
+    </div>
+
+    @let current = state();
+    @if (current.kind === 'loading') {
+      <p class="message" role="status">Cargando el histórico…</p>
+    } @else if (current.kind === 'error') {
+      <div class="message" role="alert">
+        <p>{{ current.message }}</p>
+        <ion-button fill="outline" (click)="reload()">Reintentar</ion-button>
+      </div>
+    } @else {
+      @let view = current.view;
+      @if (view.empty) {
+        <p class="message">No hay datos de la célula en este periodo.</p>
+      }
+      <section aria-labelledby="indicators-title">
+        <h2 id="indicators-title">Indicadores</h2>
+        <dl class="kpis">
+          <div>
+            <dt>Disponibilidad</dt>
+            <dd data-testid="availability">{{ view.availability }}</dd>
+          </div>
+          <div>
+            <dt>Rendimiento</dt>
+            <dd data-testid="performance">{{ view.performance }}</dd>
+          </div>
+          <div>
+            <dt>Cajas</dt>
+            <dd data-testid="history-boxes">{{ view.boxes }}</dd>
+          </div>
+          <div>
+            <dt>Pallets</dt>
+            <dd>{{ view.pallets }}</dd>
+          </div>
+        </dl>
+        <p class="note">
+          En producción {{ view.running }} de {{ view.planned }} planificadas · sin datos
+          {{ view.noData }} · ritmo nominal {{ view.nominal }}
+        </p>
+      </section>
+
+      <section aria-label="Producción">
+        <app-bar-chart
+          [title]="view.chartTitle"
+          [summary]="view.chartSummary"
+          [bars]="view.bars"
+          [max]="view.chartMax"
+        />
+      </section>
+
+      <section aria-labelledby="stops-title">
+        <h2 id="stops-title">Paradas por causa</h2>
+        @if (view.stops.length === 0) {
+          <p>Sin paradas en el periodo.</p>
+        } @else {
+          <ul class="stops">
+            @for (stop of view.stops; track stop.label) {
+              <li data-testid="stop">
+                <p>
+                  <strong>{{ stop.label }}</strong> · {{ stop.duration }} · {{ stop.count }}
+                </p>
+                <span class="stop-bar" aria-hidden="true" [style.width.%]="stop.ratio * 100"></span>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    }
+  </section>
+</ion-content>

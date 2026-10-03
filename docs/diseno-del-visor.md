@@ -50,6 +50,15 @@ Las alarmas activas aparecen **justo debajo del estado**, ordenadas de más a me
 
 Unidades siempre escritas. Cuando falta un dato se muestra «—», nunca un cero que pueda confundirse con un valor real.
 
+## Histórico
+
+La página de histórico de una célula (LF-81) sigue los mismos principios:
+
+- **Periodo** con tres botones (Hoy, 7 días, 30 días). El elegido se marca relleno y con `aria-pressed`.
+- **Indicadores** en la misma rejilla y con el mismo tamaño que los de producción. Si no están definidos, «—» (docs/indicadores-de-planta.md).
+- **Gráfico de barras** en el tono informativo, sin colores de alarma: la producción no es una anomalía. Muestra el máximo arriba y el primer y último periodo debajo. Tiene un resumen para lectores de pantalla y una tabla equivalente desplegable.
+- **Paradas** con el texto primero y una barra en el tono de aviso, proporcional a la parada más larga.
+
 ## Tipografía
 
 | Uso | Tamaño | Peso |

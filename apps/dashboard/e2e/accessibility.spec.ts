@@ -37,6 +37,49 @@ for (const colorScheme of ['light', 'dark'] as const) {
 }
 
 for (const colorScheme of ['light', 'dark'] as const) {
+  for (const [name, viewport] of Object.entries(VIEWPORTS)) {
+    test(`el histórico no tiene infracciones de WCAG 2.2 AA en ${name}, tema ${colorScheme === 'light' ? 'claro' : 'oscuro'}`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({ colorScheme });
+      await page.setViewportSize(viewport);
+      await page.goto('/cells/demo/cell-01/history');
+      await expect(page.getByText('Paradas por causa')).toBeVisible();
+      // La tabla equivalente al gráfico también se revisa.
+      await page.getByText('Ver los datos en una tabla').click();
+      await expect(page.getByRole('table')).toBeVisible();
+
+      const { violations } = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+      expect(violations.map((violation) => `${violation.id}: ${violation.help}`)).toEqual([]);
+    });
+  }
+}
+
+test.describe('navegación al histórico', () => {
+  // Las peticiones del service worker no pasan por la API simulada.
+  test.use({ serviceWorkers: 'block' });
+
+  test('desde la tarjeta de una célula se llega a su histórico', async ({ page }) => {
+    await page.goto('/cells');
+    await page.getByRole('link', { name: 'Histórico de cell-01' }).click();
+    await expect(page).toHaveURL(/\/cells\/demo\/cell-01\/history$/);
+    await expect(page.getByRole('heading', { name: 'Indicadores' })).toBeVisible();
+  });
+});
+
+test('el histórico se reajusta a 320 px sin desplazamiento horizontal (WCAG 1.4.10)', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 320, height: 640 });
+  await page.goto('/cells/demo/cell-01/history');
+  await expect(page.getByText('Paradas por causa')).toBeVisible();
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+});
+
+for (const colorScheme of ['light', 'dark'] as const) {
   test(`los valores y las alarmas usan el color principal del texto, tema ${colorScheme === 'light' ? 'claro' : 'oscuro'}`, async ({
     page,
   }) => {
