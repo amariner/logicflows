@@ -2,7 +2,7 @@
 
 Plataforma IIoT para monitorizar en tiempo real células robotizadas de paletizado: estado de la máquina, producción y alarmas, desde la web y desde el móvil.
 
-> **Estado:** [`v0.2.0`](CHANGELOG.md) publicada: **Hito 2 · Sistema desplegado**, en producción en Railway. Siguiente: **Hito 3 · App Android (demo)**.
+> **Estado:** [`v0.3.0`](CHANGELOG.md) publicada: **Hito 3 · App Android (demo)**, en producción en Railway y con el APK firmado en su [release](https://github.com/amariner/logicflows/releases/tag/v0.3.0). Siguiente: entrega del **Hito 4 · Histórico y análisis** (`v0.4.0`).
 
 <p>
   <img src="docs/imagenes/visor-escritorio.png" alt="Visor de LogicFlows en escritorio, tema oscuro: la célula cell-01 produciendo, con el contador de cajas, pallets, capa, ritmo y tiempo de ciclo" width="68%">
@@ -206,7 +206,7 @@ El workflow [Imágenes](.github/workflows/imagenes.yml) publica las cinco imáge
 | Etiqueta `vX.Y.Z` | `vX.Y.Z`, asignada a las imágenes ya publicadas de ese commit sin recompilar |
 
 ```sh
-docker pull ghcr.io/amariner/logicflows-api:v0.2.0
+docker pull ghcr.io/amariner/logicflows-api:v0.3.0
 ```
 
 Una versión solo puede salir de imágenes construidas y probadas en `main`: si el commit de la etiqueta no tiene imágenes publicadas, la promoción falla. Las pull requests no publican nada. Las imágenes son públicas, como el repositorio, y se descargan sin credenciales. No contienen secretos: toda la configuración entra por variables de entorno al arrancar.
@@ -249,7 +249,7 @@ TypeScript está fijado en la versión 6.0 porque Angular 22 y typescript-eslint
 ## Documentación
 
 - [Registro de cambios](CHANGELOG.md)
-- Guiones de la demo: [Hito 1, en local](docs/demo.md), [Hito 2, en producción](docs/demo-hito-2.md) y [Hito 4, histórico](docs/demo-hito-4.md)
+- Guiones de la demo: [Hito 1, en local](docs/demo.md), [Hito 2, en producción](docs/demo-hito-2.md), [Hito 3, app Android](docs/demo-hito-3.md) y [Hito 4, histórico](docs/demo-hito-4.md)
 - [Decisiones de arquitectura (ADR)](docs/adr/README.md)
 - [Despliegue en Railway: servicios, configuración, secretos y rotación](docs/despliegue.md)
 - [Indicadores de planta: disponibilidad, rendimiento y paradas por causa](docs/indicadores-de-planta.md)

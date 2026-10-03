@@ -4,8 +4,26 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ## [Sin publicar]
 
+## [0.3.0] - 2026-10-04
+
+**Hito 3 · App Android (demo).** El visor llega al móvil como app Android generada desde el mismo código: inicia sesión en el navegador del sistema, avisa de las alarmas graves aunque esté cerrada y se publica firmada en cada versión. Probada en un móvil real contra producción.
+
+Esta versión incluye también el histórico del Hito 4 (indicadores de planta, registro de estados y alarmas y descarga en CSV), que ya está en producción. Su entrega formal, con las copias de seguridad activadas, será `v0.4.0`.
+
 ### Añadido
 
+- **App Android** con Capacitor (ADR-0002, LF-65): identificador `io.github.amariner.logicflows`, iconos derivados de la PWA y la configuración de producción dentro del APK. La CI compila el APK de depuración en cada pull request.
+- **APK firmado en cada versión** (ADR-0014, LF-67): cada etiqueta `vX.Y.Z` compila el APK de release, lo firma con la clave del entorno `android-release` y lo adjunta a su release de GitHub con su SHA-256 y la huella del certificado. El `versionCode` se deriva de la etiqueta (`v0.3.0` → 300). Sin la clave, el flujo falla y no publica un APK sin firmar.
+- **Inicio de sesión en la app** (LF-68, RFC 8252): en el navegador del sistema, nunca en la vista web, con vuelta a la app por su esquema propio y PKCE. La sesión sobrevive a que Android cierre la app mientras el inicio de sesión está en el navegador (LF-75).
+- **Avisos de alarmas en el móvil** (ADR-0015, LF-69):
+  - Las alarmas `CRITICAL` y `HIGH` y la parada de emergencia generan un aviso de Firebase Cloud Messaging, aunque la app esté cerrada.
+  - Se avisa una vez por activación, también con varias réplicas o mensajes repetidos.
+  - El aviso solo lleva la gravedad, la planta y la célula; nunca el texto de la alarma ni datos de producción.
+  - La app pide permiso tras iniciar sesión y los avisos se pueden desactivar desde el menú.
+  - `POST` y `DELETE /api/v1/push/devices` registran y dan de baja cada dispositivo.
+- **Comportamiento de app** (LF-70): el botón atrás retrocede y, en la pantalla inicial, cierra la app; la app no registra el service worker de la PWA.
+- **Vuelta del segundo plano**, también en el navegador (LF-70): si la conexión estaba cerrada o pasaron más de 30 segundos, el visor recarga el estado y reconecta sin esperar.
+- **Prueba de la app en un emulador Android** en cada pull request (LF-74): comprueba que la vista web carga sin errores y que el inicio de sesión se abre en el navegador del sistema.
 - **Resumen de hoy en cada tarjeta** del panel de estado: cajas y disponibilidad desde la medianoche (LF-91).
 - **Descargar el histórico en CSV** desde la vista de histórico, también en la app Android (LF-88).
 - **«Hoy» se actualiza solo** cada minuto en la vista de histórico (LF-87).
@@ -21,8 +39,19 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ### Corregido
 
+- El visor no arrancaba en vistas web anteriores a Chrome 120, que no tienen `URL.canParse`. Una regla de ESLint lo impide desde ahora (LF-74).
+- Tras iniciar sesión, el visor volvía siempre a la lista de células en lugar de a la página pedida (LF-86).
+- Railway apply terminaba antes que los despliegues, y la prueba de producción podía probar la versión anterior (LF-73).
+- La API no avisa al móvil de alarmas antiguas, por ejemplo al cargar histórico simulado (LF-77).
 - El broker solo guardaba 1 000 mensajes para la API mientras estaba caída o desplegándose, y descartaba el resto sin avisar. Ahora guarda 50 000, suficientes para la hora de su sesión persistente con unas 20 células (LF-90).
 - El histórico, el registro y la producción de una célula con datos guardados, pero sin estado en tiempo real, respondían 404 (LF-85).
+
+### Limitaciones conocidas
+
+- La app Android se distribuye como APK en las releases de GitHub, no en Google Play: hay que permitir la instalación de apps desconocidas (ADR-0014).
+- Las copias de seguridad están preparadas pero no activadas en producción: la retención del dato en bruto sigue apagada hasta activarlas (LF-82).
+- El visor web puede mostrar una vez «No se puede contactar con el servicio de inicio de sesión» al abrirse; **Reintentar** lo resuelve (LF-92).
+- Los textos dicen «Pallets» en lugar de «palés» (LF-93).
 
 ## [0.2.0] - 2026-10-02
 
@@ -119,6 +148,7 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 - La API mantiene el estado en memoria y no admite aún varias réplicas: cada instancia necesitaría su propio identificador de cliente MQTT.
 - La rama `main` no tiene protección técnica: la exige una decisión pendiente sobre la visibilidad del repositorio.
 
-[Sin publicar]: https://github.com/amariner/logicflows/compare/v0.2.0...HEAD
+[Sin publicar]: https://github.com/amariner/logicflows/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/amariner/logicflows/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/amariner/logicflows/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/amariner/logicflows/releases/tag/v0.1.0
