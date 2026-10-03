@@ -64,6 +64,33 @@ const configSchema = z.object({
   /** Días que se conservan los cambios de estado y de conexión (ADR-0016: 365). 0, siempre. */
   HISTORY_EVENTS_RETENTION_DAYS: z.coerce.number().int().min(0).max(3_650).default(0),
   /**
+   * Ritmo nominal de las células, en cajas por hora: la base del rendimiento
+   * (docs/indicadores-de-planta.md). 900 es el de la célula simulada.
+   */
+  NOMINAL_BOXES_PER_HOUR: z.coerce.number().positive().default(900),
+  /**
+   * Ritmo nominal de las células que no siguen el general, como
+   * `demo/cell-02=1200,demo/cell-03=600`.
+   */
+  NOMINAL_BOXES_PER_HOUR_BY_CELL: z
+    .string()
+    .default('')
+    .transform((value, context) => {
+      const rates: Record<string, number> = {};
+      for (const entry of value.split(',').map((item) => item.trim())) {
+        if (entry === '') {
+          continue;
+        }
+        const match = /^([a-z0-9-]{1,32}\/[a-z0-9-]{1,32})=(\d+(?:\.\d+)?)$/.exec(entry);
+        if (match?.[1] === undefined || Number(match[2]) <= 0) {
+          context.addIssue({ code: 'custom', message: `entrada no válida: ${entry}` });
+          return z.NEVER;
+        }
+        rates[match[1]] = Number(match[2]);
+      }
+      return rates;
+    }),
+  /**
    * Proxies de confianza delante de la API (balanceador de la plataforma). Con
    * 0 se usa la dirección de la conexión; con 1, la que añade el proxy en
    * X-Forwarded-For. Es necesario para limitar por cliente y no por proxy.

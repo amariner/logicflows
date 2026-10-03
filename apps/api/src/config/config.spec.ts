@@ -27,6 +27,8 @@ describe('configuración de la API', () => {
       HISTORY_AGGREGATION_INTERVAL_MS: 30_000,
       HISTORY_RAW_RETENTION_DAYS: 0,
       HISTORY_EVENTS_RETENTION_DAYS: 0,
+      NOMINAL_BOXES_PER_HOUR: 900,
+      NOMINAL_BOXES_PER_HOUR_BY_CELL: {},
       TRUST_PROXY_HOPS: 0,
       CORS_ORIGINS: ['http://localhost:4200'],
     });
@@ -48,6 +50,20 @@ describe('configuración de la API', () => {
     expect(
       validateConfig({ ...required, FCM_SERVICE_ACCOUNT: '' }).FCM_SERVICE_ACCOUNT,
     ).toBeUndefined();
+  });
+
+  it('lee el ritmo nominal propio de algunas células', () => {
+    const config = validateConfig({
+      ...required,
+      NOMINAL_BOXES_PER_HOUR_BY_CELL: 'demo/cell-02=1200, demo/cell-03=600.5',
+    });
+    expect(config.NOMINAL_BOXES_PER_HOUR_BY_CELL).toEqual({
+      'demo/cell-02': 1200,
+      'demo/cell-03': 600.5,
+    });
+    expect(() =>
+      validateConfig({ ...required, NOMINAL_BOXES_PER_HOUR_BY_CELL: 'cell-02:1200' }),
+    ).toThrow(/entrada no válida/);
   });
 
   it('admite varios orígenes para CORS', () => {

@@ -5,12 +5,9 @@ import { sql } from 'drizzle-orm';
 import { DATABASE } from '../database/database.module.ts';
 import type { Database } from '../database/database.module.ts';
 import { cellStateChanges, cellStatusEvents, telemetrySamples } from '../database/schema.ts';
+import { rawProduction } from '../history/production.query.ts';
+import type { ProductionTotals } from '../history/production.query.ts';
 import { stateFromRow, statusFromRow, telemetryFromRow, toRow } from './mappers.ts';
-
-export interface ProductionTotals {
-  readonly boxes: number;
-  readonly pallets: number;
-}
 
 const keyOf = (siteId: string, cellId: string) => `${siteId}/${cellId}`;
 
@@ -114,38 +111,13 @@ export class TelemetryRepository {
     return [...cells.values()];
   }
 
-  /**
-   * Cajas y pallets producidos en [from, to). Suma las diferencias entre
-   * muestras consecutivas de cada sesión (ADR-0004): la primera muestra de una
-   * sesión y un contador que disminuye (reinicio) cuentan desde cero.
-   */
+  /** Cajas y pallets producidos en [from, to), leídos del dato en bruto. */
   async production(
     siteId: string,
     cellId: string,
     from: Date,
     to: Date,
   ): Promise<ProductionTotals> {
-    const result = await this.db.execute<{ boxes: string | null; pallets: string | null }>(sql`
-      with samples as (
-        select
-          source_timestamp,
-          boxes_total,
-          pallets_total,
-          lag(boxes_total) over session_order as previous_boxes,
-          lag(pallets_total) over session_order as previous_pallets
-        from ${telemetrySamples}
-        where site_id = ${siteId} and cell_id = ${cellId} and source_timestamp < ${to}
-        window session_order as (partition by session_id order by seq)
-      )
-      select
-        sum(case when previous_boxes is null or boxes_total < previous_boxes
-                 then boxes_total else boxes_total - previous_boxes end) as boxes,
-        sum(case when previous_pallets is null or pallets_total < previous_pallets
-                 then pallets_total else pallets_total - previous_pallets end) as pallets
-      from samples
-      where source_timestamp >= ${from}
-    `);
-    const row = result.rows[0];
-    return { boxes: Number(row?.boxes ?? 0), pallets: Number(row?.pallets ?? 0) };
+    return rawProduction(this.db, siteId, cellId, from, to);
   }
 }

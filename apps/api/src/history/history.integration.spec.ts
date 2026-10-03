@@ -1,3 +1,5 @@
+import type { Server } from 'node:http';
+
 import type { INestApplication } from '@nestjs/common';
 import type { Alarm } from '@logicflows/contract';
 import {
@@ -9,6 +11,7 @@ import {
 import mqtt from 'mqtt';
 import type { MqttClient } from 'mqtt';
 import type { Pool, QueryResultRow } from 'pg';
+import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type { ConfigService } from '@nestjs/config';
@@ -18,7 +21,9 @@ import type { AppConfig } from '../config/config.ts';
 import { DATABASE, POOL } from '../database/database.module.ts';
 import type { Database } from '../database/database.module.ts';
 import { MqttIngestionService } from '../ingestion/mqtt-ingestion.service.ts';
+import { TelemetryRepository } from '../persistence/telemetry.repository.ts';
 import { createApp } from '../testing/app.ts';
+import { testIssuer } from '../testing/auth.ts';
 import {
   API_PASSWORD,
   SIMULATOR_PASSWORD,
@@ -29,6 +34,7 @@ import {
 import type { TestBroker } from '../testing/broker.ts';
 import { startDatabase } from '../testing/database.ts';
 import { HistoryAggregator } from './history-aggregator.ts';
+import { HistoryService } from './history.service.ts';
 import { RetentionService } from './retention.service.ts';
 
 const SESSION_A = testUuid(30);
@@ -43,13 +49,14 @@ const rob: Alarm = {
   raisedAt: at('09:20'),
 };
 
-describe('histórico agregado por hora (LF-79)', () => {
+describe('histórico agregado por hora (LF-79, LF-80)', () => {
   let broker: TestBroker;
   let database: Awaited<ReturnType<typeof startDatabase>>;
   let app: INestApplication;
   let publisher: MqttClient;
   let pool: Pool;
   let id = 5000;
+  let token: string;
 
   const publish = (kind: string, message: object) =>
     publisher.publishAsync(`logicflows/v1/demo/${CELL}/${kind}`, JSON.stringify(message), {
@@ -98,6 +105,7 @@ describe('histórico agregado por hora (LF-79)', () => {
       HISTORY_AGGREGATION_INTERVAL_MS: '3600000',
     });
     pool = app.get<Pool>(POOL);
+    token = await (await testIssuer()).token();
     await waitFor(() => app.get(MqttIngestionService).connected);
     publisher = await mqtt.connectAsync(broker.url, {
       protocolVersion: 5,
@@ -214,6 +222,88 @@ describe('histórico agregado por hora (LF-79)', () => {
     expect((await hourRow(at('09:00')))?.boxes).toBe(370);
   });
 
+  it('la producción de un periodo coincide con la calculada en bruto', async () => {
+    const service = app.get(HistoryService);
+    const raw = app.get(TelemetryRepository);
+    for (const [from, to] of [
+      ['08:00', '11:00'],
+      ['08:30', '09:40'],
+      ['09:15', '09:35'],
+    ] as const) {
+      const range = [CELL, new Date(at(from)), new Date(at(to))] as const;
+      expect(await service.production('demo', ...range)).toEqual(
+        await raw.production('demo', ...range),
+      );
+    }
+  });
+
+  it('GET …/history devuelve los indicadores del periodo y de cada hora', async () => {
+    const response = await request(app.getHttpServer() as Server)
+      .get(`/api/v1/sites/demo/cells/${CELL}/history`)
+      .set('Authorization', `Bearer ${token}`)
+      .query({ from: at('08:00'), to: at('11:00') })
+      .expect(200);
+    const body = response.body as {
+      summary: Record<string, unknown>;
+      periods: { from: string; boxes: number; seconds: { total: number } }[];
+    };
+    expect(body).toMatchObject({
+      siteId: 'demo',
+      cellId: CELL,
+      resolution: 'hour',
+      timeZone: 'UTC',
+      nominalBoxesPerHour: 900,
+    });
+    // 08:00: sin datos hasta las 08:55 y en producción después.
+    expect(body.summary).toEqual({
+      from: at('08:00'),
+      to: at('11:00'),
+      boxes: 470,
+      pallets: 11,
+      seconds: {
+        total: 3 * 3600,
+        noData: 55 * 60,
+        outOfProduction: 30 * 60 + 3600,
+        planned: 25 * 60 + 10 * 60,
+        running: 25 * 60,
+        stopped: 10 * 60,
+      },
+      availability: 25 / 35,
+      performance: 470 / ((25 / 60) * 900),
+      stops: [{ cause: 'FAULT', alarmCode: 'ROB-001', seconds: 600, count: 1 }],
+      alarms: { CRITICAL: 0, HIGH: 1, MEDIUM: 0, LOW: 0 },
+    });
+    expect(body.periods.map((period) => [period.from, period.boxes])).toEqual([
+      [at('08:00'), 100],
+      [at('09:00'), 370],
+      [at('10:00'), 0],
+    ]);
+  });
+
+  it('con 90 días de agregados, el histórico de 30 días responde en menos de 300 ms', async () => {
+    await pool.query(`
+      insert into cell_hourly
+      select 'demo', 'cell-perf', hour, 800, 20,
+             '{"RUNNING": 3000, "FAULT": 300, "STOPPED": 300}',
+             '{"FAULT:ROB-001": {"seconds": 300, "count": 1}}',
+             '{"HIGH": 1}', hour + interval '1 hour'
+      from generate_series('2026-06-01T00:00:00Z'::timestamptz, '2026-08-29T23:00:00Z', '1 hour') as hour
+    `);
+    const service = app.get(HistoryService);
+    const query = {
+      from: new Date('2026-07-30T00:00:00Z'),
+      to: new Date('2026-08-29T00:00:00Z'),
+      timeZone: 'Europe/Madrid',
+    };
+    for (const resolution of ['hour', 'day'] as const) {
+      const started = performance.now();
+      const history = await service.history('demo', 'cell-perf', { ...query, resolution });
+      expect(performance.now() - started).toBeLessThan(300);
+      expect(history.summary.boxes).toBe(30 * 24 * 800);
+      expect(history.periods).toHaveLength(resolution === 'hour' ? 30 * 24 : 31);
+    }
+  });
+
   it('con retención, borra el dato en bruto antiguo y conserva el último de la célula', async () => {
     const count = async () =>
       Number(
@@ -242,7 +332,12 @@ describe('histórico agregado por hora (LF-79)', () => {
     expect(logged).toEqual([]);
     expect(deleted).toBe(4);
     expect(await count()).toBe(1);
-    // Los agregados no se tocan.
+    // Los agregados no se tocan, y la producción de las horas completas sale de ellos.
     expect((await hourRow(at('09:00')))?.boxes).toBe(370);
+    expect(
+      await app
+        .get(HistoryService)
+        .production('demo', CELL, new Date(at('08:00')), new Date(at('11:00'))),
+    ).toEqual({ boxes: 470, pallets: 11 });
   });
 });

@@ -4,6 +4,15 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ## [Sin publicar]
 
+### Añadido
+
+- **Histórico e indicadores de planta en la API** (LF-80): `GET /api/v1/sites/{siteId}/cells/{cellId}/history` devuelve la producción, los tiempos, la disponibilidad, el rendimiento y las paradas por causa de un periodo, en total y por horas o por días en la zona horaria pedida. El ritmo nominal se configura con `NOMINAL_BOXES_PER_HOUR` y `NOMINAL_BOXES_PER_HOUR_BY_CELL`.
+- **Histórico agregado por hora** (ADR-0016, LF-79), con retención configurable del dato en bruto.
+
+### Cambiado
+
+- La producción por periodo (`/production`) toma las horas completas del histórico agregado: cuesta lo mismo con 90 días de histórico que con uno y no depende de que se conserve el dato en bruto. El resultado no cambia.
+
 ## [0.2.0] - 2026-10-02
 
 **Hito 2 · Sistema desplegado.** LogicFlows funciona en Internet: producción en Railway con inicio de sesión, una célula de demostración en directo, despliegues por versión descritos como código, una previsualización por pull request bajo demanda y métricas con alertas.

@@ -16,6 +16,7 @@ Esqueleto operativo (LF-23), ingesta de telemetría (LF-26), canal de tiempo rea
 | `GET /api/v1/cells` | Estado actual de todas las células. |
 | `GET /api/v1/sites/{siteId}/cells/{cellId}` | Estado actual de una célula. |
 | `GET /api/v1/sites/{siteId}/cells/{cellId}/production?from&to` | Cajas y pallets producidos en un periodo. |
+| `GET /api/v1/sites/{siteId}/cells/{cellId}/history?from&to&resolution&timeZone` | Histórico e indicadores de planta, en total y por horas o por días. |
 | `POST /api/v1/realtime/tickets` | Tique de un solo uso para abrir el canal de tiempo real. |
 | `POST /api/v1/push/devices` | Registra el token de FCM del dispositivo para recibir avisos de alarmas ([ADR-0015](../../docs/adr/0015-avisos-de-alarmas-en-el-movil.md)). |
 | `DELETE /api/v1/push/devices` | Da de baja un dispositivo del usuario. |
@@ -69,6 +70,12 @@ Consultas bajo `/api/v1`: la versión mayor forma parte de la ruta.
 
 - **Estado actual:** la misma información que envía el canal de tiempo real (conexión, estado con alarmas y telemetría de cada célula).
 - **Producción:** cajas y pallets producidos en `[from, to)`, calculados por diferencias de contadores. `from` y `to` son fechas ISO 8601 con zona horaria; sin ellas, las últimas 24 horas. El rango máximo es de 31 días.
+- **Histórico e indicadores:** producción, tiempos, disponibilidad, rendimiento y paradas por causa en `[from, to)`, en total (`summary`) y por horas o por días (`periods`), con las definiciones de [indicadores de planta](../../docs/indicadores-de-planta.md).
+  - `from` y `to` son horas en punto; con `resolution=day`, medianoches de `timeZone` (zona IANA, UTC por defecto). Los días del cambio de hora tienen 23 o 25 horas.
+  - Sin fechas: las últimas 24 horas por horas, o los últimos 7 días por días, incluido el periodo en curso.
+  - Rango máximo: 31 días por horas y 366 por días.
+  - Se calcula con los agregados por hora: una hora sin agregado cuenta como tiempo sin datos y, de la hora en curso, solo lo ya agregado.
+  - El ritmo nominal es `NOMINAL_BOXES_PER_HOUR`, salvo las células de `NOMINAL_BOXES_PER_HOUR_BY_CELL`.
 - **Validación** con Zod: la planta y la célula siguen el formato del contrato y el rango se comprueba antes de consultar la base de datos.
 - **Errores** con el formato de RFC 9457 (*Problem Details*, `application/problem+json`) en toda la API: `type`, `title`, `status`, `detail`, `instance` y, en los errores de validación, `errors` con cada campo incorrecto. Los errores inesperados se registran y se responden sin detalles internos. Las comprobaciones de salud conservan el formato estándar de Terminus.
 - **OpenAPI:** los esquemas de respuesta se generan a partir del contrato, así que la documentación no puede divergir de los tipos.
@@ -76,6 +83,7 @@ Consultas bajo `/api/v1`: la versión mayor forma parte de la ruta.
 
 ```sh
 curl 'http://localhost:3000/api/v1/sites/demo/cells/cell-01/production?from=2026-10-05T06:00:00Z&to=2026-10-05T14:00:00Z'
+curl 'http://localhost:3000/api/v1/sites/demo/cells/cell-01/history?resolution=day&timeZone=Europe/Madrid'
 ```
 
 ## Persistencia
@@ -89,7 +97,7 @@ Acceso a datos con Drizzle ORM sobre `pg` ([ADR-0007](../../docs/adr/0007-acceso
 | `telemetry_samples` | Cada telemetría recibida, con sus contadores acumulados |
 
 - **Idempotencia:** cada tabla tiene una restricción única sobre la identidad del mensaje (planta, célula, sesión y secuencia) y se inserta con `ON CONFLICT DO NOTHING`. Un duplicado no se guarda dos veces aunque la API se reinicie.
-- **Producción por periodo:** `TelemetryRepository.production()` suma las diferencias entre muestras consecutivas de cada sesión con funciones de ventana. La primera muestra de una sesión y los reinicios de contadores cuentan desde cero.
+- **Producción por periodo:** suma las diferencias entre muestras consecutivas de cada sesión con funciones de ventana. La primera muestra de una sesión y los reinicios de contadores cuentan desde cero. Las horas completas salen del histórico agregado y el resto, del dato en bruto, leyendo solo el periodo y la muestra anterior de cada sesión (`HistoryService.production()`).
 - **Recuperación:** al arrancar, la información de tiempo real de cada célula se recupera de la base de datos.
 - **Cortes de conexión:** si PostgreSQL cierra una conexión inactiva, por ejemplo al reiniciarse, el pool la descarta, registra un aviso (`PostgreSQL cerró una conexión inactiva`) y abre otra cuando la necesita. Mientras la base de datos no responde, `/health/ready` devuelve 503 con `database: down`, pero la API sigue en marcha.
 - **Migraciones:** SQL versionado en `drizzle/`, generado a partir de `src/database/schema.ts` y aplicado automáticamente al arrancar. Para crear una migración tras cambiar el esquema:
@@ -153,6 +161,8 @@ Se valida al arrancar; un valor no válido detiene la API indicando qué variabl
 | `HISTORY_AGGREGATION_INTERVAL_MS` | `30000` | Cada cuánto se agregan las horas pendientes del histórico |
 | `HISTORY_RAW_RETENTION_DAYS` | `0` | Días de telemetría en bruto que se conservan; 0, sin límite |
 | `HISTORY_EVENTS_RETENTION_DAYS` | `0` | Días de cambios de estado y de conexión que se conservan; 0, sin límite |
+| `NOMINAL_BOXES_PER_HOUR` | `900` | Ritmo nominal de las células en cajas por hora, base del rendimiento |
+| `NOMINAL_BOXES_PER_HOUR_BY_CELL` | — | Ritmo nominal de células concretas, como `demo/cell-02=1200,demo/cell-03=600` |
 
 ## Varias instancias
 
@@ -182,6 +192,8 @@ El histórico se resume por célula y hora en `cell_hourly`: cajas, pallets, seg
   - **Idempotencia:** el resultado no depende de cuántas veces se calcule una hora.
   - **Un solo reloj:** las marcas y el inicio del cálculo usan el de PostgreSQL, así que un mensaje que llega mientras se calcula deja la hora pendiente.
 - **Producción de una hora.** La consulta solo lee las muestras de esa hora y la última anterior de cada sesión, no todo el histórico.
+- **Hora en curso.** Se resume hasta el momento del cálculo y sigue pendiente hasta que termina, así que se completa aunque la célula deje de enviar mensajes.
+- **Consultas.** `HistoryService` calcula los indicadores de cualquier periodo sumando sus horas. Con 90 días agregados, el histórico de 30 días responde en milisegundos (lo comprueba la prueba de integración).
 - **Retención.** `RetentionService` borra por lotes el dato en bruto más antiguo que `HISTORY_RAW_RETENTION_DAYS` (telemetría) y `HISTORY_EVENTS_RETENTION_DAYS` (estados y conexiones).
   - Conserva siempre el último mensaje de cada célula.
   - No borra mientras queden horas antiguas sin agregar.
