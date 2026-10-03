@@ -239,6 +239,14 @@ describe('histórico agregado por hora (LF-79, LF-80)', () => {
   it('un mensaje que llega tarde vuelve a marcar su hora, y recalcularla da el resultado correcto', async () => {
     await telemetry(SESSION_A, 3, '09:45', 450);
     await telemetry(SESSION_B, 0, '09:50', 20);
+    // Las dos guardadas antes de agregar: si llegara una después, volvería a
+    // marcar la hora y la retención esperaría.
+    await eventually(async () => {
+      const [row] = await query<{ n: string }>(
+        `select count(*) as n from telemetry_samples where cell_id = '${CELL}'`,
+      );
+      expect(Number(row?.n)).toBe(5);
+    });
     await eventually(async () => {
       expect(
         await query(`select 1 from cell_hourly_pending where cell_id = '${CELL}'`),
