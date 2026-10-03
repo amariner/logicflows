@@ -130,6 +130,73 @@ export const HISTORY = {
   periods: [690, 750, 800, 420, 760, 810, 780, 990].map((boxes, index) => hourly(6 + index, boxes)),
 };
 
+/** Registro de la célula (LF-84): fallo con alarmas, espera, producción y desconexión. */
+export const EVENTS = {
+  from: HISTORY.from,
+  to: HISTORY.to,
+  truncated: true,
+  events: [
+    {
+      kind: 'connection',
+      at: '2026-10-05T13:40:00.000Z',
+      state: null,
+      previousState: null,
+      event: null,
+      waitingReason: null,
+      alarms: [],
+      online: false,
+      durationSeconds: null,
+    },
+    {
+      kind: 'state',
+      at: '2026-10-05T13:10:00.000Z',
+      state: 'RUNNING',
+      previousState: 'FAULT',
+      event: 'started',
+      waitingReason: null,
+      alarms: [],
+      online: null,
+      durationSeconds: null,
+    },
+    {
+      kind: 'state',
+      at: '2026-10-05T12:50:00.000Z',
+      state: 'FAULT',
+      previousState: 'RUNNING',
+      event: 'fault',
+      waitingReason: null,
+      alarms: [
+        alarm('ROB-001', 'HIGH', 'Colisión del robot detectada'),
+        alarm('CONV-002', 'MEDIUM', 'Atasco en la cinta de entrada'),
+      ],
+      online: null,
+      durationSeconds: 1200,
+    },
+    {
+      kind: 'state',
+      at: '2026-10-05T12:30:00.000Z',
+      state: 'WAITING',
+      previousState: 'RUNNING',
+      event: 'starved',
+      waitingReason: 'STARVED',
+      alarms: [],
+      online: null,
+      durationSeconds: 1200,
+    },
+    {
+      kind: 'state',
+      at: '2026-10-05T12:00:00.000Z',
+      state: 'PAUSED',
+      previousState: 'RUNNING',
+      event: 'pause',
+      waitingReason: null,
+      alarms: [],
+      online: null,
+      durationSeconds: 1800,
+    },
+  ],
+};
+
 /** Simula la API: configuración, estado por REST y canal de tiempo real. */
 export async function mockApi(page: Page): Promise<void> {
   await page.route('**/config.json', (route) => route.fulfill({ json: { apiUrl: API } }));
@@ -138,6 +205,9 @@ export async function mockApi(page: Page): Promise<void> {
   );
   await page.route(/\/api\/v1\/sites\/[^/]+\/cells\/[^/]+\/history\?/, (route) =>
     route.fulfill({ json: HISTORY, headers: { 'access-control-allow-origin': '*' } }),
+  );
+  await page.route(/\/api\/v1\/sites\/[^/]+\/cells\/[^/]+\/events\?/, (route) =>
+    route.fulfill({ json: EVENTS, headers: { 'access-control-allow-origin': '*' } }),
   );
   await page.routeWebSocket(`ws://api.test/realtime`, (socket) => {
     socket.send(JSON.stringify({ type: 'snapshot', cells: CELLS }));

@@ -57,6 +57,7 @@ La página de histórico de una célula (LF-81) sigue los mismos principios:
 - **Periodo** con tres botones (Hoy, 7 días, 30 días). El elegido se marca relleno y con `aria-pressed`.
 - **Indicadores** en la misma rejilla y con el mismo tamaño que los de producción. Si no están definidos, «—» (docs/indicadores-de-planta.md).
 - **Gráfico de barras** en el tono informativo, sin colores de alarma: la producción no es una anomalía. Muestra el máximo arriba y el primer y último periodo debajo. Tiene un resumen para lectores de pantalla y una tabla equivalente desplegable.
+- **Registro de estados y alarmas:** una entrada por cambio, con hora, icono, estado y duración. Debajo, las alarmas activas con su severidad escrita, como en la tarjeta. Los colores son los del estado: el registro muestra lo que pasó, y el rojo sigue señalando fallos y paradas.
 - **Paradas** con el texto primero y una barra en el tono de aviso, proporcional a la parada más larga.
 
 ## Tipografía

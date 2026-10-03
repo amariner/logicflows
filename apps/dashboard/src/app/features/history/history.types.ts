@@ -1,4 +1,10 @@
-import type { AlarmSeverity } from '@logicflows/contract';
+import type {
+  Alarm,
+  AlarmSeverity,
+  CellEvent,
+  CellState,
+  WaitingReason,
+} from '@logicflows/contract';
 
 /** Resolución del histórico: por horas o por días. */
 export type Resolution = 'hour' | 'day';
@@ -41,4 +47,25 @@ export interface CellHistory {
   readonly nominalBoxesPerHour: number;
   readonly summary: PeriodIndicators;
   readonly periods: readonly PeriodIndicators[];
+}
+
+/** Un cambio de estado o de conexión, como lo devuelve la API (LF-84). */
+export interface CellEventDto {
+  readonly kind: 'state' | 'connection';
+  readonly at: string;
+  readonly state: CellState | null;
+  readonly previousState: CellState | null;
+  readonly event: CellEvent | null;
+  readonly waitingReason: WaitingReason | null;
+  readonly alarms: readonly Alarm[];
+  readonly online: boolean | null;
+  readonly durationSeconds: number | null;
+}
+
+/** Respuesta de `GET /api/v1/sites/{siteId}/cells/{cellId}/events`. */
+export interface CellEvents {
+  readonly from: string;
+  readonly to: string;
+  readonly truncated: boolean;
+  readonly events: readonly CellEventDto[];
 }

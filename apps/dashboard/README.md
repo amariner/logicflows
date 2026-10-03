@@ -27,6 +27,12 @@ Cada tarjeta enlaza con el histórico de su célula (`/cells/{siteId}/{cellId}/h
   - Solo hacen falta barras, y una librería de gráficos añadiría decenas de kilobytes.
   - Los colores salen de los tokens `--lf-tone-*`, así que sirven para el tema claro y el oscuro sin más configuración.
   - El SVG se oculta a los lectores de pantalla, que leen un resumen («6000 cajas en total. La hora con más producción…»). Debajo, «Ver los datos en una tabla» abre la tabla equivalente para cualquiera (WCAG 1.1.1 y 1.3.1).
+- **Registro de estados y alarmas** (LF-84), del más reciente al más antiguo:
+  - cada cambio de estado con su hora local, su duración y sus alarmas activas, de más a menos grave;
+  - los cambios de conexión;
+  - con el mismo icono, texto y color que el panel de estado.
+
+  Muestra los 200 eventos más recientes del periodo, y avisa si hay más.
 - **Paradas por causa,** de la más larga a la más corta, con su duración y sus veces. La barra de cada una es decorativa: el texto ya lo dice todo.
 - **Sin conexión,** indica que no hay datos del histórico y ofrece reintentar, y al recuperar la conexión vuelve a pedirlo.
 - Solo usa componentes de Ionic que ya están en el bundle inicial. `ion-segment`, el botón de volver y el *spinner* añadían 52 kB.

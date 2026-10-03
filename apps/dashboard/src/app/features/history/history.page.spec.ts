@@ -9,9 +9,40 @@ import { routes } from '../../app.routes';
 import { RealtimeService } from '../../core/realtime/realtime.service';
 import type { ConnectionState } from '../../core/realtime/realtime.service';
 import { testProviders } from '../../../testing/providers';
-import type { CellHistory, PeriodIndicators } from './history.types';
+import type { CellEvents, CellHistory, PeriodIndicators } from './history.types';
 
 const URL = 'http://api.test/api/v1/sites/demo/cells/cell-01/history';
+const EVENTS_URL = 'http://api.test/api/v1/sites/demo/cells/cell-01/events';
+
+const EVENTS: CellEvents = {
+  from: '2026-10-05T06:00:00.000Z',
+  to: '2026-10-05T07:00:00.000Z',
+  truncated: false,
+  events: [
+    {
+      kind: 'state',
+      at: '2026-10-05T06:20:00.000Z',
+      state: 'FAULT',
+      previousState: 'RUNNING',
+      event: 'fault',
+      waitingReason: null,
+      alarms: [
+        {
+          code: 'ROB-001',
+          severity: 'HIGH',
+          message: 'Colisión del robot detectada',
+          raisedAt: '2026-10-05T06:20:00.000Z',
+        },
+      ],
+      online: null,
+      durationSeconds: 360,
+    },
+  ],
+};
+
+const flushEvents = (http: HttpTestingController) => {
+  http.expectOne((candidate) => candidate.url === EVENTS_URL).flush(EVENTS);
+};
 
 const indicators = (values: Partial<PeriodIndicators> = {}): PeriodIndicators => ({
   from: '2026-10-05T06:00:00.000Z',
@@ -73,6 +104,7 @@ describe('página del histórico', () => {
     const request = http.expectOne((candidate) => candidate.url === URL);
     expect(request.request.params.get('resolution')).toBe('hour');
     request.flush(HISTORY);
+    flushEvents(http);
     await harness.fixture.whenStable();
     const page = root(harness);
     expect(page.querySelector('[data-testid="availability"]')?.textContent).toBe('90 %');
@@ -81,11 +113,16 @@ describe('página del histórico', () => {
     expect(page.querySelector('.plot')?.getAttribute('aria-label')).toContain('810 cajas en total');
     expect(page.querySelectorAll('tbody tr')).toHaveLength(1);
     expect(page.querySelector('[data-testid="stop"]')?.textContent).toContain('Fallo ROB-001');
+    const event = page.querySelector('[data-testid="event"]');
+    expect(event?.textContent).toContain('Fallo');
+    expect(event?.textContent).toContain('durante 6 min');
+    expect(event?.textContent).toContain('Alta · ROB-001 · Colisión del robot detectada');
   });
 
   it('al elegir 7 días, pide el histórico por días', async () => {
     const { harness, http } = await open();
     http.expectOne((candidate) => candidate.url === URL).flush(HISTORY);
+    flushEvents(http);
     await harness.fixture.whenStable();
     const week = [...root(harness).querySelectorAll('ion-button')].find(
       (button) => button.textContent.trim() === '7 días',
@@ -96,6 +133,7 @@ describe('página del histórico', () => {
     expect(request.request.params.get('resolution')).toBe('day');
     expect(week?.getAttribute('aria-pressed')).toBe('true');
     request.flush({ ...HISTORY, resolution: 'day' });
+    flushEvents(http);
   });
 
   it('sin conexión, indica que no hay datos y permite reintentar', async () => {
@@ -103,11 +141,14 @@ describe('página del histórico', () => {
     http
       .expectOne((candidate) => candidate.url === URL)
       .error(new ProgressEvent('error'), { status: 0 });
+    // forkJoin cancela la otra petición al fallar una.
+    http.expectOne((candidate) => candidate.url === EVENTS_URL);
     await harness.fixture.whenStable();
     expect(text(harness)).toContain('Sin conexión con la API: no hay datos del histórico.');
     root(harness).querySelector<HTMLElement>('[role="alert"] ion-button')?.click();
     await harness.fixture.whenStable();
     http.expectOne((candidate) => candidate.url === URL).flush(HISTORY);
+    flushEvents(http);
     await harness.fixture.whenStable();
     expect(text(harness)).toContain('Paradas por causa');
   });
@@ -118,13 +159,15 @@ describe('página del histórico', () => {
     http
       .expectOne((candidate) => candidate.url === URL)
       .flush('error', { status: 500, statusText: 'Error' });
+    http.expectOne((candidate) => candidate.url === EVENTS_URL);
     await harness.fixture.whenStable();
     expect(text(harness)).toContain('No se pudo cargar el histórico.');
-    http.expectNone((candidate) => candidate.url === URL);
+    http.expectNone((candidate) => candidate.url === URL || candidate.url === EVENTS_URL);
     connection.set('closed');
     await harness.fixture.whenStable();
     connection.set('open');
     await harness.fixture.whenStable();
     http.expectOne((candidate) => candidate.url === URL).flush(HISTORY);
+    flushEvents(http);
   });
 });
