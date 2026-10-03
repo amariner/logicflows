@@ -3,10 +3,11 @@ import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { routes } from '../../app.routes';
 import { RealtimeService } from '../../core/realtime/realtime.service';
+import { FileExport } from './history-export';
 import { HISTORY_REFRESH_MS } from './history.page';
 import type { ConnectionState } from '../../core/realtime/realtime.service';
 import { testProviders } from '../../../testing/providers';
@@ -77,9 +78,13 @@ const HISTORY: CellHistory = {
   periods: [indicators()],
 };
 
+const files = { save: vi.fn<FileExport['save']>().mockResolvedValue(undefined) };
+
 async function open(connection = signal<ConnectionState>('closed'), refreshMs = 60_000) {
+  files.save.mockClear();
   TestBed.configureTestingModule({
     providers: [
+      { provide: FileExport, useValue: files },
       ...testProviders(),
       provideRouter(routes),
       { provide: RealtimeService, useValue: { connection } },
@@ -171,6 +176,20 @@ describe('página del histórico', () => {
     await harness.fixture.whenStable();
     http.expectOne((candidate) => candidate.url === URL).flush(HISTORY);
     flushEvents(http);
+  });
+
+  it('descarga el periodo en CSV (LF-88)', async () => {
+    const { harness, http } = await open();
+    http.expectOne((candidate) => candidate.url === URL).flush(HISTORY);
+    flushEvents(http);
+    await harness.fixture.whenStable();
+    root(harness).querySelector<HTMLElement>('[data-testid="download"]')?.click();
+    await harness.fixture.whenStable();
+    expect(files.save).toHaveBeenCalledWith(
+      'historico-demo-cell-01-2026-10-05-horas.csv',
+      expect.stringContaining('Desde;Hasta;Cajas'),
+      'text/csv;charset=utf-8',
+    );
   });
 
   describe('actualización de «Hoy» (LF-87)', () => {

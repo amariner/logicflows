@@ -27,6 +27,7 @@ Cada tarjeta enlaza con el histórico de su célula (`/cells/{siteId}/{cellId}/h
   - Solo hacen falta barras, y una librería de gráficos añadiría decenas de kilobytes.
   - Los colores salen de los tokens `--lf-tone-*`, así que sirven para el tema claro y el oscuro sin más configuración.
   - El SVG se oculta a los lectores de pantalla, que leen un resumen («6000 cajas en total. La hora con más producción…»). Debajo, «Ver los datos en una tabla» abre la tabla equivalente para cualquiera (WCAG 1.1.1 y 1.3.1).
+- **Descargar en CSV** (LF-88): una fila por hora o por día del periodo, con cajas, pallets, tiempos e indicadores, para una hoja de cálculo en español: `;` como separador, decimales con coma y UTF-8 con BOM. En el navegador se descarga; en la app Android se guarda en la caché y se abre el menú de compartir del sistema (`@capacitor/filesystem` y `@capacitor/share`).
 - **Registro de estados y alarmas** (LF-84), del más reciente al más antiguo:
   - cada cambio de estado con su hora local, su duración y sus alarmas activas, de más a menos grave;
   - los cambios de conexión;

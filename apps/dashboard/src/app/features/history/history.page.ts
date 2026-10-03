@@ -22,7 +22,7 @@ import {
   IonToolbar,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { arrowBackSharp } from 'ionicons/icons';
+import { arrowBackSharp, downloadSharp } from 'ionicons/icons';
 import { EMPTY, Subject, catchError, forkJoin, map, of, startWith, switchMap } from 'rxjs';
 
 import { ConnectionStatusComponent } from '../../core/connection-status/connection-status.component';
@@ -32,6 +32,9 @@ import { EventsLogComponent } from './events-log/events-log.component';
 import { toEventsView } from './events-view';
 import type { EventsView } from './events-view';
 import { HistoryApi } from './history.api';
+import { historyCsvName, toHistoryCsv } from './history-csv';
+import { FileExport } from './history-export';
+import type { CellHistory } from './history.types';
 import { toHistoryView } from './history-view';
 import type { HistoryView } from './history-view';
 import { deviceTimeZone, periodQuery } from './period';
@@ -51,7 +54,12 @@ interface Request {
 type PageState =
   | { readonly kind: 'loading' }
   | { readonly kind: 'error'; readonly message: string }
-  | { readonly kind: 'ready'; readonly view: HistoryView; readonly events: EventsView };
+  | {
+      readonly kind: 'ready';
+      readonly history: CellHistory;
+      readonly view: HistoryView;
+      readonly events: EventsView;
+    };
 
 const PERIODS: readonly { readonly value: PeriodChoice; readonly label: string }[] = [
   { value: 'today', label: 'Hoy' },
@@ -85,6 +93,7 @@ const PERIODS: readonly { readonly value: PeriodChoice; readonly label: string }
 })
 export class HistoryPage {
   readonly #api = inject(HistoryApi);
+  readonly #files = inject(FileExport);
   readonly #params = inject(ActivatedRoute).snapshot.paramMap;
   readonly #requests = new Subject<Request>();
   protected readonly siteId = this.#params.get('siteId') ?? '';
@@ -95,7 +104,7 @@ export class HistoryPage {
   protected readonly connection = inject(RealtimeService).connection;
 
   constructor() {
-    addIcons({ arrowBackSharp });
+    addIcons({ arrowBackSharp, downloadSharp });
     this.#requests
       .pipe(
         switchMap(({ choice, silent }) => {
@@ -106,6 +115,7 @@ export class HistoryPage {
           }).pipe(
             map(({ history, events }): PageState => ({
               kind: 'ready',
+              history,
               view: toHistoryView(history),
               events: toEventsView(events, query.timeZone),
             })),
@@ -137,6 +147,19 @@ export class HistoryPage {
       this.choice.set(choice);
       this.reload();
     }
+  }
+
+  /** Descarga el periodo que se está viendo en CSV (LF-88). */
+  protected async download(): Promise<void> {
+    const current = this.state();
+    if (current.kind !== 'ready') {
+      return;
+    }
+    await this.#files.save(
+      historyCsvName(current.history),
+      toHistoryCsv(current.history),
+      'text/csv;charset=utf-8',
+    );
   }
 
   protected reload(): void {
