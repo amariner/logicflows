@@ -1,5 +1,6 @@
 import { Injectable, inject, makeEnvironmentProviders, signal } from '@angular/core';
 import type { EnvironmentProviders } from '@angular/core';
+import { Router } from '@angular/router';
 import type { CanActivateFn } from '@angular/router';
 import {
   AbstractSecurityStorage,
@@ -21,6 +22,23 @@ import { APP_URL_SCHEME, NATIVE_AUTH_BRIDGE } from '../native/native-auth-bridge
 /** Vuelta del proveedor a la app Android tras iniciar o cerrar sesión (LF-68). */
 export const APP_LOGIN_CALLBACK = `${APP_URL_SCHEME}:/callback`;
 export const APP_LOGOUT_CALLBACK = `${APP_URL_SCHEME}:/logout`;
+
+/** Página que se pidió antes de ir al inicio de sesión (LF-86). */
+const RETURN_PATH_KEY = 'logicflows.volver-tras-iniciar-sesion';
+
+/**
+ * La ruta si es del propio visor: empieza por una sola barra, sin barras
+ * invertidas ni esquema. Evita que el retorno lleve a otro sitio.
+ */
+export function safeReturnPath(value: string | null): string | null {
+  if (value === null || value.length > 512 || !value.startsWith('/')) {
+    return null;
+  }
+  if (value.startsWith('//') || value.includes('\\') || /^\/[a-z][a-z0-9+.-]*:/i.test(value)) {
+    return null;
+  }
+  return value;
+}
 
 /** Última URL de arranque ya usada para iniciar sesión: no se reutiliza. */
 const HANDLED_LAUNCH_URL_KEY = 'logicflows.inicio-de-sesion';
@@ -53,6 +71,9 @@ export function openIdConfiguration(
     ignoreNonceAfterRefresh: true,
     secureRoutes: [config.apiUrl],
     logLevel: LogLevel.Warn,
+    // Tras volver del proveedor, la librería no navega por su cuenta (iría a
+    // «/»): la guarda de la ruta lleva a la página que se pidió (LF-86).
+    triggerAuthorizationResultEvent: true,
   };
 }
 
@@ -132,9 +153,36 @@ export class AuthService {
    * Comprueba la sesión, también al volver del proveedor tras iniciarla. Sin
    * sesión redirige al inicio de sesión y devuelve `false`. Se evalúa una vez.
    */
-  ensureSession(): Promise<boolean> {
-    this.#session ??= this.#checkSession();
+  ensureSession(requestedPath?: string): Promise<boolean> {
+    this.#session ??= this.#checkSession(requestedPath);
     return this.#session;
+  }
+
+  /**
+   * La página que se pidió antes de iniciar sesión, si era otra (LF-86). Se
+   * devuelve una sola vez.
+   */
+  takeReturnPath(): string | null {
+    try {
+      const path = safeReturnPath(sessionStorage.getItem(RETURN_PATH_KEY));
+      sessionStorage.removeItem(RETURN_PATH_KEY);
+      return path;
+    } catch {
+      return null;
+    }
+  }
+
+  #rememberReturnPath(path: string | undefined): void {
+    const safe = safeReturnPath(path ?? null);
+    try {
+      if (safe === null) {
+        sessionStorage.removeItem(RETURN_PATH_KEY);
+      } else {
+        sessionStorage.setItem(RETURN_PATH_KEY, safe);
+      }
+    } catch {
+      // Sin almacenamiento, tras iniciar sesión se vuelve a la página principal.
+    }
   }
 
   async accessToken(): Promise<string | null> {
@@ -153,7 +201,7 @@ export class AuthService {
     this.#oidc.logoff().subscribe();
   }
 
-  async #checkSession(): Promise<boolean> {
+  async #checkSession(requestedPath?: string): Promise<boolean> {
     if (!this.enabled) {
       return true;
     }
@@ -179,6 +227,11 @@ export class AuthService {
       this.#acceptSession(result.userData);
       return true;
     }
+    // El componente raíz comprueba la sesión antes que la guarda de la ruta:
+    // sin ruta, se toma la dirección actual.
+    this.#rememberReturnPath(
+      requestedPath ?? (this.#native.native ? undefined : `${location.pathname}${location.search}`),
+    );
     if (this.#native.native) {
       return new Promise<boolean>((resolve) => {
         this.#pendingLogin = resolve;
@@ -261,5 +314,16 @@ export class AuthService {
   }
 }
 
-/** Las vistas del visor requieren sesión cuando hay proveedor de identidad. */
-export const sessionGuard: CanActivateFn = () => inject(AuthService).ensureSession();
+/**
+ * Las vistas del visor requieren sesión cuando hay proveedor de identidad.
+ * Tras iniciarla, se vuelve a la página que se había pedido (LF-86).
+ */
+export const sessionGuard: CanActivateFn = async (_route, state) => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  if (!(await auth.ensureSession(state.url))) {
+    return false;
+  }
+  const path = auth.takeReturnPath();
+  return path !== null && path !== state.url ? router.parseUrl(path) : true;
+};
