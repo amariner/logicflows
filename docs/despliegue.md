@@ -182,6 +182,52 @@ API_PASSWORD=... KEYCLOAK_PASSWORD=... \
 
 Necesita la [CLI de Railway](https://docs.railway.com/cli) con sesión iniciada y `jq`.
 
+## Copias de seguridad
+
+Según [ADR-0017](adr/0017-copias-de-seguridad.md):
+
+| Qué | Cuándo | Retención | Dónde |
+|---|---|---|---|
+| Volcado lógico de `logicflows` y `keycloak` (`pg_dump`, formato comprimido) | A diario, 03:00 UTC | 30 días | Bucket privado de Railway, `<base>/<fecha UTC>.dump` |
+| Restauración de prueba del último volcado | A diario, 05:00 UTC | — | PostgreSQL desechable dentro de un servicio temporal |
+| Instantáneas del volumen de PostgreSQL | Diarias y semanales | La de Railway | Copias nativas de Railway |
+
+**Las piezas:**
+
+- **Imagen:** `logicflows-backup` (etapa `backup` del Dockerfile), con `pg_dump` 18 y rclone.
+- **Volcado:** `infra/copias/copiar.sh`. Borra las copias de más de 30 días después de subir la nueva, así que un fallo nunca deja el bucket vacío.
+- **Prueba:** `infra/copias/probar-restauracion.sh`. Falla si falta la copia de alguna base de datos, si la última tiene 26 horas o más, o si no se restaura. Al terminar escribe cuánto ha tardado cada base de datos.
+- **CI:** `infra/copias/prueba-local.sh` prueba las dos con Docker, un PostgreSQL y un bucket S3 de prueba en cada pull request (trabajo *Copias de seguridad*).
+
+**Variables:**
+
+- **Conexión:** las de libpq (`PGHOST`, `PGUSER`, `PGPASSWORD`), con un usuario que lea las dos bases de datos. En Railway, el administrador por referencia, como en `ejecutar-sql.sh`.
+- **Bucket:** `COPIAS_S3_ENDPOINT`, `COPIAS_S3_BUCKET`, `COPIAS_S3_ACCESS_KEY_ID`, `COPIAS_S3_SECRET_ACCESS_KEY` y, opcionalmente, `COPIAS_S3_REGION`. Se pasan por referencia al bucket de Railway.
+- **Opcionales:** `COPIAS_BASES`, `COPIAS_RETENCION_DIAS` y `COPIAS_ANTIGUEDAD_MAXIMA_HORAS`.
+
+### Activación en producción (Tech Lead)
+
+El bucket, el servicio programado y las instantáneas tienen coste, así que los aprueba el Tech Lead:
+
+1. Revisar el coste con la tarifa de Railway y anotarlo aquí. Con el tamaño actual, decenas de megabytes, se espera que sea de céntimos al mes.
+2. Fusionar la pull request que añade a `.railway/railway.ts`:
+   - el bucket `copias`;
+   - el servicio programado `copias` (imagen `logicflows-backup`, `cronSchedule: '0 3 * * *'`);
+   - `backupSchedules` en el volumen de PostgreSQL.
+
+   *Railway apply* los crea al fusionarla.
+3. Activar el flujo de la restauración de prueba diaria y comprobar la primera ejecución. Anotar aquí el tiempo de restauración.
+4. Con una semana de pruebas en verde, activar la retención del dato en bruto (`HISTORY_RAW_RETENTION_DAYS=30` y `HISTORY_EVENTS_RETENTION_DAYS=365`, ADR-0016).
+
+### Recuperar la base de datos
+
+- **Del último día, el servidor entero:** restaurar la instantánea del volumen desde Railway (servicio `Postgres` → *Backups* → *Restore*). Railway prepara el cambio y se aplica con *Deploy*. Sustituye todos los datos del volumen.
+- **De una fecha concreta, o solo una base de datos:** restaurar su volcado con `pg_restore --clean --if-exists` en un servicio temporal de la red privada, como hace `ejecutar-sql.sh`. Antes:
+  - parar la API (o Keycloak, si es su base de datos), para que no escriba mientras tanto;
+  - hacer un volcado del estado actual, por si hay que volver atrás.
+
+Después de recuperar, la API vuelve a recibir el estado actual de las células. Las horas posteriores a la copia quedan sin datos.
+
 ## Rotación de credenciales
 
 El [procedimiento de Keycloak](../infra/keycloak/README.md#alta-y-primer-acceso-en-producción-lf-48) describe el alta de usuarios, la comprobación del primer acceso al visor, la recuperación de un intento de identificación caducado y la sustitución del administrador temporal.

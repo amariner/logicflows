@@ -34,7 +34,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [api, simulator, dashboard, broker, identity]
+        app: [api, simulator, dashboard, broker, identity, backup]
     steps:
       - uses: actions/checkout@v7
 
@@ -80,7 +80,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        app: [api, simulator, dashboard, broker, identity]
+        app: [api, simulator, dashboard, broker, identity, backup]
     steps:
       - uses: docker/setup-buildx-action@v4
 
