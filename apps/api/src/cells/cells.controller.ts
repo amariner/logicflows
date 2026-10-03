@@ -116,7 +116,7 @@ export class CellController {
     @Param(new ZodValidationPipe(cellParamsSchema)) params: CellParams,
     @Query(new ZodValidationPipe(productionQuerySchema())) query: ProductionQuery,
   ): Promise<ProductionResponse> {
-    this.#find(params);
+    await this.#ensureKnown(params);
     const totals = await this.history.production(
       params.siteId,
       params.cellId,
@@ -152,7 +152,7 @@ export class CellController {
     @Param(new ZodValidationPipe(cellParamsSchema)) params: CellParams,
     @Query(new ZodValidationPipe(historyQuerySchema())) query: HistoryQuery,
   ): Promise<HistoryResponse> {
-    this.#find(params);
+    await this.#ensureKnown(params);
     const history = await this.history.history(params.siteId, params.cellId, query);
     return {
       siteId: params.siteId,
@@ -165,10 +165,27 @@ export class CellController {
     };
   }
 
-  #find({ siteId, cellId }: CellParams): CellSnapshot {
-    const cell = this.store
+  /**
+   * El histórico existe aunque la célula no tenga estado en tiempo real, como
+   * una célula cargada con histórico simulado (LF-85).
+   */
+  async #ensureKnown(params: CellParams): Promise<void> {
+    if (
+      this.#lookup(params) === undefined &&
+      !(await this.history.hasData(params.siteId, params.cellId))
+    ) {
+      throw new NotFoundException(`No hay datos de la célula ${params.siteId}/${params.cellId}`);
+    }
+  }
+
+  #lookup({ siteId, cellId }: CellParams): CellSnapshot | undefined {
+    return this.store
       .snapshot()
       .find((candidate) => candidate.siteId === siteId && candidate.cellId === cellId);
+  }
+
+  #find({ siteId, cellId }: CellParams): CellSnapshot {
+    const cell = this.#lookup({ siteId, cellId });
     if (cell === undefined) {
       throw new NotFoundException(`No hay datos de la célula ${siteId}/${cellId}`);
     }
