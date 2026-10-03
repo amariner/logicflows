@@ -24,6 +24,7 @@ Un ADR aceptado no se reescribe. Si la decisión cambia, se crea un ADR nuevo qu
 | [0014](0014-distribucion-de-la-app-android.md) | Distribución de la app Android de demostración | Aceptado |
 | [0015](0015-avisos-de-alarmas-en-el-movil.md) | Avisos de alarmas en el móvil | Aceptado |
 | [0016](0016-almacenamiento-del-historico.md) | Almacenamiento y retención del histórico | Aceptado |
+| [0017](0017-copias-de-seguridad.md) | Copias de seguridad de PostgreSQL | Aceptado |
 
 ## Estados
 

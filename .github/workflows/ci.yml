@@ -72,6 +72,18 @@ jobs:
       - name: Pruebas de integración
         run: pnpm test:integration
 
+  backups:
+    name: Copias de seguridad
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      # Volcado y restauración de prueba con un PostgreSQL y un bucket S3 de
+      # prueba (ADR-0017).
+      - name: Probar el volcado y la restauración
+        run: infra/copias/prueba-local.sh
+
   accessibility:
     name: Accesibilidad
     runs-on: ubuntu-24.04

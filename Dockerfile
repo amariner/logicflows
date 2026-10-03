@@ -7,6 +7,7 @@
 # incluida (ADR-0010):
 #   docker build --target broker -t logicflows-broker .
 #   docker build --target identity -t logicflows-identity .
+#   docker build --target backup -t logicflows-backup .
 # La variante de Keycloak de las previsualizaciones lleva un usuario de prueba
 # (ADR-0012):
 #   docker build --target identity-preview -t logicflows-identity:preview .
@@ -119,3 +120,14 @@ FROM identity AS identity-preview
 COPY --from=identity-preview-realm /realm/logicflows.json /opt/keycloak/data/import/realm-logicflows.json
 ENTRYPOINT ["/bin/bash", "-c", "if [ -z \"$LOGICFLOWS_E2E_PASSWORD\" ]; then echo 'Falta LOGICFLOWS_E2E_PASSWORD' >&2; exit 1; fi; exec /opt/keycloak/bin/kc.sh \"$@\"", "kc.sh"]
 CMD ["start", "--optimized", "--import-realm"]
+
+# Copias de seguridad de PostgreSQL (ADR-0017): pg_dump y pg_restore de la
+# misma versión que el servidor, y rclone para el bucket. Por defecto hace el
+# volcado diario; la restauración de prueba es probar-restauracion.sh.
+FROM postgres:18.6 AS backup
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates rclone \
+  && rm -rf /var/lib/apt/lists/*
+COPY infra/copias/s3.sh infra/copias/copiar.sh infra/copias/probar-restauracion.sh /opt/copias/
+ENTRYPOINT []
+CMD ["/opt/copias/copiar.sh"]
