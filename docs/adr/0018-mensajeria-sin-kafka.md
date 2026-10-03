@@ -57,7 +57,7 @@ Con el Hito 4 ya hay mediciones para cada una:
 ## Consecuencias
 
 - **La arquitectura no cambia:** célula → MQTT → API → PostgreSQL.
-- **El broker es la cola.** Su capacidad (`max_queued_messages`) se revisa cuando crezca el número de células, y se vigila con las métricas del broker (ADR-0013).
+- **El broker es la cola.** Su capacidad (`max_queued_messages`) se revisa cuando crezca el número de células. No hace falta una métrica de la cola: solo crece mientras la API está desconectada, justo cuando la API no puede publicar métricas. Lo que la vigila es la alerta «API sin responder» (ADR-0013), que salta mucho antes de la hora que cubre la cola.
 - **Releer más allá de 30 días** no será posible cuando se active la retención del dato en bruto. Se acepta: los agregados por hora y los cambios de estado de 365 días cubren el análisis del Hito 4.
 
 ## Criterios de revisión
