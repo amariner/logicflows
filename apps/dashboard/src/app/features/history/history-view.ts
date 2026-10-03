@@ -1,3 +1,5 @@
+import type { AlarmSeverity } from '@logicflows/contract';
+
 import type { CellHistory, PeriodIndicators, Resolution, StopCause } from './history.types';
 
 const MISSING = '—';
@@ -35,6 +37,8 @@ export interface HistoryView {
   readonly planned: string;
   readonly noData: string;
   readonly nominal: string;
+  /** Alarmas activadas en el periodo, de más a menos grave: «2 altas · 1 media». */
+  readonly alarms: string;
   /** No hay ningún dato en todo el periodo. */
   readonly empty: boolean;
   readonly chartTitle: string;
@@ -54,6 +58,22 @@ const STOP_LABELS: Readonly<Record<StopCause, string>> = {
   FAULT: 'Fallo',
   EMERGENCY_STOP: 'Parada de emergencia',
 };
+
+const SEVERITY_NAMES: readonly [AlarmSeverity, string, string][] = [
+  ['CRITICAL', 'crítica', 'críticas'],
+  ['HIGH', 'alta', 'altas'],
+  ['MEDIUM', 'media', 'medias'],
+  ['LOW', 'baja', 'bajas'],
+];
+
+/** Alarmas por gravedad, como «2 altas · 1 media»; sin ninguna, «ninguna». */
+export function formatAlarms(alarms: Readonly<Record<AlarmSeverity, number>>): string {
+  const parts = SEVERITY_NAMES.filter(([severity]) => alarms[severity] > 0).map(
+    ([severity, one, many]) =>
+      `${integer.format(alarms[severity])} ${alarms[severity] === 1 ? one : many}`,
+  );
+  return parts.length === 0 ? 'ninguna' : parts.join(' · ');
+}
 
 /** Una fracción como porcentaje; sin definir, «—». */
 export const formatRatio = (value: number | null): string =>
@@ -136,6 +156,7 @@ export function toHistoryView(history: CellHistory): HistoryView {
     planned: formatDuration(summary.seconds.planned),
     noData: formatDuration(summary.seconds.noData),
     nominal: `${integer.format(history.nominalBoxesPerHour)} cajas/h`,
+    alarms: formatAlarms(summary.alarms),
     empty: summary.seconds.noData >= summary.seconds.total,
     chartTitle: `Cajas por ${unit}`,
     chartSummary,

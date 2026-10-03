@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatDuration, formatRatio, toHistoryView } from './history-view';
+import { formatAlarms, formatDuration, formatRatio, toHistoryView } from './history-view';
 import type { CellHistory, PeriodIndicators } from './history.types';
 
 const period = (from: string, to: string, values: Partial<PeriodIndicators> = {}) =>
@@ -73,6 +73,7 @@ describe('presentación del histórico', () => {
       planned: '7 h',
       noData: '0 s',
       nominal: '900 cajas/h',
+      alarms: 'ninguna',
       empty: false,
     });
   });
@@ -146,5 +147,11 @@ describe('presentación del histórico', () => {
     expect(formatDuration(90_000)).toBe('25 h');
     expect(formatRatio(null)).toBe('—');
     expect(formatRatio(0.8974)).toBe('89,7\u00a0%');
+  });
+
+  it('resume las alarmas por gravedad, de más a menos grave', () => {
+    expect(formatAlarms({ CRITICAL: 1, HIGH: 2, MEDIUM: 0, LOW: 1 })).toBe(
+      '1 crítica · 2 altas · 1 baja',
+    );
   });
 });
