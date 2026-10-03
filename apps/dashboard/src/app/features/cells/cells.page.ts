@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  InjectionToken,
+  computed,
+  effect,
+  inject,
+  untracked,
+} from '@angular/core';
 import {
   IonButtons,
   IonContent,
@@ -13,6 +22,12 @@ import { RealtimeService } from '../../core/realtime/realtime.service';
 import { CellListComponent } from './cell-list/cell-list.component';
 import { EmergencyBannerComponent } from './emergency-banner/emergency-banner.component';
 import { toCellView } from './cell-view';
+import { TodaySummaries } from './today-summary';
+
+/** Cada cuánto se actualiza el resumen de hoy de las tarjetas (LF-91). */
+export const TODAY_REFRESH_MS = new InjectionToken<number>('TODAY_REFRESH_MS', {
+  factory: () => 300_000,
+});
 
 /** Página de las células con su producción en tiempo real. */
 @Component({
@@ -43,4 +58,33 @@ export class CellsPage {
   protected readonly cells = computed(() =>
     this.#realtime.cells().map((snapshot) => toCellView(snapshot)),
   );
+  readonly #today = inject(TodaySummaries);
+  protected readonly today = this.#today.summaries;
+
+  constructor() {
+    // Al aparecer una célula nueva se pide su resumen sin esperar.
+    const ids = computed(() =>
+      this.cells()
+        .map((cell) => cell.id)
+        .join(','),
+    );
+    effect(() => {
+      ids();
+      untracked(() => {
+        this.#refreshToday();
+      });
+    });
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        this.#refreshToday();
+      }
+    }, inject(TODAY_REFRESH_MS));
+    inject(DestroyRef).onDestroy(() => {
+      clearInterval(timer);
+    });
+  }
+
+  #refreshToday(): void {
+    this.#today.refresh(this.cells());
+  }
 }

@@ -25,6 +25,8 @@ import {
 } from 'ionicons/icons';
 
 import type { CellView } from '../cell-view';
+import { NO_SUMMARY } from '../today-summary';
+import type { TodaySummary } from '../today-summary';
 import { ProductionIndicatorsComponent } from '../production-indicators/production-indicators.component';
 
 /**
@@ -52,6 +54,9 @@ import { ProductionIndicatorsComponent } from '../production-indicators/producti
 })
 export class CellCardComponent {
   readonly cell = input.required<CellView>();
+  /** Lo que lleva hoy la célula; sin datos, «—» (LF-91). */
+  readonly today = input<TodaySummary | null>(null);
+  protected readonly noSummary = NO_SUMMARY;
 
   constructor() {
     addIcons({
