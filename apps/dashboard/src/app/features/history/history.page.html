@@ -72,6 +72,16 @@
       </section>
 
       <section aria-label="Producción">
+        <ion-button
+          class="download"
+          fill="outline"
+          size="small"
+          data-testid="download"
+          (click)="download()"
+        >
+          <ion-icon slot="start" aria-hidden="true" name="download-sharp" />
+          Descargar en CSV
+        </ion-button>
         <app-bar-chart
           [title]="view.chartTitle"
           [summary]="view.chartSummary"
