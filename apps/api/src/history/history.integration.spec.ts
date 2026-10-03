@@ -295,6 +295,17 @@ describe('histórico agregado por hora (LF-79, LF-80)', () => {
       to: new Date('2026-08-29T00:00:00Z'),
       timeZone: 'Europe/Madrid',
     };
+    // Sin estado en tiempo real, pero con histórico: responde igualmente (LF-85).
+    await request(app.getHttpServer() as Server)
+      .get('/api/v1/sites/demo/cells/cell-perf/history')
+      .set('Authorization', `Bearer ${token}`)
+      .query({ from: '2026-08-01T00:00:00Z', to: '2026-08-02T00:00:00Z' })
+      .expect(200);
+    await request(app.getHttpServer() as Server)
+      .get('/api/v1/sites/demo/cells/cell-nada/history')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(404)
+      .expect('Content-Type', /application\/problem\+json/);
     for (const resolution of ['hour', 'day'] as const) {
       const started = performance.now();
       const history = await service.history('demo', 'cell-perf', { ...query, resolution });

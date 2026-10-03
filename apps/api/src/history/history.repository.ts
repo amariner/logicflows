@@ -268,4 +268,19 @@ export class HistoryRepository {
       );
     return { boxes: Number(row?.boxes ?? 0), pallets: Number(row?.pallets ?? 0) };
   }
+
+  /**
+   * Si hay datos guardados de la célula: agregados o mensajes en bruto. Una
+   * célula cargada con histórico puede no tener estado en tiempo real.
+   */
+  async hasData(siteId: string, cellId: string): Promise<boolean> {
+    const result = await this.db.execute<{ found: boolean }>(sql`
+      select exists (
+        select 1 from ${cellHourly} where site_id = ${siteId} and cell_id = ${cellId}
+      ) or exists (
+        select 1 from ${cellStateChanges} where site_id = ${siteId} and cell_id = ${cellId}
+      ) as found
+    `);
+    return result.rows[0]?.found === true;
+  }
 }

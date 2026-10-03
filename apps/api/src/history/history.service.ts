@@ -35,6 +35,11 @@ export class HistoryService {
     private readonly config: ConfigService<AppConfig, true>,
   ) {}
 
+  /** Si hay datos guardados de la célula. */
+  async hasData(siteId: string, cellId: string): Promise<boolean> {
+    return this.repository.hasData(siteId, cellId);
+  }
+
   /** Ritmo nominal de una célula, en cajas por hora. */
   nominalBoxesPerHour(siteId: string, cellId: string): number {
     return (
