@@ -25,6 +25,7 @@ Un ADR aceptado no se reescribe. Si la decisión cambia, se crea un ADR nuevo qu
 | [0015](0015-avisos-de-alarmas-en-el-movil.md) | Avisos de alarmas en el móvil | Aceptado |
 | [0016](0016-almacenamiento-del-historico.md) | Almacenamiento y retención del histórico | Aceptado |
 | [0017](0017-copias-de-seguridad.md) | Copias de seguridad de PostgreSQL | Aceptado |
+| [0018](0018-mensajeria-sin-kafka.md) | Mensajería sin Kafka por ahora | Aceptado |
 
 ## Estados
 
