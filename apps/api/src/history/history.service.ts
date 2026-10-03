@@ -8,6 +8,8 @@ import { computeIndicators } from './indicators.ts';
 import type { HourRow, Indicators } from './indicators.ts';
 import type { ProductionTotals } from './production.query.ts';
 import { localDay } from './time-zone.ts';
+import { toEventView } from './events.ts';
+import type { CellEventView } from './events.ts';
 
 export interface HistoryPeriod {
   readonly from: Date;
@@ -38,6 +40,22 @@ export class HistoryService {
   /** Si hay datos guardados de la célula. */
   async hasData(siteId: string, cellId: string): Promise<boolean> {
     return this.repository.hasData(siteId, cellId);
+  }
+
+  /**
+   * Registro de cambios de estado y de conexión de [from, to), del más
+   * reciente al más antiguo (LF-84). `truncated` indica que hay más eventos
+   * en el periodo de los que se devuelven.
+   */
+  async events(
+    siteId: string,
+    cellId: string,
+    from: Date,
+    to: Date,
+    limit: number,
+  ): Promise<{ truncated: boolean; events: CellEventView[] }> {
+    const events = await this.repository.events(siteId, cellId, from, to, limit + 1);
+    return { truncated: events.length > limit, events: events.slice(0, limit).map(toEventView) };
   }
 
   /** Ritmo nominal de una célula, en cajas por hora. */

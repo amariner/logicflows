@@ -15,18 +15,22 @@ import {
 
 import { ZodValidationPipe } from '../common/zod-validation.pipe.ts';
 import { HistoryService } from '../history/history.service.ts';
+import type { CellEventView } from '../history/events.ts';
 import type { Indicators } from '../history/indicators.ts';
 import { CellStateStore } from '../realtime/cell-state.store.ts';
 import {
   cellParamsSchema,
+  eventsQuerySchema,
   historyQuerySchema,
+  MAX_EVENTS,
   MAX_HISTORY_DAYS,
   MAX_RANGE_DAYS,
   productionQuerySchema,
 } from './cells.schemas.ts';
-import type { CellParams, HistoryQuery, ProductionQuery } from './cells.schemas.ts';
+import type { CellParams, EventsQuery, HistoryQuery, ProductionQuery } from './cells.schemas.ts';
 import {
   cellSnapshotSchema,
+  eventsSchema,
   historySchema,
   problemSchema,
   productionSchema,
@@ -51,6 +55,15 @@ export interface HistoryResponse {
   readonly nominalBoxesPerHour: number;
   readonly summary: Indicators;
   readonly periods: readonly Indicators[];
+}
+
+export interface EventsResponse {
+  readonly siteId: string;
+  readonly cellId: string;
+  readonly from: string;
+  readonly to: string;
+  readonly truncated: boolean;
+  readonly events: readonly CellEventView[];
 }
 
 const ApiCellParams = () =>
@@ -162,6 +175,37 @@ export class CellController {
       resolution: query.resolution,
       timeZone: query.timeZone,
       ...history,
+    };
+  }
+
+  @Get('events')
+  @ApiOperation({
+    summary: 'Registro de estados, alarmas y conexión de una célula',
+    description: `Cambios de estado (con sus alarmas activas y su duración) y de conexión en [from, to), del más reciente al más antiguo. Sin fechas, las últimas 24 horas. Rango máximo: ${String(MAX_RANGE_DAYS)} días; como mucho ${String(MAX_EVENTS)} eventos (limit). truncated indica que el periodo tiene más.`,
+  })
+  @ApiCellParams()
+  @ApiQuery({ name: 'from', required: false, example: '2026-10-05T06:00:00.000Z' })
+  @ApiQuery({ name: 'to', required: false, example: '2026-10-05T14:00:00.000Z' })
+  @ApiQuery({ name: 'limit', required: false, example: 200 })
+  @ApiOkResponse({ schema: eventsSchema })
+  async getEvents(
+    @Param(new ZodValidationPipe(cellParamsSchema)) params: CellParams,
+    @Query(new ZodValidationPipe(eventsQuerySchema())) query: EventsQuery,
+  ): Promise<EventsResponse> {
+    await this.#ensureKnown(params);
+    const result = await this.history.events(
+      params.siteId,
+      params.cellId,
+      query.from,
+      query.to,
+      query.limit,
+    );
+    return {
+      siteId: params.siteId,
+      cellId: params.cellId,
+      from: query.from.toISOString(),
+      to: query.to.toISOString(),
+      ...result,
     };
   }
 

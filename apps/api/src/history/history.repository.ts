@@ -11,6 +11,7 @@ import {
 } from '../database/schema.ts';
 import { HOUR_MS } from './hour-summary.ts';
 import type { HourInput, HourSummary } from './hour-summary.ts';
+import type { CellEvent } from './events.ts';
 import { rawProduction } from './production.query.ts';
 import type { ProductionTotals } from './production.query.ts';
 
@@ -282,5 +283,64 @@ export class HistoryRepository {
       ) as found
     `);
     return result.rows[0]?.found === true;
+  }
+
+  /**
+   * Cambios de estado y de conexión de una célula en [from, to), del más
+   * reciente al más antiguo. Cada cambio de estado lleva cuándo empezó el
+   * siguiente, si lo hay. Devuelve como mucho `limit` eventos.
+   */
+  async events(
+    siteId: string,
+    cellId: string,
+    from: Date,
+    to: Date,
+    limit: number,
+  ): Promise<CellEvent[]> {
+    const result = await this.db.execute<{
+      kind: 'state' | 'connection';
+      at: Date | string;
+      state: string | null;
+      previous_state: string | null;
+      event: string | null;
+      waiting_reason: string | null;
+      active_alarms: CellEvent['alarms'] | null;
+      online: boolean | null;
+      next_at: Date | string | null;
+    }>(sql`
+      select * from (
+        select 'state' as kind, s.source_timestamp as at, s.seq,
+               s.state::text as state, s.previous_state::text as previous_state,
+               s.event::text as event, s.waiting_reason::text as waiting_reason,
+               s.active_alarms, null::boolean as online,
+               (select n.source_timestamp from ${cellStateChanges} n
+                where n.site_id = s.site_id and n.cell_id = s.cell_id
+                  and (n.source_timestamp, n.seq) > (s.source_timestamp, s.seq)
+                order by n.source_timestamp, n.seq
+                limit 1) as next_at
+        from ${cellStateChanges} s
+        where s.site_id = ${siteId} and s.cell_id = ${cellId}
+          and s.source_timestamp >= ${from} and s.source_timestamp < ${to}
+        union all
+        select 'connection', e.source_timestamp, 0, null, null, null, null, null, e.online, null
+        from ${cellStatusEvents} e
+        where e.site_id = ${siteId} and e.cell_id = ${cellId}
+          and e.source_timestamp >= ${from} and e.source_timestamp < ${to}
+      ) as events
+      order by at desc, seq desc, kind desc
+      limit ${limit}
+    `);
+    const date = (value: Date | string) => new Date(value);
+    return result.rows.map((row) => ({
+      kind: row.kind,
+      at: date(row.at),
+      state: row.state as CellEvent['state'],
+      previousState: row.previous_state as CellEvent['previousState'],
+      event: row.event as CellEvent['event'],
+      waitingReason: row.waiting_reason as CellEvent['waitingReason'],
+      alarms: row.active_alarms ?? [],
+      online: row.online,
+      endedAt: row.next_at === null ? null : date(row.next_at),
+    }));
   }
 }

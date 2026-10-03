@@ -203,6 +203,39 @@ describe('histórico agregado por hora (LF-79, LF-80)', () => {
     expect(await query(`select 1 from cell_hourly_pending where cell_id = '${CELL}'`)).toEqual([]);
   });
 
+  it('GET …/events devuelve el registro de estados, alarmas y conexión (LF-84)', async () => {
+    const get = (query: object) =>
+      request(app.getHttpServer() as Server)
+        .get(`/api/v1/sites/demo/cells/${CELL}/events`)
+        .set('Authorization', `Bearer ${token}`)
+        .query({ from: at('08:00'), to: at('11:00'), ...query })
+        .expect(200);
+    const response = await get({});
+    expect(response.body).toMatchObject({ siteId: 'demo', cellId: CELL, truncated: false });
+    const events = (response.body as { events: Record<string, unknown>[] }).events;
+    expect(
+      events.map((event) => [
+        event['kind'],
+        event['state'] ?? event['online'],
+        event['durationSeconds'],
+      ]),
+    ).toEqual([
+      ['state', 'STOPPED', null],
+      ['state', 'FAULT', 600],
+      ['state', 'RUNNING', 25 * 60],
+      ['connection', true, null],
+    ]);
+    expect(events[1]).toMatchObject({
+      at: at('09:20'),
+      event: 'fault',
+      previousState: 'RUNNING',
+      alarms: [{ code: 'ROB-001', severity: 'HIGH' }],
+    });
+    const limited = await get({ limit: 2 });
+    expect(limited.body).toMatchObject({ truncated: true });
+    expect((limited.body as { events: unknown[] }).events).toHaveLength(2);
+  });
+
   it('un mensaje que llega tarde vuelve a marcar su hora, y recalcularla da el resultado correcto', async () => {
     await telemetry(SESSION_A, 3, '09:45', 450);
     await telemetry(SESSION_B, 0, '09:50', 20);
@@ -289,7 +322,28 @@ describe('histórico agregado por hora (LF-79, LF-80)', () => {
              '{"HIGH": 1}', hour + interval '1 hour'
       from generate_series('2026-06-01T00:00:00Z'::timestamptz, '2026-08-29T23:00:00Z', '1 hour') as hour
     `);
+    // Un mes de cambios de estado: uno cada 5 minutos, alternando producción y espera.
+    await pool.query(`
+      insert into cell_state_changes
+        (site_id, cell_id, session_id, message_id, schema_version, source_timestamp,
+         received_at, seq, state, since, active_alarms)
+      select 'demo', 'cell-perf', '${testUuid(40)}', gen_random_uuid(), 1, at, at, n,
+             (case when n % 2 = 0 then 'RUNNING' else 'WAITING' end)::cell_state, at, '[]'
+      from generate_series(0, 30 * 24 * 12) as n,
+           lateral (select '2026-07-30T00:00:00Z'::timestamptz + n * interval '5 minutes' as at) as t
+    `);
     const service = app.get(HistoryService);
+    const eventsStarted = performance.now();
+    const events = await service.events(
+      'demo',
+      'cell-perf',
+      new Date('2026-07-30T00:00:00Z'),
+      new Date('2026-08-29T00:00:00Z'),
+      500,
+    );
+    expect(performance.now() - eventsStarted).toBeLessThan(300);
+    expect(events).toMatchObject({ truncated: true });
+    expect(events.events[0]?.durationSeconds).toBe(300);
     const query = {
       from: new Date('2026-07-30T00:00:00Z'),
       to: new Date('2026-08-29T00:00:00Z'),
