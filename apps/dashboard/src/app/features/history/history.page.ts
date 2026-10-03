@@ -2,6 +2,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
+  DestroyRef,
+  InjectionToken,
   effect,
   inject,
   signal,
@@ -21,7 +23,7 @@ import {
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { arrowBackSharp } from 'ionicons/icons';
-import { Subject, catchError, forkJoin, map, of, startWith, switchMap } from 'rxjs';
+import { EMPTY, Subject, catchError, forkJoin, map, of, startWith, switchMap } from 'rxjs';
 
 import { ConnectionStatusComponent } from '../../core/connection-status/connection-status.component';
 import { RealtimeService } from '../../core/realtime/realtime.service';
@@ -34,6 +36,17 @@ import { toHistoryView } from './history-view';
 import type { HistoryView } from './history-view';
 import { deviceTimeZone, periodQuery } from './period';
 import type { PeriodChoice } from './period';
+
+/** Cada cuánto se actualiza «Hoy» mientras la página está visible (LF-87). */
+export const HISTORY_REFRESH_MS = new InjectionToken<number>('HISTORY_REFRESH_MS', {
+  factory: () => 60_000,
+});
+
+interface Request {
+  readonly choice: PeriodChoice;
+  /** Actualización en segundo plano: sin «Cargando» y sin borrar lo que se ve si falla. */
+  readonly silent: boolean;
+}
 
 type PageState =
   | { readonly kind: 'loading' }
@@ -73,7 +86,7 @@ const PERIODS: readonly { readonly value: PeriodChoice; readonly label: string }
 export class HistoryPage {
   readonly #api = inject(HistoryApi);
   readonly #params = inject(ActivatedRoute).snapshot.paramMap;
-  readonly #requests = new Subject<PeriodChoice>();
+  readonly #requests = new Subject<Request>();
   protected readonly siteId = this.#params.get('siteId') ?? '';
   protected readonly cellId = this.#params.get('cellId') ?? '';
   protected readonly periods = PERIODS;
@@ -85,7 +98,7 @@ export class HistoryPage {
     addIcons({ arrowBackSharp });
     this.#requests
       .pipe(
-        switchMap((choice) => {
+        switchMap(({ choice, silent }) => {
           const query = periodQuery(choice, new Date(), deviceTimeZone());
           return forkJoin({
             history: this.#api.load(this.siteId, this.cellId, query),
@@ -96,8 +109,8 @@ export class HistoryPage {
               view: toHistoryView(history),
               events: toEventsView(events, query.timeZone),
             })),
-            catchError((error: unknown) => of<PageState>(failure(error))),
-            startWith<PageState>({ kind: 'loading' }),
+            catchError((error: unknown) => (silent ? EMPTY : of<PageState>(failure(error)))),
+            silent ? (source) => source : startWith<PageState>({ kind: 'loading' }),
           );
         }),
         takeUntilDestroyed(),
@@ -106,6 +119,7 @@ export class HistoryPage {
         this.state.set(state);
       });
     this.reload();
+    this.#refreshTodayPeriodically();
     // Al recuperar la conexión, se reintenta sin esperar al usuario. Solo al
     // pasar a abierta: un error con la conexión abierta no se reintenta solo.
     let previous = this.connection();
@@ -126,7 +140,27 @@ export class HistoryPage {
   }
 
   protected reload(): void {
-    this.#requests.next(this.choice());
+    this.#requests.next({ choice: this.choice(), silent: false });
+  }
+
+  /**
+   * «Hoy» cambia mientras se mira: se vuelve a pedir cada minuto si la
+   * página está visible, hay conexión y ya se mostró (LF-87). 7 y 30 días no.
+   */
+  #refreshTodayPeriodically(): void {
+    const timer = setInterval(() => {
+      if (
+        this.choice() === 'today' &&
+        this.state().kind === 'ready' &&
+        this.connection() === 'open' &&
+        document.visibilityState === 'visible'
+      ) {
+        this.#requests.next({ choice: 'today', silent: true });
+      }
+    }, inject(HISTORY_REFRESH_MS));
+    inject(DestroyRef).onDestroy(() => {
+      clearInterval(timer);
+    });
   }
 }
 

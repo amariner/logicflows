@@ -21,7 +21,7 @@ Esqueleto (LF-24), producción en tiempo real (LF-28) y panel de estado (LF-34):
 
 Cada tarjeta enlaza con el histórico de su célula (`/cells/{siteId}/{cellId}/history`, LF-81). La página se carga aparte, así que no aumenta el bundle inicial:
 
-- **Periodo:** hoy por horas, o los últimos 7 o 30 días por días, en la zona horaria del dispositivo. Lo pide a `GET /api/v1/sites/{siteId}/cells/{cellId}/history` (LF-80).
+- **Periodo:** hoy por horas, o los últimos 7 o 30 días por días, en la zona horaria del dispositivo. «Hoy» se actualiza solo cada minuto, sin parpadeos, mientras la página está visible y hay conexión (LF-87). Lo pide a `GET /api/v1/sites/{siteId}/cells/{cellId}/history` (LF-80).
 - **Indicadores** de [indicadores de planta](../../docs/indicadores-de-planta.md): disponibilidad, rendimiento, cajas y pallets, con el tiempo en producción, el planificado, el tiempo sin datos y el ritmo nominal. Si no están definidos, «—».
 - **Gráfico de cajas** por hora o por día. Es un SVG propio y no usa ninguna librería:
   - Solo hacen falta barras, y una librería de gráficos añadiría decenas de kilobytes.
