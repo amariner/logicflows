@@ -96,6 +96,11 @@
           </ul>
         }
       </section>
+
+      <section aria-labelledby="events-title">
+        <h2 id="events-title">Registro de estados y alarmas</h2>
+        <app-events-log [view]="current.events" />
+      </section>
     }
   </section>
 </ion-content>

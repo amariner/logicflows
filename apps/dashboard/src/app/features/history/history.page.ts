@@ -21,11 +21,14 @@ import {
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { arrowBackSharp } from 'ionicons/icons';
-import { Subject, catchError, map, of, startWith, switchMap } from 'rxjs';
+import { Subject, catchError, forkJoin, map, of, startWith, switchMap } from 'rxjs';
 
 import { ConnectionStatusComponent } from '../../core/connection-status/connection-status.component';
 import { RealtimeService } from '../../core/realtime/realtime.service';
 import { BarChartComponent } from './bar-chart/bar-chart.component';
+import { EventsLogComponent } from './events-log/events-log.component';
+import { toEventsView } from './events-view';
+import type { EventsView } from './events-view';
 import { HistoryApi } from './history.api';
 import { toHistoryView } from './history-view';
 import type { HistoryView } from './history-view';
@@ -35,7 +38,7 @@ import type { PeriodChoice } from './period';
 type PageState =
   | { readonly kind: 'loading' }
   | { readonly kind: 'error'; readonly message: string }
-  | { readonly kind: 'ready'; readonly view: HistoryView };
+  | { readonly kind: 'ready'; readonly view: HistoryView; readonly events: EventsView };
 
 const PERIODS: readonly { readonly value: PeriodChoice; readonly label: string }[] = [
   { value: 'today', label: 'Hoy' },
@@ -54,6 +57,7 @@ const PERIODS: readonly { readonly value: PeriodChoice; readonly label: string }
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     BarChartComponent,
+    EventsLogComponent,
     ConnectionStatusComponent,
     IonButton,
     IonButtons,
@@ -81,15 +85,21 @@ export class HistoryPage {
     addIcons({ arrowBackSharp });
     this.#requests
       .pipe(
-        switchMap((choice) =>
-          this.#api
-            .load(this.siteId, this.cellId, periodQuery(choice, new Date(), deviceTimeZone()))
-            .pipe(
-              map((history): PageState => ({ kind: 'ready', view: toHistoryView(history) })),
-              catchError((error: unknown) => of<PageState>(failure(error))),
-              startWith<PageState>({ kind: 'loading' }),
-            ),
-        ),
+        switchMap((choice) => {
+          const query = periodQuery(choice, new Date(), deviceTimeZone());
+          return forkJoin({
+            history: this.#api.load(this.siteId, this.cellId, query),
+            events: this.#api.loadEvents(this.siteId, this.cellId, query),
+          }).pipe(
+            map(({ history, events }): PageState => ({
+              kind: 'ready',
+              view: toHistoryView(history),
+              events: toEventsView(events, query.timeZone),
+            })),
+            catchError((error: unknown) => of<PageState>(failure(error))),
+            startWith<PageState>({ kind: 'loading' }),
+          );
+        }),
         takeUntilDestroyed(),
       )
       .subscribe((state) => {

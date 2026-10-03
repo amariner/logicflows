@@ -1,0 +1,55 @@
+ol,
+ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+ol > li {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--ion-color-step-150, #d7d8da);
+}
+
+ion-icon {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+  font-size: 1.25rem;
+  color: var(--tone);
+}
+
+p {
+  margin: 0;
+}
+
+time,
+.note {
+  color: var(--lf-tone-neutral);
+  font-variant-numeric: tabular-nums;
+}
+
+ul strong,
+ol > li > div > p > strong {
+  color: var(--tone);
+}
+
+.tone-ok {
+  --tone: var(--lf-tone-ok);
+}
+
+.tone-info {
+  --tone: var(--lf-tone-info);
+}
+
+.tone-neutral {
+  --tone: var(--lf-tone-neutral);
+}
+
+.tone-warning {
+  --tone: var(--lf-tone-warning);
+}
+
+.tone-danger {
+  --tone: var(--lf-tone-danger);
+}

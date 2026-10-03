@@ -1,0 +1,34 @@
+@let log = view();
+@if (log.items.length === 0) {
+  <p>Sin cambios de estado ni de conexión en el periodo.</p>
+} @else {
+  <ol>
+    @for (item of log.items; track item.key) {
+      <li [class]="'tone-' + item.tone" data-testid="event">
+        <ion-icon aria-hidden="true" [name]="item.icon" />
+        <div>
+          <p>
+            <time [attr.datetime]="item.datetime">{{ item.time }}</time> ·
+            <strong>{{ item.label }}</strong>
+            @if (item.duration !== null) {
+              · {{ item.duration }}
+            }
+          </p>
+          @if (item.alarms.length > 0) {
+            <ul aria-label="Alarmas activas">
+              @for (alarm of item.alarms; track alarm.code) {
+                <li [class]="'tone-' + alarm.tone">
+                  <strong>{{ alarm.severityLabel }}</strong> · {{ alarm.code }} ·
+                  {{ alarm.message }}
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </li>
+    }
+  </ol>
+  @if (log.truncatedNote !== null) {
+    <p class="note">{{ log.truncatedNote }}</p>
+  }
+}

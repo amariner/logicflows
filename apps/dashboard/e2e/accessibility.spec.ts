@@ -45,6 +45,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
       await page.setViewportSize(viewport);
       await page.goto('/cells/demo/cell-01/history');
       await expect(page.getByText('Paradas por causa')).toBeVisible();
+      await expect(page.getByTestId('event')).toHaveCount(5);
       // La tabla equivalente al gráfico también se revisa.
       await page.getByText('Ver los datos en una tabla').click();
       await expect(page.getByRole('table')).toBeVisible();
