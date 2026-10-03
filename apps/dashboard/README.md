@@ -122,7 +122,7 @@ El proyecto Android está en `android/` y lo genera Capacitor 8 a partir de la b
   - Tocar un aviso abre las células.
   - En el menú, **Avisos de alarmas** permite desactivarlos en el dispositivo.
   - Al cerrar sesión, el dispositivo se da de baja.
-  - La app necesita `android/app/google-services.json`, del proyecto de Firebase. Sin él se compila igual, pero no recibe avisos.
+  - `android/app/google-services.json` identifica el proyecto de Firebase `logicflows-fc609` (plan Spark). No contiene secretos: va dentro de cada APK. Sin él, la app se compila igual, pero no recibe avisos.
 - **Vuelta del segundo plano**, también en el navegador. Si la conexión no estaba abierta, o pasaron más de 30 segundos, el visor recarga el estado y reconecta sin esperar. Mientras tanto indica «Conectando…»: Android congela la vista web y la red cambia en segundo plano, así que una conexión que parece abierta puede estar muerta.
 
 - **Inicio de sesión** (LF-68, RFC 8252):
