@@ -248,7 +248,7 @@ TypeScript está fijado en la versión 6.0 porque Angular 22 y typescript-eslint
 ## Documentación
 
 - [Registro de cambios](CHANGELOG.md)
-- Guiones de la demo: [Hito 1, en local](docs/demo.md) y [Hito 2, en producción](docs/demo-hito-2.md)
+- Guiones de la demo: [Hito 1, en local](docs/demo.md), [Hito 2, en producción](docs/demo-hito-2.md) y [Hito 4, histórico](docs/demo-hito-4.md)
 - [Decisiones de arquitectura (ADR)](docs/adr/README.md)
 - [Despliegue en Railway: servicios, configuración, secretos y rotación](docs/despliegue.md)
 - [Indicadores de planta: disponibilidad, rendimiento y paradas por causa](docs/indicadores-de-planta.md)
