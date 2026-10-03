@@ -1,4 +1,8 @@
 import {
+  CELL_EVENTS,
+  CELL_STATES,
+  WAITING_REASONS,
+  alarmSchema,
   stateMessageSchema,
   statusMessageSchema,
   telemetryMessageSchema,
@@ -162,6 +166,55 @@ export const historySchema: SchemaObject = {
       description: 'Indicadores de cada hora o de cada día, en orden',
       items: indicatorsSchema,
     },
+  },
+};
+
+const eventSchema: SchemaObject = {
+  type: 'object',
+  description: 'Cambio de estado (kind = state) o de conexión (kind = connection).',
+  required: [
+    'kind',
+    'at',
+    'state',
+    'previousState',
+    'event',
+    'waitingReason',
+    'alarms',
+    'online',
+    'durationSeconds',
+  ],
+  properties: {
+    kind: { type: 'string', enum: ['state', 'connection'] },
+    at: { type: 'string', format: 'date-time', description: 'Cuándo ocurrió, según la célula' },
+    state: { type: 'string', enum: [...CELL_STATES], nullable: true },
+    previousState: { type: 'string', enum: [...CELL_STATES], nullable: true },
+    event: { type: 'string', enum: [...CELL_EVENTS], nullable: true },
+    waitingReason: { type: 'string', enum: [...WAITING_REASONS], nullable: true },
+    alarms: {
+      type: 'array',
+      description: 'Alarmas activas al cambiar de estado',
+      items: fromContract(alarmSchema),
+    },
+    online: { type: 'boolean', nullable: true, description: 'Solo en los cambios de conexión' },
+    durationSeconds: {
+      type: 'integer',
+      minimum: 0,
+      nullable: true,
+      description: 'Hasta el estado siguiente; null si es el estado actual o en la conexión',
+    },
+  },
+};
+
+export const eventsSchema: SchemaObject = {
+  type: 'object',
+  required: ['siteId', 'cellId', 'from', 'to', 'truncated', 'events'],
+  properties: {
+    siteId: identifier('Planta'),
+    cellId: identifier('Célula'),
+    from: { type: 'string', format: 'date-time', description: 'Inicio del periodo (incluido)' },
+    to: { type: 'string', format: 'date-time', description: 'Fin del periodo (excluido)' },
+    truncated: { type: 'boolean', description: 'El periodo tiene más eventos que limit' },
+    events: { type: 'array', description: 'Del más reciente al más antiguo', items: eventSchema },
   },
 };
 

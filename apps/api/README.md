@@ -17,6 +17,7 @@ Esqueleto operativo (LF-23), ingesta de telemetría (LF-26), canal de tiempo rea
 | `GET /api/v1/sites/{siteId}/cells/{cellId}` | Estado actual de una célula. |
 | `GET /api/v1/sites/{siteId}/cells/{cellId}/production?from&to` | Cajas y pallets producidos en un periodo. |
 | `GET /api/v1/sites/{siteId}/cells/{cellId}/history?from&to&resolution&timeZone` | Histórico e indicadores de planta, en total y por horas o por días. |
+| `GET /api/v1/sites/{siteId}/cells/{cellId}/events?from&to&limit` | Registro de cambios de estado, con sus alarmas y su duración, y de conexión. |
 | `POST /api/v1/realtime/tickets` | Tique de un solo uso para abrir el canal de tiempo real. |
 | `POST /api/v1/push/devices` | Registra el token de FCM del dispositivo para recibir avisos de alarmas ([ADR-0015](../../docs/adr/0015-avisos-de-alarmas-en-el-movil.md)). |
 | `DELETE /api/v1/push/devices` | Da de baja un dispositivo del usuario. |
@@ -76,6 +77,11 @@ Consultas bajo `/api/v1`: la versión mayor forma parte de la ruta.
   - Rango máximo: 31 días por horas y 366 por días.
   - Se calcula con los agregados por hora: una hora sin agregado cuenta como tiempo sin datos y, de la hora en curso, solo lo ya agregado.
   - El ritmo nominal es `NOMINAL_BOXES_PER_HOUR`, salvo las células de `NOMINAL_BOXES_PER_HOUR_BY_CELL`.
+- **Registro de eventos** (LF-84): los cambios de estado, con sus alarmas activas y su duración hasta el cambio siguiente, y los de conexión en `[from, to)`, del más reciente al más antiguo.
+  - Mismo periodo que la producción: sin fechas, las últimas 24 horas, y como mucho 31 días.
+  - Como mucho `limit` eventos (200 por defecto, 500 como máximo). `truncated` indica que el periodo tiene más.
+  - Lee el dato en bruto: con la retención de ADR-0016, los cambios de estado se conservan 365 días.
+- **Células sin estado en tiempo real** (LF-85): el histórico, el registro y la producción responden aunque la célula no tenga estado actual, si tiene datos guardados. Le pasa, por ejemplo, a una célula cargada con histórico simulado.
 - **Validación** con Zod: la planta y la célula siguen el formato del contrato y el rango se comprueba antes de consultar la base de datos.
 - **Errores** con el formato de RFC 9457 (*Problem Details*, `application/problem+json`) en toda la API: `type`, `title`, `status`, `detail`, `instance` y, en los errores de validación, `errors` con cada campo incorrecto. Los errores inesperados se registran y se responden sin detalles internos. Las comprobaciones de salud conservan el formato estándar de Terminus.
 - **OpenAPI:** los esquemas de respuesta se generan a partir del contrato, así que la documentación no puede divergir de los tipos.

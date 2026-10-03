@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { cellParamsSchema, historyQuerySchema, productionQuerySchema } from './cells.schemas.ts';
+import {
+  cellParamsSchema,
+  eventsQuerySchema,
+  historyQuerySchema,
+  productionQuerySchema,
+} from './cells.schemas.ts';
 
 const now = () => new Date('2026-10-05T12:00:00.000Z');
 const parse = (query: object) => productionQuerySchema(now).safeParse(query);
@@ -117,5 +122,24 @@ describe('parámetros del histórico (LF-80)', () => {
       history({ resolution: 'day', from: '2025-10-01T00:00:00Z', to: '2026-10-01T00:00:00Z' })
         .success,
     ).toBe(true);
+  });
+});
+
+describe('parámetros del registro de eventos (LF-84)', () => {
+  const events = (query: object) => eventsQuerySchema(now).safeParse(query);
+
+  it('sin parámetros, las últimas 24 horas y 200 eventos', () => {
+    expect(events({}).data).toEqual({
+      from: new Date('2026-10-04T12:00:00.000Z'),
+      to: new Date('2026-10-05T12:00:00.000Z'),
+      limit: 200,
+    });
+  });
+
+  it.each([
+    ['más de 500 eventos', { limit: '501' }, 'limit'],
+    ['un rango invertido', { from: '2026-10-05T10:00:00Z', to: '2026-10-05T09:00:00Z' }, 'from'],
+  ])('rechaza %s', (_case, query, field) => {
+    expect(events(query).error?.issues[0]?.path).toEqual([field]);
   });
 });

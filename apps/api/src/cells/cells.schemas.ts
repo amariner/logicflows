@@ -12,31 +12,59 @@ export const cellParamsSchema = z.object({
 });
 export type CellParams = z.infer<typeof cellParamsSchema>;
 
+const periodFields = {
+  from: z.iso.datetime({ offset: true }).optional(),
+  to: z.iso.datetime({ offset: true }).optional(),
+};
+
+/** [from, to) de una consulta: sin fechas, las últimas 24 horas. */
+function resolvePeriod(from: string | undefined, to: string | undefined, now: () => Date) {
+  const end = to === undefined ? now() : new Date(to);
+  const start = from === undefined ? new Date(end.getTime() - DAY_MS) : new Date(from);
+  return { from: start, to: end };
+}
+
+function checkPeriod({ from, to }: { from: Date; to: Date }, context: z.RefinementCtx): void {
+  if (from >= to) {
+    context.addIssue({ code: 'custom', path: ['from'], message: 'from debe ser anterior a to' });
+  } else if (to.getTime() - from.getTime() > MAX_RANGE_DAYS * DAY_MS) {
+    context.addIssue({
+      code: 'custom',
+      path: ['to'],
+      message: `El rango no puede superar ${String(MAX_RANGE_DAYS)} días`,
+    });
+  }
+}
+
 /**
  * Rango de la consulta de producción: [from, to). Sin fechas, las últimas 24
  * horas. Se admiten fechas ISO 8601 con zona horaria.
  */
 export function productionQuerySchema(now: () => Date = () => new Date()) {
   return z
-    .object({
-      from: z.iso.datetime({ offset: true }).optional(),
-      to: z.iso.datetime({ offset: true }).optional(),
-    })
-    .transform(({ from, to }) => {
-      const end = to === undefined ? now() : new Date(to);
-      const start = from === undefined ? new Date(end.getTime() - DAY_MS) : new Date(from);
-      return { from: start, to: end };
-    })
-    .refine(({ from, to }) => from < to, {
-      message: 'from debe ser anterior a to',
-      path: ['from'],
-    })
-    .refine(({ from, to }) => to.getTime() - from.getTime() <= MAX_RANGE_DAYS * DAY_MS, {
-      message: `El rango no puede superar ${String(MAX_RANGE_DAYS)} días`,
-      path: ['to'],
-    });
+    .object(periodFields)
+    .transform(({ from, to }) => resolvePeriod(from, to, now))
+    .superRefine(checkPeriod);
 }
 export type ProductionQuery = z.output<ReturnType<typeof productionQuerySchema>>;
+
+export const MAX_EVENTS = 500;
+export const DEFAULT_EVENTS = 200;
+
+/**
+ * Registro de eventos (LF-84): el mismo periodo que la producción, y cuántos
+ * eventos como mucho, del más reciente al más antiguo.
+ */
+export function eventsQuerySchema(now: () => Date = () => new Date()) {
+  return z
+    .object({
+      ...periodFields,
+      limit: z.coerce.number().int().min(1).max(MAX_EVENTS).default(DEFAULT_EVENTS),
+    })
+    .transform(({ from, to, limit }) => ({ ...resolvePeriod(from, to, now), limit }))
+    .superRefine(checkPeriod);
+}
+export type EventsQuery = z.output<ReturnType<typeof eventsQuerySchema>>;
 
 const HOUR_MS = 3_600_000;
 export const MAX_HISTORY_DAYS = { hour: 31, day: 366 } as const;
