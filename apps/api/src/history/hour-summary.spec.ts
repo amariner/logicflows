@@ -133,4 +133,16 @@ describe('resumen de una hora de una célula (LF-79)', () => {
       STARVED: { seconds: 300, count: 1 },
     });
   });
+
+  it('en la hora en curso solo resume lo que ya ha ocurrido', () => {
+    const summary = summarizeHour({
+      hourStart: H,
+      states: [state(H - 1, 'RUNNING'), state(min(10), 'FAULT', { alarms: [] })],
+      statuses: [],
+      boxes: 0,
+      pallets: 0,
+      until: min(25),
+    });
+    expect(summary.seconds).toEqual({ RUNNING: 600, FAULT: 900 });
+  });
 });

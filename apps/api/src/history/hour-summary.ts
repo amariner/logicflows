@@ -47,6 +47,11 @@ export interface HourInput {
   readonly statuses: readonly StatusPoint[];
   readonly boxes: number;
   readonly pallets: number;
+  /**
+   * Hasta dónde se resume, si la hora no ha terminado: el resto todavía no ha
+   * ocurrido y no se atribuye a ninguna situación.
+   */
+  readonly until?: number;
 }
 
 export interface HourSummary {
@@ -127,7 +132,7 @@ function situationAt(t: number, input: HourInput, faultEntry: StatePoint | undef
  */
 export function summarizeHour(input: HourInput): HourSummary {
   const start = input.hourStart;
-  const end = start + HOUR_MS;
+  const end = Math.max(start, Math.min(start + HOUR_MS, input.until ?? Number.POSITIVE_INFINITY));
   const breakpoints = [
     ...new Set([
       start,
