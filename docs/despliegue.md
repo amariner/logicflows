@@ -210,14 +210,10 @@ Según [ADR-0017](adr/0017-copias-de-seguridad.md):
 El bucket, el servicio programado y las instantáneas tienen coste, así que los aprueba el Tech Lead. Producción despliega las imágenes de su versión (`VERSION` en `.railway/railway.ts`), así que la activación necesita una versión que ya incluya `logicflows-backup`: `v0.3.0` o posterior.
 
 1. Revisar el coste con la tarifa de Railway y anotarlo aquí. Con el tamaño actual, decenas de megabytes, se espera que sea de céntimos al mes.
-2. Fusionar la pull request que añade a `.railway/railway.ts`:
-   - el bucket `copias`;
-   - el servicio programado `copias` (imagen `logicflows-backup`, `cronSchedule: '0 3 * * *'`);
-   - `backupSchedules` en el volumen de PostgreSQL.
-
-   *Railway apply* los crea al fusionarla.
-3. Activar el flujo de la restauración de prueba diaria y comprobar la primera ejecución. Anotar aquí el tiempo de restauración.
-4. Con una semana de pruebas en verde, activar la retención del dato en bruto (`HISTORY_RAW_RETENTION_DAYS=30` y `HISTORY_EVENTS_RETENTION_DAYS=365`, ADR-0016).
+2. Fusionar la pull request que añade a `.railway/railway.ts` el bucket `copias` y el servicio programado `copias` (imagen `logicflows-backup`, `cronSchedule: '0 3 * * *'`). *Railway apply* los crea al fusionarla. La misma PR añade el flujo «Copias de seguridad», que ejecuta `infra/railway/probar-copias.sh` cada día a las 05:00 UTC.
+3. Activar las instantáneas diarias y semanales del volumen en Railway (servicio `Postgres` → *Backups*). El volumen lo crea la plantilla de PostgreSQL y la infraestructura como código no gestiona su montaje.
+4. Lanzar el servicio `copias` a mano una vez y, después, el flujo «Copias de seguridad» (*Run workflow*). Anotar aquí el tiempo de restauración.
+5. Con una semana de pruebas en verde, activar la retención del dato en bruto (`HISTORY_RAW_RETENTION_DAYS=30` y `HISTORY_EVENTS_RETENTION_DAYS=365`, ADR-0016).
 
 ### Recuperar la base de datos
 

@@ -1,0 +1,69 @@
+name: Copias de seguridad
+# Restauración de prueba diaria de las copias de seguridad de producción
+# (ADR-0017): la última copia de cada base de datos debe tener menos de 26
+# horas y restaurarse en un PostgreSQL desechable. Si falla, abre o actualiza
+# una incidencia: es la alerta de que una copia no se ha hecho o no sirve.
+on:
+  schedule:
+    # Dos horas después del volcado de las 03:00 UTC.
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: copias
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  RAILWAY_CLI_VERSION: 5.55.0
+
+jobs:
+  restore:
+    name: Restauración de prueba
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Instalar la CLI de Railway
+        run: npm install --global "@railway/cli@$RAILWAY_CLI_VERSION"
+
+      - name: Restaurar la última copia
+        id: restore
+        env:
+          RAILWAY_API_TOKEN: ${{ secrets.RAILWAY_API_TOKEN }}
+        run: |
+          version="$(sed -nE "s/^const VERSION = '(v[0-9.]+)';/\1/p" .railway/railway.ts)"
+          railway link --project ecd6658d-9825-4004-801a-64a28bc9f4a7 --environment production > /dev/null
+          infra/railway/probar-copias.sh production "$version"
+
+      - name: Avisar del fallo
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title='Producción: falla la restauración de prueba de las copias'
+          {
+            echo "La restauración de prueba diaria de las copias de seguridad ha fallado."
+            echo
+            echo "- Ejecución y registro: $RUN_URL"
+            echo "- Comprobar el servicio programado \`copias\` en Railway y el procedimiento de docs/despliegue.md#copias-de-seguridad."
+          } > aviso.md
+          issue=$(gh issue list --repo "$REPO" --state open --search "\"$title\" in:title" \
+            --json number --jq '.[0].number // empty')
+          if [ -n "$issue" ]; then
+            gh issue comment "$issue" --repo "$REPO" --body-file aviso.md
+          else
+            gh issue create --repo "$REPO" --title "$title" --body-file aviso.md
+          fi
