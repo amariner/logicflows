@@ -207,7 +207,7 @@ Según [ADR-0017](adr/0017-copias-de-seguridad.md):
 
 ### Activación en producción (Tech Lead)
 
-El bucket, el servicio programado y las instantáneas tienen coste, así que los aprueba el Tech Lead:
+El bucket, el servicio programado y las instantáneas tienen coste, así que los aprueba el Tech Lead. Producción despliega las imágenes de su versión (`VERSION` en `.railway/railway.ts`), así que la activación necesita una versión que ya incluya `logicflows-backup`: `v0.3.0` o posterior.
 
 1. Revisar el coste con la tarifa de Railway y anotarlo aquí. Con el tamaño actual, decenas de megabytes, se espera que sea de céntimos al mes.
 2. Fusionar la pull request que añade a `.railway/railway.ts`:
