@@ -90,7 +90,7 @@ Las decisiones relevantes se registran como ADR en [`docs/adr`](docs/adr/README.
 | [0014](docs/adr/0014-distribucion-de-la-app-android.md) | App Android: APK firmado en cada release de GitHub, clave custodiada por el Tech Lead |
 | [0015](docs/adr/0015-avisos-de-alarmas-en-el-movil.md) | Avisos de alarmas graves en la app con Firebase Cloud Messaging, sin datos de la planta en el aviso |
 | [0016](docs/adr/0016-almacenamiento-del-historico.md) | Histórico en PostgreSQL con agregados por hora; 30 días en bruto; sin MongoDB |
-| [0017](docs/adr/0017-copias-de-seguridad.md) | Volcado diario en un bucket de Railway, restauración de prueba diaria y copias del volumen |
+| [0017](docs/adr/0017-copias-de-seguridad.md) | Volcado diario en un bucket de Railway, restauración de prueba diaria y copias del volumen; preparadas, sin activar en la demo |
 | [0018](docs/adr/0018-mensajeria-sin-kafka.md) | Sin Kafka: el volumen está unas 3 000 veces por debajo del umbral y el broker hace de cola |
 
 ## Estructura

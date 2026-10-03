@@ -4,6 +4,10 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ## [Sin publicar]
 
+### Cambiado
+
+- Las copias de seguridad de PostgreSQL quedan preparadas, pero no se activan en producción: LogicFlows es una demostración con datos simulados. El procedimiento de activación y su coste revisado, menos de 0,60 USD al mes, están en `docs/despliegue.md` (ADR-0017, LF-82).
+
 ## [0.3.0] - 2026-10-04
 
 **Hito 3 · App Android (demo).** El visor llega al móvil como app Android generada desde el mismo código: inicia sesión en el navegador del sistema, avisa de las alarmas graves aunque esté cerrada y se publica firmada en cada versión. Probada en un móvil real contra producción.
