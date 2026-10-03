@@ -14,11 +14,23 @@ import {
 } from '@nestjs/swagger';
 
 import { ZodValidationPipe } from '../common/zod-validation.pipe.ts';
-import { TelemetryRepository } from '../persistence/telemetry.repository.ts';
+import { HistoryService } from '../history/history.service.ts';
+import type { Indicators } from '../history/indicators.ts';
 import { CellStateStore } from '../realtime/cell-state.store.ts';
-import { cellParamsSchema, MAX_RANGE_DAYS, productionQuerySchema } from './cells.schemas.ts';
-import type { CellParams, ProductionQuery } from './cells.schemas.ts';
-import { cellSnapshotSchema, problemSchema, productionSchema } from './openapi.schemas.ts';
+import {
+  cellParamsSchema,
+  historyQuerySchema,
+  MAX_HISTORY_DAYS,
+  MAX_RANGE_DAYS,
+  productionQuerySchema,
+} from './cells.schemas.ts';
+import type { CellParams, HistoryQuery, ProductionQuery } from './cells.schemas.ts';
+import {
+  cellSnapshotSchema,
+  historySchema,
+  problemSchema,
+  productionSchema,
+} from './openapi.schemas.ts';
 
 export interface ProductionResponse {
   readonly siteId: string;
@@ -27,6 +39,18 @@ export interface ProductionResponse {
   readonly to: string;
   readonly boxes: number;
   readonly pallets: number;
+}
+
+export interface HistoryResponse {
+  readonly siteId: string;
+  readonly cellId: string;
+  readonly from: string;
+  readonly to: string;
+  readonly resolution: 'hour' | 'day';
+  readonly timeZone: string;
+  readonly nominalBoxesPerHour: number;
+  readonly summary: Indicators;
+  readonly periods: readonly Indicators[];
 }
 
 const ApiCellParams = () =>
@@ -68,7 +92,7 @@ export class CellsController {
 export class CellController {
   constructor(
     private readonly store: CellStateStore,
-    private readonly repository: TelemetryRepository,
+    private readonly history: HistoryService,
   ) {}
 
   @Get()
@@ -82,7 +106,7 @@ export class CellController {
   @Get('production')
   @ApiOperation({
     summary: 'Producción de una célula en un periodo',
-    description: `Cajas y pallets producidos en [from, to), calculados por diferencias de los contadores acumulados. Sin fechas, las últimas 24 horas. Rango máximo: ${String(MAX_RANGE_DAYS)} días.`,
+    description: `Cajas y pallets producidos en [from, to), calculados por diferencias de los contadores acumulados. Las horas completas salen del histórico agregado. Sin fechas, las últimas 24 horas. Rango máximo: ${String(MAX_RANGE_DAYS)} días.`,
   })
   @ApiCellParams()
   @ApiQuery({ name: 'from', required: false, example: '2026-10-05T06:00:00.000Z' })
@@ -93,7 +117,7 @@ export class CellController {
     @Query(new ZodValidationPipe(productionQuerySchema())) query: ProductionQuery,
   ): Promise<ProductionResponse> {
     this.#find(params);
-    const totals = await this.repository.production(
+    const totals = await this.history.production(
       params.siteId,
       params.cellId,
       query.from,
@@ -105,6 +129,39 @@ export class CellController {
       from: query.from.toISOString(),
       to: query.to.toISOString(),
       ...totals,
+    };
+  }
+
+  @Get('history')
+  @ApiOperation({
+    summary: 'Histórico e indicadores de planta de una célula',
+    description: `Producción, tiempos, disponibilidad, rendimiento y paradas por causa en [from, to), en total y por horas o por días (docs/indicadores-de-planta.md). Las fechas son horas en punto; por días, medianoches de \`timeZone\`. Sin fechas, las últimas 24 horas por horas, o los últimos 7 días por días, con el periodo en curso. Rango máximo: ${String(MAX_HISTORY_DAYS.hour)} días por horas y ${String(MAX_HISTORY_DAYS.day)} por días.`,
+  })
+  @ApiCellParams()
+  @ApiQuery({ name: 'from', required: false, example: '2026-10-05T06:00:00.000Z' })
+  @ApiQuery({ name: 'to', required: false, example: '2026-10-05T14:00:00.000Z' })
+  @ApiQuery({ name: 'resolution', required: false, enum: ['hour', 'day'], example: 'hour' })
+  @ApiQuery({
+    name: 'timeZone',
+    required: false,
+    example: 'Europe/Madrid',
+    description: 'Zona horaria IANA de los días; por defecto, UTC',
+  })
+  @ApiOkResponse({ schema: historySchema })
+  async getHistory(
+    @Param(new ZodValidationPipe(cellParamsSchema)) params: CellParams,
+    @Query(new ZodValidationPipe(historyQuerySchema())) query: HistoryQuery,
+  ): Promise<HistoryResponse> {
+    this.#find(params);
+    const history = await this.history.history(params.siteId, params.cellId, query);
+    return {
+      siteId: params.siteId,
+      cellId: params.cellId,
+      from: query.from.toISOString(),
+      to: query.to.toISOString(),
+      resolution: query.resolution,
+      timeZone: query.timeZone,
+      ...history,
     };
   }
 

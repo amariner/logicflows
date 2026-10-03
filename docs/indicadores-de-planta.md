@@ -91,4 +91,8 @@ Toda la noche en `STOPPED`: el tiempo planificado es 0, y la disponibilidad y el
 
 ## Cómo encaja con el histórico
 
-Los agregados por hora de ADR-0016 guardan, por célula y hora, los segundos en cada estado (y en «sin datos»), las cajas y los pallets, y las paradas por causa (LF-79). Los indicadores de cualquier periodo se calculan sumando esas horas (LF-80).
+Los agregados por hora de ADR-0016 guardan, por célula y hora, los segundos en cada estado (y en «sin datos»), las cajas y los pallets, y las paradas por causa (LF-79). Los indicadores de cualquier periodo se calculan sumando esas horas (LF-80), y la API los ofrece en `GET /api/v1/sites/{siteId}/cells/{cellId}/history`, en total y por horas o por días.
+
+- **Horas sin agregado.** Cuentan como tiempo sin datos.
+- **La hora en curso.** Solo cuenta lo ya agregado, que va unos segundos por detrás; lo que todavía no ha ocurrido no forma parte del tiempo total.
+- **Días.** Se cuentan en la zona horaria que se pide, así que los del cambio de hora tienen 23 o 25 horas.

@@ -8,10 +8,11 @@ import {
   cellHourlyPending,
   cellStateChanges,
   cellStatusEvents,
-  telemetrySamples,
 } from '../database/schema.ts';
 import { HOUR_MS } from './hour-summary.ts';
 import type { HourInput, HourSummary } from './hour-summary.ts';
+import { rawProduction } from './production.query.ts';
+import type { ProductionTotals } from './production.query.ts';
 
 /** Una hora de una célula. */
 export interface CellHour {
@@ -154,54 +155,19 @@ export class HistoryRepository {
     };
   }
 
-  /**
-   * Cajas y pallets producidos en una hora. Como la consulta en bruto, suma
-   * las diferencias entre muestras consecutivas de cada sesión (ADR-0004),
-   * pero solo lee la hora y la última muestra anterior de cada sesión.
-   */
-  async hourProduction({
-    siteId,
-    cellId,
-    hour,
-  }: CellHour): Promise<{ boxes: number; pallets: number }> {
-    const end = new Date(hour.getTime() + HOUR_MS);
-    const result = await this.db.execute<{ boxes: string | null; pallets: string | null }>(sql`
-      with in_hour as (
-        select session_id, seq, source_timestamp, boxes_total, pallets_total
-        from ${telemetrySamples}
-        where site_id = ${siteId} and cell_id = ${cellId}
-          and source_timestamp >= ${hour} and source_timestamp < ${end}
-      ),
-      previous as (
-        select before.session_id, before.seq, before.source_timestamp,
-               before.boxes_total, before.pallets_total
-        from (select distinct session_id from in_hour) as sessions
-        cross join lateral (
-          select session_id, seq, source_timestamp, boxes_total, pallets_total
-          from ${telemetrySamples}
-          where site_id = ${siteId} and cell_id = ${cellId}
-            and session_id = sessions.session_id and source_timestamp < ${hour}
-          order by seq desc
-          limit 1
-        ) as before
-      ),
-      samples as (
-        select source_timestamp, boxes_total, pallets_total,
-               lag(boxes_total) over w as previous_boxes,
-               lag(pallets_total) over w as previous_pallets
-        from (select * from previous union all select * from in_hour) as all_samples
-        window w as (partition by session_id order by seq)
-      )
-      select
-        sum(case when previous_boxes is null or boxes_total < previous_boxes
-                 then boxes_total else boxes_total - previous_boxes end) as boxes,
-        sum(case when previous_pallets is null or pallets_total < previous_pallets
-                 then pallets_total else pallets_total - previous_pallets end) as pallets
-      from samples
-      where source_timestamp >= ${hour}
-    `);
-    const row = result.rows[0];
-    return { boxes: Number(row?.boxes ?? 0), pallets: Number(row?.pallets ?? 0) };
+  /** Cajas y pallets producidos en una hora, leídos del dato en bruto. */
+  async hourProduction({ siteId, cellId, hour }: CellHour): Promise<ProductionTotals> {
+    return rawProduction(this.db, siteId, cellId, hour, new Date(hour.getTime() + HOUR_MS));
+  }
+
+  /** Cajas y pallets producidos en [from, to), leídos del dato en bruto. */
+  async rawProduction(
+    siteId: string,
+    cellId: string,
+    from: Date,
+    to: Date,
+  ): Promise<ProductionTotals> {
+    return rawProduction(this.db, siteId, cellId, from, to);
   }
 
   async saveHour(hour: CellHour, summary: HourSummary, now: Date): Promise<void> {
@@ -254,5 +220,52 @@ export class HistoryRepository {
         ),
       )
       .orderBy(asc(cellHourly.hour));
+  }
+
+  /** Horas pendientes de recalcular de una célula entre dos instantes. */
+  async pendingHours(siteId: string, cellId: string, from: Date, to: Date): Promise<Date[]> {
+    const rows = await this.db
+      .select({ hour: cellHourlyPending.hour })
+      .from(cellHourlyPending)
+      .where(
+        and(
+          eq(cellHourlyPending.siteId, siteId),
+          eq(cellHourlyPending.cellId, cellId),
+          gte(cellHourlyPending.hour, from),
+          lt(cellHourlyPending.hour, to),
+        ),
+      )
+      .orderBy(asc(cellHourlyPending.hour));
+    return rows.map((row) => row.hour);
+  }
+
+  /** Suma de la producción agregada entre dos horas, sin las pendientes. */
+  async aggregatedProduction(
+    siteId: string,
+    cellId: string,
+    from: Date,
+    to: Date,
+  ): Promise<ProductionTotals> {
+    const [row] = await this.db
+      .select({
+        boxes: sql<string | null>`sum(${cellHourly.boxes})`,
+        pallets: sql<string | null>`sum(${cellHourly.pallets})`,
+      })
+      .from(cellHourly)
+      .where(
+        and(
+          eq(cellHourly.siteId, siteId),
+          eq(cellHourly.cellId, cellId),
+          gte(cellHourly.hour, from),
+          lt(cellHourly.hour, to),
+          sql`not exists (
+            select 1 from ${cellHourlyPending}
+            where ${cellHourlyPending.siteId} = ${cellHourly.siteId}
+              and ${cellHourlyPending.cellId} = ${cellHourly.cellId}
+              and ${cellHourlyPending.hour} = ${cellHourly.hour}
+          )`,
+        ),
+      );
+    return { boxes: Number(row?.boxes ?? 0), pallets: Number(row?.pallets ?? 0) };
   }
 }

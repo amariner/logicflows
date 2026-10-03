@@ -181,6 +181,7 @@ describe('API REST de células', () => {
         '/api/v1/cells',
         '/api/v1/sites/{siteId}/cells/{cellId}',
         '/api/v1/sites/{siteId}/cells/{cellId}/production',
+        '/api/v1/sites/{siteId}/cells/{cellId}/history',
       ]),
     );
     expect(JSON.stringify(document.paths['/api/v1/cells'])).toContain('EMERGENCY_STOP');
