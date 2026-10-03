@@ -40,6 +40,21 @@ test('una caja publicada por el simulador aparece en el visor', async ({ page })
   expect(violations).toEqual([]);
 });
 
+test('el histórico de la célula se carga desde la API (LF-81)', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#username').fill(USERNAME);
+  await page.locator('#password').fill(PASSWORD);
+  await page.locator('#kc-login').click();
+
+  await page.getByRole('link', { name: `Histórico de ${CELL_ID}` }).click();
+  await expect(page.getByRole('heading', { name: 'Indicadores' })).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+  // Por días también responde: la zona horaria del navegador es válida para la API.
+  await page.getByRole('button', { name: '7 días' }).click();
+  await expect(page.getByRole('heading', { name: 'Paradas por causa' })).toBeVisible();
+  await expect(page.getByRole('alert')).toHaveCount(0);
+});
+
 test('el usuario de la prueba solo tiene permisos de lectura (LF-57)', async ({ page }) => {
   // El visor guarda el token en memoria: se lee de la primera petición a la API.
   const apiRequest = page.waitForRequest(
