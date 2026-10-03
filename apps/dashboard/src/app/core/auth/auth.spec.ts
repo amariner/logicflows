@@ -13,7 +13,13 @@ import { TEST_AUTH, testProviders } from '../../../testing/providers';
 import { parseAppConfig } from '../config/app-config';
 import type { NativeAuthBridge } from '../native/native-auth-bridge';
 import { NATIVE_AUTH_BRIDGE } from '../native/native-auth-bridge';
-import { APP_LOGIN_CALLBACK, APP_LOGOUT_CALLBACK, AuthService, openIdConfiguration } from './auth';
+import {
+  APP_LOGIN_CALLBACK,
+  APP_LOGOUT_CALLBACK,
+  AuthService,
+  openIdConfiguration,
+  safeReturnPath,
+} from './auth';
 
 interface FakeAuthResult {
   isAuthenticated: boolean;
@@ -83,6 +89,34 @@ describe('sesión del visor', () => {
     expect(await auth.ensureSession()).toBe(false);
     expect(oidc.checkAuth).toHaveBeenCalledTimes(1);
     expect(oidc.authorize).toHaveBeenCalledTimes(1);
+  });
+
+  it('sin sesión, recuerda la página pedida y la devuelve una sola vez (LF-86)', async () => {
+    sessionStorage.clear();
+    const auth = setup({ auth: true, oidc: fakeOidc(false) });
+    expect(await auth.ensureSession('/cells/demo/cell-01/history')).toBe(false);
+    expect(auth.takeReturnPath()).toBe('/cells/demo/cell-01/history');
+    expect(auth.takeReturnPath()).toBeNull();
+  });
+
+  it('sin ruta, recuerda la dirección actual del navegador', async () => {
+    sessionStorage.clear();
+    history.replaceState(null, '', '/cells/demo/cell-02/history');
+    const auth = setup({ auth: true, oidc: fakeOidc(false) });
+    expect(await auth.ensureSession()).toBe(false);
+    expect(auth.takeReturnPath()).toBe('/cells/demo/cell-02/history');
+    history.replaceState(null, '', '/');
+  });
+
+  it.each([
+    ['https://otro.example/cells', null],
+    ['//otro.example/cells', null],
+    ['/\\otro.example', null],
+    ['/javascript:alert(1)', null],
+    ['cells', null],
+    ['/cells/demo/cell-01/history?x=1', '/cells/demo/cell-01/history?x=1'],
+  ])('solo vuelve a rutas del propio visor: %s', (value, expected) => {
+    expect(safeReturnPath(value)).toBe(expected);
   });
 
   it('sin conexión no redirige al proveedor e indica el motivo', async () => {
