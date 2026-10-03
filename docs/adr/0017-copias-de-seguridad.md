@@ -1,6 +1,6 @@
 # ADR-0017: Copias de seguridad de PostgreSQL
 
-- **Estado:** Aceptado
+- **Estado:** Aceptado; no activado en la demo (actualización del 4 de octubre de 2026)
 - **Fecha:** 2026-10-03
 - **Responsable:** Andreu Mariner, Tech Lead
 - **Tarea:** LF-82
@@ -71,3 +71,14 @@ Las opciones 2 y 1, por este orden:
 - La restauración de prueba tarda más de 15 minutos, o el volcado supera 1 GB: valorar copias incrementales o instantáneas del volumen como vía principal.
 - Se necesita perder menos de un día de datos: aumentar la frecuencia o añadir el archivo continuo de WAL.
 - Se exige protección ante la pérdida de la cuenta de Railway: copiar los volcados también a un proveedor externo (opción 3).
+
+## Actualización (4 de octubre de 2026): no se activa en la demo
+
+LogicFlows es hoy una demostración con una célula simulada: sus datos no son reales y se pueden regenerar en minutos (LF-77). El Tech Lead decide **no activar las copias en producción** mientras siga siéndolo.
+
+- **Sigue en el repositorio y probado en cada pull request:** la imagen `logicflows-backup`, los scripts de volcado y de restauración de prueba y su prueba con un PostgreSQL y un bucket S3 de prueba.
+- **Queda preparado, sin fusionar:** el cambio que crea en producción el bucket `copias`, el servicio programado y el flujo diario de restauración. Está en la rama `feature/LF-82-activar-copias` (pull request #77, cerrada sin fusionar). Su plan de Railway solo crea esos dos recursos.
+- **El coste revisado** y el procedimiento de activación están en `docs/despliegue.md`.
+
+**Cuándo activarlas:** en cuanto LogicFlows reciba datos de una planta real, o antes de activar la retención del dato en bruto si esos datos deben poder recuperarse.
+

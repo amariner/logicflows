@@ -184,7 +184,7 @@ Necesita la [CLI de Railway](https://docs.railway.com/cli) con sesión iniciada 
 
 ## Copias de seguridad
 
-Según [ADR-0017](adr/0017-copias-de-seguridad.md):
+Según [ADR-0017](adr/0017-copias-de-seguridad.md). En la demo están preparadas, pero **no activadas** en producción ([estado](#activación-en-producción-tech-lead)):
 
 | Qué | Cuándo | Retención | Dónde |
 |---|---|---|---|
@@ -207,19 +207,44 @@ Según [ADR-0017](adr/0017-copias-de-seguridad.md):
 
 ### Activación en producción (Tech Lead)
 
-El bucket, el servicio programado y las instantáneas tienen coste, así que los aprueba el Tech Lead. Producción despliega las imágenes de su versión (`VERSION` en `.railway/railway.ts`), así que la activación necesita una versión que ya incluya `logicflows-backup`: `v0.3.0` o posterior.
+> **Estado (4 de octubre de 2026): preparadas, no activadas.** LogicFlows es una demostración con datos simulados, así que el Tech Lead decide no activar las copias en producción ([ADR-0017](adr/0017-copias-de-seguridad.md#actualización-4-de-octubre-de-2026-no-se-activa-en-la-demo)). Este apartado describe cómo se activarían. Todo lo necesario está listo y comprobado.
 
-1. Revisar el coste con la tarifa de Railway y anotarlo aquí. Con el tamaño actual, decenas de megabytes, se espera que sea de céntimos al mes.
-2. Fusionar la pull request que añade a `.railway/railway.ts`:
-   - el bucket `copias`;
-   - el servicio programado `copias` (imagen `logicflows-backup`, `cronSchedule: '0 3 * * *'`);
-   - `backupSchedules` en el volumen de PostgreSQL.
+**Lo que ya existe:**
 
-   *Railway apply* los crea al fusionarla.
-3. Activar el flujo de la restauración de prueba diaria y comprobar la primera ejecución. Anotar aquí el tiempo de restauración.
-4. Con una semana de pruebas en verde, activar la retención del dato en bruto (`HISTORY_RAW_RETENTION_DAYS=30` y `HISTORY_EVENTS_RETENTION_DAYS=365`, ADR-0016).
+- La imagen `logicflows-backup`, publicada con cada versión desde `v0.3.0`, y sus scripts, probados en cada pull request.
+- El cambio de producción, en la rama `feature/LF-82-activar-copias` ([pull request #77](https://github.com/amariner/logicflows/pull/77), cerrada sin fusionar):
+  - en `.railway/railway.ts`, el bucket privado `copias` en Ámsterdam y el servicio programado `copias`, con la imagen de la versión desplegada (`VERSION`) todos los días a las 03:00 UTC. Recibe por referencia el administrador de PostgreSQL y las credenciales del bucket;
+  - el flujo «Copias de seguridad» (`.github/workflows/copias.yml`), que todos los días a las 05:00 UTC ejecuta `infra/railway/probar-copias.sh`. Ese script lanza la restauración de prueba en un servicio temporal de Railway, que se borra al terminar, y si falla abre o actualiza una incidencia.
+
+  Su plan, revisado el 4 de octubre de 2026, solo crea esos dos recursos: `Plan: 2 to add, 0 to change, 0 to destroy`.
+
+**Coste revisado el 4 de octubre de 2026,** con el volumen de PostgreSQL en 258 MB y la tarifa vigente de Railway:
+
+- bucket: 0,015 USD por GB y mes, sin coste de operaciones ni de salida;
+- servicios: 20 USD por vCPU y mes y 10 USD por GB de memoria y mes, por minuto;
+- instantáneas: solo la parte incremental, a 0,15 USD por GB y mes, como un volumen.
+
+| Pieza | Supuesto | Coste al mes |
+|---|---|---|
+| Bucket `copias` | 30 volcados de unos 50 MB | ~0,02 USD |
+| Servicio `copias` | ~3 minutos al día | ~0,03 USD |
+| Restauración de prueba | ~5 minutos al día en un servicio temporal | ~0,10 USD |
+| Instantáneas del volumen | diarias (6 días) y semanales (27 días), incrementales; en el peor caso, 10 copias completas | 0,05–0,40 USD |
+| **Total** | | **< 0,60 USD** |
+
+El uso del proyecto en octubre se estimaba en 1,63 USD, dentro de los 5 USD incluidos en el plan Hobby. Activarlas no cambiaría la factura mientras el total no pasara de 5 USD.
+
+**Pasos para activarlas:**
+
+1. Volver a revisar el coste con el tamaño de la base de datos en ese momento y actualizar la tabla.
+2. Rebasar la rama `feature/LF-82-activar-copias` sobre `main`, abrir con ella una pull request nueva y revisar su plan: solo debe crear el bucket y el servicio `copias`. Al fusionarla, *Railway apply* los crea.
+3. Activar las instantáneas diarias y semanales del volumen en Railway (servicio `Postgres` → *Backups*). El volumen lo crea la plantilla de PostgreSQL y la infraestructura como código no gestiona su montaje.
+4. Lanzar el servicio `copias` a mano una vez y, después, el flujo «Copias de seguridad» (*Run workflow*). Anotar aquí el tiempo de restauración.
+5. Con una semana de pruebas en verde, activar la retención del dato en bruto (`HISTORY_RAW_RETENTION_DAYS=30` y `HISTORY_EVENTS_RETENTION_DAYS=365`, ADR-0016).
 
 ### Recuperar la base de datos
+
+Con las copias activadas. Mientras no lo estén, la única vía es regenerar los datos simulados (`pnpm simulator:historico`).
 
 - **Del último día, el servidor entero:** restaurar la instantánea del volumen desde Railway (servicio `Postgres` → *Backups* → *Restore*). Railway prepara el cambio y se aplica con *Deploy*. Sustituye todos los datos del volumen.
 - **De una fecha concreta, o solo una base de datos:** restaurar su volcado con `pg_restore --clean --if-exists` en un servicio temporal de la red privada, como hace `ejecutar-sql.sh`. Antes:
