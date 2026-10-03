@@ -1,6 +1,6 @@
 # Demo del Hito 4
 
-Guion para enseñar el histórico de LogicFlows `v0.4.0` en unos 15 minutos: qué ha producido una célula, cuánto tiempo produjo de verdad, por qué se paró y qué pasó en cada momento. Complementa la [demo del Hito 2](demo-hito-2.md), que recorre el sistema desplegado.
+Guion para enseñar el histórico de LogicFlows `v0.4.0` en unos 15 minutos: qué ha producido una célula, cuánto tiempo produjo de verdad, por qué se paró y qué pasó en cada momento. Complementa la [demo del Hito 2](demo-hito-2.md), que recorre el sistema desplegado, y la [del Hito 3](demo-hito-3.md), que recorre la app Android.
 
 ## Preparación
 

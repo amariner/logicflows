@@ -1,6 +1,6 @@
 # Demo del Hito 2
 
-Guion para enseñar LogicFlows `v0.2.0` en unos 20 minutos: el sistema funcionando en Internet, cómo llega un cambio desde una pull request hasta producción y cómo se vigila. Complementa la [demo del Hito 1](demo.md), que recorre el comportamiento de la célula en local.
+Guion para enseñar LogicFlows `v0.2.0` en unos 20 minutos: el sistema funcionando en Internet, cómo llega un cambio desde una pull request hasta producción y cómo se vigila. Complementa la [demo del Hito 1](demo.md), que recorre el comportamiento de la célula en local. La app Android se enseña con la [demo del Hito 3](demo-hito-3.md).
 
 ## Preparación
 
