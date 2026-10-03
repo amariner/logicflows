@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { provideIonicAngular } from '@ionic/angular';
 import { describe, expect, it } from 'vitest';
 
@@ -7,7 +8,9 @@ import type { CellView } from '../cell-view';
 import { CellListComponent } from './cell-list.component';
 
 const render = async (cells: readonly CellView[]) => {
-  TestBed.configureTestingModule({ providers: [provideIonicAngular({ mode: 'md' })] });
+  TestBed.configureTestingModule({
+    providers: [provideIonicAngular({ mode: 'md' }), provideRouter([])],
+  });
   const fixture = TestBed.createComponent(CellListComponent);
   fixture.componentRef.setInput('cells', cells);
   await fixture.whenStable();

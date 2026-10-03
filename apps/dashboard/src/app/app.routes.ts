@@ -10,4 +10,10 @@ export const routes: Routes = [
     canActivate: [sessionGuard],
     loadComponent: () => import('./features/cells/cells.page').then((m) => m.CellsPage),
   },
+  {
+    path: 'cells/:siteId/:cellId/history',
+    title: 'Histórico · LogicFlows',
+    canActivate: [sessionGuard],
+    loadComponent: () => import('./features/history/history.page').then((m) => m.HistoryPage),
+  },
 ];

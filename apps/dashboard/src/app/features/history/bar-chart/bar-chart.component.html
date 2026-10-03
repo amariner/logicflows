@@ -1,0 +1,50 @@
+<figure>
+  <figcaption>{{ title() }}</figcaption>
+  <p class="max" aria-hidden="true">{{ max() }}</p>
+  <div class="plot" role="img" [attr.aria-label]="title() + '. ' + summary()">
+    <svg
+      [attr.viewBox]="'0 0 ' + width() + ' 100'"
+      preserveAspectRatio="none"
+      aria-hidden="true"
+      focusable="false"
+    >
+      @for (rect of rects(); track $index) {
+        <rect
+          [attr.x]="rect.x"
+          [attr.y]="100 - rect.height"
+          width="8"
+          [attr.height]="rect.height"
+        />
+      }
+    </svg>
+  </div>
+  <p class="axis" aria-hidden="true">
+    <span>{{ firstLabel() }}</span>
+    <span>{{ lastLabel() }}</span>
+  </p>
+  <details>
+    <summary>Ver los datos en una tabla</summary>
+    <div class="table" tabindex="0" role="region" [attr.aria-label]="title() + ' en una tabla'">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Periodo</th>
+            <th scope="col">Cajas</th>
+            <th scope="col">Disponibilidad</th>
+            <th scope="col">Rendimiento</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (bar of bars(); track $index) {
+            <tr>
+              <th scope="row">{{ bar.longLabel }}</th>
+              <td>{{ bar.boxes }}</td>
+              <td>{{ bar.availability }}</td>
+              <td>{{ bar.performance }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </details>
+</figure>

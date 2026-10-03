@@ -17,6 +17,20 @@ Esqueleto (LF-24), producción en tiempo real (LF-28) y panel de estado (LF-34):
 
 `ProductionIndicatorsComponent` muestra el contador de cajas destacado y, debajo, pallets, capa en curso, ritmo (cajas/h) y tiempo de ciclo (s, con un decimal), con la barra de avance del pallet en curso descrita para lectores de pantalla. Las cifras usan separador de miles y ancho fijo; las unidades se escriben siempre y se muestran más pequeñas. Sin datos se muestra «—», nunca un cero. Se actualizan con cada telemetría y se atenúan cuando la célula está desconectada.
 
+## Histórico
+
+Cada tarjeta enlaza con el histórico de su célula (`/cells/{siteId}/{cellId}/history`, LF-81). La página se carga aparte, así que no aumenta el bundle inicial:
+
+- **Periodo:** hoy por horas, o los últimos 7 o 30 días por días, en la zona horaria del dispositivo. Lo pide a `GET /api/v1/sites/{siteId}/cells/{cellId}/history` (LF-80).
+- **Indicadores** de [indicadores de planta](../../docs/indicadores-de-planta.md): disponibilidad, rendimiento, cajas y pallets, con el tiempo en producción, el planificado, el tiempo sin datos y el ritmo nominal. Si no están definidos, «—».
+- **Gráfico de cajas** por hora o por día. Es un SVG propio y no usa ninguna librería:
+  - Solo hacen falta barras, y una librería de gráficos añadiría decenas de kilobytes.
+  - Los colores salen de los tokens `--lf-tone-*`, así que sirven para el tema claro y el oscuro sin más configuración.
+  - El SVG se oculta a los lectores de pantalla, que leen un resumen («6000 cajas en total. La hora con más producción…»). Debajo, «Ver los datos en una tabla» abre la tabla equivalente para cualquiera (WCAG 1.1.1 y 1.3.1).
+- **Paradas por causa,** de la más larga a la más corta, con su duración y sus veces. La barra de cada una es decorativa: el texto ya lo dice todo.
+- **Sin conexión,** indica que no hay datos del histórico y ofrece reintentar, y al recuperar la conexión vuelve a pedirlo.
+- Solo usa componentes de Ionic que ya están en el bundle inicial. `ion-segment`, el botón de volver y el *spinner* añadían 52 kB.
+
 ## Tiempo real
 
 `RealtimeService` expone como *signals* el estado de la conexión y las células. Al arrancar:

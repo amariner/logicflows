@@ -1,14 +1,18 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import {
+  IonButton,
   IonCard,
   IonCardContent,
   IonCardHeader,
   IonCardSubtitle,
   IonCardTitle,
   IonIcon,
+  IonRouterLink,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
+  barChartSharp,
   handLeftSharp,
   helpCircleSharp,
   hourglassSharp,
@@ -34,13 +38,16 @@ import { ProductionIndicatorsComponent } from '../production-indicators/producti
   styleUrl: './cell-card.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    IonButton,
     IonCard,
     IonCardContent,
     IonCardHeader,
     IonCardSubtitle,
     IonCardTitle,
     IonIcon,
+    IonRouterLink,
     ProductionIndicatorsComponent,
+    RouterLink,
   ],
 })
 export class CellCardComponent {
@@ -48,6 +55,7 @@ export class CellCardComponent {
 
   constructor() {
     addIcons({
+      barChartSharp,
       handLeftSharp,
       helpCircleSharp,
       hourglassSharp,

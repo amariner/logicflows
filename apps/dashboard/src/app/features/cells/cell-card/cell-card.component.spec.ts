@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { provideIonicAngular } from '@ionic/angular';
 import { describe, expect, it } from 'vitest';
 
@@ -7,7 +8,9 @@ import type { CellView } from '../cell-view';
 import { CellCardComponent } from './cell-card.component';
 
 const render = async (cell: CellView) => {
-  TestBed.configureTestingModule({ providers: [provideIonicAngular({ mode: 'md' })] });
+  TestBed.configureTestingModule({
+    providers: [provideIonicAngular({ mode: 'md' }), provideRouter([])],
+  });
   const fixture = TestBed.createComponent(CellCardComponent);
   fixture.componentRef.setInput('cell', cell);
   await fixture.whenStable();
@@ -22,6 +25,13 @@ describe('tarjeta de célula', () => {
     expect(state?.querySelector('ion-icon')?.getAttribute('aria-hidden')).toBe('true');
     expect(card.querySelector('[data-testid="boxes"]')?.textContent).toBe('42');
     expect(card.querySelector('[data-testid="components"]')?.textContent).toContain('Robot');
+  });
+
+  it('enlaza con el histórico de la célula', async () => {
+    const card = await render(buildCellView());
+    const link = card.querySelector('.history-link');
+    expect(link?.textContent.trim()).toBe('Histórico');
+    expect(link?.getAttribute('aria-label')).toBe('Histórico de cell-01');
   });
 
   it('en estado normal no destaca la tarjeta', async () => {

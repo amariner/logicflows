@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import type { EnvironmentProviders, Provider } from '@angular/core';
+import { provideRouter } from '@angular/router';
 import { provideIonicAngular } from '@ionic/angular';
 
 import { provideVisorAuth } from '../app/core/auth/auth';
@@ -30,6 +31,7 @@ export function testProviders(
   );
   return [
     provideIonicAngular({ mode: 'md' }),
+    provideRouter([]),
     provideHttpClient(),
     provideHttpClientTesting(),
     { provide: AppConfigService, useValue: config },
