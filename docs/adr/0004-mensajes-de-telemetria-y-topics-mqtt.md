@@ -241,6 +241,7 @@ Todo mensaje se valida contra el esquema del contrato compartido (LF-21) antes d
 - Los publicadores deben mantener `sessionId` y una secuencia por tipo de mensaje, y la API su último valor por célula y tipo.
 - El `timestamp` del mensaje de voluntad no refleja el momento de la caída.
 - Los mensajes retenidos de una célula dada de baja permanecen en el broker hasta que se borran explícitamente.
+- La sesión persistente solo protege lo que el broker puede guardar: `max_queued_messages` está en 50 000, una hora con unas 20 células. El valor por defecto de Mosquitto, 1 000, se quedaba corto (LF-90).
 - Mosquitto no ofrece clúster: un único nodo es un punto único de fallo hasta que se diseñe la alta disponibilidad en el Hito 2.
 
 ## Criterios de revisión

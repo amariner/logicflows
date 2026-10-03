@@ -20,6 +20,7 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ### Corregido
 
+- El broker solo guardaba 1 000 mensajes para la API mientras estaba caída o desplegándose, y descartaba el resto sin avisar. Ahora guarda 50 000, suficientes para la hora de su sesión persistente con unas 20 células (LF-90).
 - El histórico, el registro y la producción de una célula con datos guardados, pero sin estado en tiempo real, respondían 404 (LF-85).
 
 ## [0.2.0] - 2026-10-02
