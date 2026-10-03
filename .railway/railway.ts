@@ -15,7 +15,17 @@
 //   (PREVIEW_SECRETS_SEED) y la contraseña del usuario de prueba (E2E_PASSWORD).
 //   No hereda nada de producción.
 import { createHmac } from 'node:crypto';
-import { defineRailway, image, postgres, preserve, project, service, volume } from 'railway/iac';
+import {
+  bucket,
+  defineRailway,
+  image,
+  postgres,
+  preserve,
+  project,
+  ref,
+  service,
+  volume,
+} from 'railway/iac';
 
 /** Versión desplegada en producción: etiqueta de las imágenes en GHCR. */
 const VERSION = 'v0.3.0';
@@ -174,7 +184,45 @@ export default defineRailway((ctx) => {
     },
   });
 
+  // Copias de seguridad de PostgreSQL (ADR-0017), solo en producción: un
+  // volcado diario en un bucket privado. La restauración de prueba diaria la
+  // lanza el flujo «Copias de seguridad» de GitHub Actions.
+  const backups = production ? backupResources() : [];
+
   return project('logicflows', {
-    resources: [Postgres, postgresVolume, brokerData, broker, identity, api, simulator, dashboard],
+    resources: [
+      Postgres,
+      postgresVolume,
+      brokerData,
+      broker,
+      identity,
+      api,
+      simulator,
+      dashboard,
+      ...backups,
+    ],
   });
+
+  function backupResources() {
+    const copiasBucket = bucket('copias', { region: 'ams' });
+    const copias = service('copias', {
+      source: imagen('backup'),
+      replicas: { [REGION]: 1 },
+      deploy: { cronSchedule: '0 3 * * *', restartPolicyType: 'NEVER' },
+      env: {
+        // El administrador de PostgreSQL por referencia, como ejecutar-sql.sh:
+        // lee las dos bases de datos y su contraseña no sale de Railway.
+        PGHOST: Postgres.env.RAILWAY_PRIVATE_DOMAIN,
+        PGPORT: '5432',
+        PGUSER: Postgres.env.PGUSER,
+        PGPASSWORD: Postgres.env.PGPASSWORD,
+        COPIAS_S3_ENDPOINT: ref(copiasBucket, 'ENDPOINT'),
+        COPIAS_S3_BUCKET: ref(copiasBucket, 'BUCKET'),
+        COPIAS_S3_REGION: ref(copiasBucket, 'REGION'),
+        COPIAS_S3_ACCESS_KEY_ID: ref(copiasBucket, 'ACCESS_KEY_ID'),
+        COPIAS_S3_SECRET_ACCESS_KEY: ref(copiasBucket, 'SECRET_ACCESS_KEY'),
+      },
+    });
+    return [copiasBucket, copias];
+  }
 });
