@@ -64,6 +64,11 @@ const configSchema = z.object({
   /** Días que se conservan los cambios de estado y de conexión (ADR-0016: 365). 0, siempre. */
   HISTORY_EVENTS_RETENTION_DAYS: z.coerce.number().int().min(0).max(3_650).default(0),
   /**
+   * Días que se conservan los agregados por hora. 0 los conserva siempre
+   * (ADR-0016); la demo los acota a 31 días (ADR-0019).
+   */
+  HISTORY_AGGREGATES_RETENTION_DAYS: z.coerce.number().int().min(0).max(3_650).default(0),
+  /**
    * Ritmo nominal de las células, en cajas por hora: la base del rendimiento
    * (docs/indicadores-de-planta.md). 900 es el de la célula simulada.
    */

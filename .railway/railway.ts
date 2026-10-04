@@ -134,6 +134,11 @@ export default defineRailway((ctx) => {
       DATABASE_URL: production
         ? preserve()
         : `postgresql://logicflows:${previewSecret('db-api')}@postgres.railway.internal:5432/logicflows`,
+      // Ventana fija de la demo (ADR-0019): en producción, 2 días en bruto y 31
+      // de estados y agregados. Las previsualizaciones duran poco y no la acotan.
+      HISTORY_RAW_RETENTION_DAYS: config('0'),
+      HISTORY_EVENTS_RETENTION_DAYS: config('0'),
+      HISTORY_AGGREGATES_RETENTION_DAYS: config('0'),
       LOG_LEVEL: config('info'),
       // Token con el que Grafana Cloud recoge /metrics (ADR-0013). Solo en
       // producción: sin la variable, la ruta no existe.
@@ -157,6 +162,10 @@ export default defineRailway((ctx) => {
       MQTT_SIMULATOR_PASSWORD: secret('mqtt-simulator'),
       MQTT_URL: config(mqttUrl),
       SIMULATOR_CELL_ID: config('cell-01'),
+      // En producción, el guion diario de la demo con semilla fija (ADR-0019).
+      // Las previsualizaciones siguen en «normal»: sus pruebas no esperan paradas.
+      SIMULATOR_SCENARIO: config('normal'),
+      SIMULATOR_SEED: config('7'),
       SIMULATOR_SITE_ID: config('demo'),
     },
   });

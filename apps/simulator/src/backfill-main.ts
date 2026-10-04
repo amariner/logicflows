@@ -7,6 +7,7 @@ import { createRandom } from './domain/random.ts';
 import { MessageFactory } from './messages.ts';
 import { connectToBroker } from './mqtt/connection.ts';
 import { SCENARIOS } from './scenarios.ts';
+import type { Scenario } from './scenarios.ts';
 
 /**
  * Carga N días de histórico simulado de una célula (LF-77), hasta ahora:
@@ -32,7 +33,7 @@ const logger = pino({
   base: { service: 'simulator-historico', siteId: config.siteId, cellId: config.cellId },
   formatters: { level: (label) => ({ level: label }) },
 });
-const scenario = SCENARIOS[config.scenario];
+const scenario: Scenario = SCENARIOS[config.scenario];
 const sessionId = uuidv7();
 const messages = new MessageFactory({
   siteId: config.siteId,
@@ -76,6 +77,7 @@ try {
       heartbeatMs: HEARTBEAT_MS,
     },
     incidents: scenario.incidents,
+    script: scenario.script,
     fromMs,
     toMs,
     connection,

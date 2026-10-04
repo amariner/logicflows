@@ -2,12 +2,14 @@ import { pino } from 'pino';
 import { v7 as uuidv7 } from 'uuid';
 
 import { loadConfig } from './config.ts';
+import { ScriptedIncidents } from './daily-script.ts';
 import { createRandom } from './domain/random.ts';
 import { IncidentGenerator } from './incident-generator.ts';
 import { MessageFactory } from './messages.ts';
 import { withNetworkChaos } from './mqtt/chaos-connection.ts';
 import { connectToBroker } from './mqtt/connection.ts';
 import { SCENARIOS } from './scenarios.ts';
+import type { Scenario } from './scenarios.ts';
 import { Simulator } from './simulator.ts';
 
 const HEARTBEAT_MS = 10_000;
@@ -29,7 +31,7 @@ const messages = new MessageFactory({
 });
 
 const random = createRandom(config.seed);
-const scenario = SCENARIOS[config.scenario];
+const scenario: Scenario = SCENARIOS[config.scenario];
 
 const brokerConnection = connectToBroker({
   ...config.mqtt,
@@ -67,6 +69,10 @@ const incidents = new IncidentGenerator({
   random,
   logger,
 });
+const scripted =
+  scenario.script === undefined
+    ? undefined
+    : new ScriptedIncidents({ target: simulator, script: scenario.script, logger });
 
 logger.info(
   { sessionId, broker: config.mqtt.url, scenario: config.scenario, seed: config.seed },
@@ -74,10 +80,12 @@ logger.info(
 );
 simulator.start();
 incidents.start();
+scripted?.start();
 
 const shutdown = (signal: string) => {
   logger.info({ signal }, 'Deteniendo el simulador');
   incidents.stop();
+  scripted?.stop();
   simulator.stop().then(
     () => process.exit(0),
     (error: unknown) => {

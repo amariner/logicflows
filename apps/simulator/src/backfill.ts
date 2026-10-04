@@ -1,5 +1,7 @@
 import type { BrokerConnection, Logger, PublishOptions } from './broker.ts';
 import type { Random } from './domain/random.ts';
+import { ScriptedIncidents } from './daily-script.ts';
+import type { DailyScript } from './daily-script.ts';
 import { IncidentGenerator } from './incident-generator.ts';
 import type { MessageFactory } from './messages.ts';
 import type { IncidentRates } from './scenarios.ts';
@@ -14,6 +16,8 @@ const STEP_MS = 60_000;
 export interface BackfillOptions {
   readonly simulator: SimulatorOptions;
   readonly incidents: IncidentRates | null;
+  /** Guion diario del escenario, si lo tiene (ADR-0019). */
+  readonly script?: DailyScript;
   /** Inicio y fin del histórico, en milisegundos de época Unix. */
   readonly fromMs: number;
   readonly toMs: number;
@@ -73,10 +77,21 @@ export async function backfill(options: BackfillOptions): Promise<number> {
     logger: options.logger,
     scheduler: clock,
   });
+  const scripted =
+    options.script === undefined
+      ? undefined
+      : new ScriptedIncidents({
+          target: simulator,
+          script: options.script,
+          logger: options.logger,
+          now: clock.now,
+          scheduler: clock,
+        });
 
   simulator.start();
   connected?.();
   incidents.start();
+  scripted?.start();
 
   let nextReport = options.fromMs + DAY_MS;
   for (let t = options.fromMs; t < options.toMs; t = Math.min(t + STEP_MS, options.toMs)) {
@@ -93,6 +108,7 @@ export async function backfill(options: BackfillOptions): Promise<number> {
   }
 
   incidents.stop();
+  scripted?.stop();
   await simulator.stop();
   await Promise.all(pending);
   return published;
