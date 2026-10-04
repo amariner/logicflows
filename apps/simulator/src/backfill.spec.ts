@@ -6,6 +6,7 @@ import { backfill } from './backfill.ts';
 import { createRandom } from './domain/random.ts';
 import { MessageFactory } from './messages.ts';
 import { SCENARIOS } from './scenarios.ts';
+import type { Scenario } from './scenarios.ts';
 
 const HOUR_MS = 3_600_000;
 const FROM = Date.parse('2026-09-01T06:00:00.000Z');
@@ -31,7 +32,7 @@ const recordingConnection = () => {
   return { published, connection };
 };
 
-const run = async (hours: number, seed: number) => {
+const run = async (hours: number, seed: number, scenario: Scenario = SCENARIOS.averias) => {
   const { published, connection } = recordingConnection();
   let id = 0;
   await backfill({
@@ -46,7 +47,8 @@ const run = async (hours: number, seed: number) => {
       restartDelayMs: 10_000,
       heartbeatMs: 10_000,
     },
-    incidents: SCENARIOS.averias.incidents,
+    incidents: scenario.incidents,
+    script: scenario.script,
     fromMs: FROM,
     toMs: FROM + hours * HOUR_MS,
     connection,
@@ -108,5 +110,19 @@ describe('histórico simulado (LF-77)', () => {
     const first = await run(2, 7);
     const second = await run(2, 7);
     expect(second.map((p) => p.payload)).toEqual(first.map((p) => p.payload));
+  });
+
+  it('con el escenario guion, cada incidencia ocurre a su hora local (ADR-0019)', async () => {
+    // FROM son las 08:00 en Madrid: el día incluye el fallo de las 09:47 y la parada de las 11:15.
+    const published = await run(24, 7, SCENARIOS.guion);
+    const states = published
+      .map(({ topic, payload }) => decodeMessage(topic, payload))
+      .flatMap((d) => (d.ok && d.kind === 'state' ? [d.message] : []));
+    const entered = (state: string) =>
+      states.filter((m) => m.state === state && m.previousState !== state).map((m) => m.since);
+    expect(entered('EMERGENCY_STOP')).toEqual(['2026-09-01T09:15:00.000Z']);
+    expect(entered('FAULT')).toContain('2026-09-01T07:47:00.000Z');
+    const second = await run(24, 7, SCENARIOS.guion);
+    expect(second.map((p) => p.payload)).toEqual(published.map((p) => p.payload));
   });
 });

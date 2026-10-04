@@ -182,6 +182,23 @@ API_PASSWORD=... KEYCLOAK_PASSWORD=... \
 
 Necesita la [CLI de Railway](https://docs.railway.com/cli) con sesión iniciada y `jq`.
 
+## Datos de la demo
+
+Producción es una demo para posibles compradores ([ADR-0019](adr/0019-datos-de-la-demo.md)): parece viva, se comporta igual cada día y no crece.
+
+- **Simulador:** `SIMULATOR_SCENARIO=guion` y `SIMULATOR_SEED=7`. Cada día repite el guion de `apps/simulator/src/guion-diario.ts`, a hora de Madrid. Las alarmas graves llegan a las 9:47, 11:15 (parada de emergencia), 16:40 y 20:05, así que una demo puede enseñar un aviso en el móvil sin tocar Railway.
+- **API:** `HISTORY_RAW_RETENTION_DAYS=2`, `HISTORY_EVENTS_RETENTION_DAYS=31` y `HISTORY_AGGREGATES_RETENTION_DAYS=31`. La retención se aplica cada hora.
+- **Tamaño:** unos 15 MB, estables. Medido en local el 4 de octubre de 2026: 31 días del guion ocupan 81 MB con toda la telemetría en bruto. Dos días de telemetría en directo, una muestra por caja, son unos 12 MB, y los estados y agregados de 31 días, menos de 1 MB.
+- **Las previsualizaciones** siguen en `normal` y sin retención: sus pruebas no esperan paradas y duran poco.
+
+**Cargar la ventana** con la base de datos vacía o para reiniciar la demo:
+
+```sh
+infra/railway/cargar-ventana.sh production 31
+```
+
+El script detiene el simulador y vacía el histórico (`infra/postgres/vaciar-historico.sql`). Después reinicia la API y genera los 31 días con el histórico simulado, en un servicio temporal con la imagen del simulador desplegada y sus credenciales por referencia. Por último, espera a que la API lo guarde y vuelve a arrancar el simulador. Tarda unos 8 minutos. **Borra el histórico:** solo tiene sentido con datos simulados.
+
 ## Copias de seguridad
 
 Según [ADR-0017](adr/0017-copias-de-seguridad.md). En la demo están preparadas, pero **no activadas** en producción ([estado](#activación-en-producción-tech-lead)):

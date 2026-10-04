@@ -167,6 +167,7 @@ Se valida al arrancar; un valor no válido detiene la API indicando qué variabl
 | `HISTORY_AGGREGATION_INTERVAL_MS` | `30000` | Cada cuánto se agregan las horas pendientes del histórico |
 | `HISTORY_RAW_RETENTION_DAYS` | `0` | Días de telemetría en bruto que se conservan; 0, sin límite |
 | `HISTORY_EVENTS_RETENTION_DAYS` | `0` | Días de cambios de estado y de conexión que se conservan; 0, sin límite |
+| `HISTORY_AGGREGATES_RETENTION_DAYS` | `0` | Días de agregados por hora que se conservan; 0, sin límite |
 | `NOMINAL_BOXES_PER_HOUR` | `900` | Ritmo nominal de las células en cajas por hora, base del rendimiento |
 | `NOMINAL_BOXES_PER_HOUR_BY_CELL` | — | Ritmo nominal de células concretas, como `demo/cell-02=1200,demo/cell-03=600` |
 
@@ -200,10 +201,10 @@ El histórico se resume por célula y hora en `cell_hourly`: cajas, pallets, seg
 - **Producción de una hora.** La consulta solo lee las muestras de esa hora y la última anterior de cada sesión, no todo el histórico.
 - **Hora en curso.** Se resume hasta el momento del cálculo y sigue pendiente hasta que termina, así que se completa aunque la célula deje de enviar mensajes.
 - **Consultas.** `HistoryService` calcula los indicadores de cualquier periodo sumando sus horas. Con 90 días agregados, el histórico de 30 días responde en milisegundos (lo comprueba la prueba de integración).
-- **Retención.** `RetentionService` borra por lotes el dato en bruto más antiguo que `HISTORY_RAW_RETENTION_DAYS` (telemetría) y `HISTORY_EVENTS_RETENTION_DAYS` (estados y conexiones).
+- **Retención.** Cada hora, `RetentionService` borra por lotes el dato en bruto más antiguo que `HISTORY_RAW_RETENTION_DAYS` (telemetría) y `HISTORY_EVENTS_RETENTION_DAYS` (estados y conexiones), y los agregados más antiguos que `HISTORY_AGGREGATES_RETENTION_DAYS`. Los avisos ya enviados se borran siempre al día: solo se avisa de activaciones de los últimos 15 minutos.
   - Conserva siempre el último mensaje de cada célula.
   - No borra mientras queden horas antiguas sin agregar.
-  - Con 0, el valor por defecto, no borra nada: en producción se activará con 30 y 365 días cuando haya copias de seguridad (LF-82).
+  - Con 0, el valor por defecto, no borra nada. La demo usa 2, 31 y 31 días (ADR-0019); una planta real, 30 y 365 días y los agregados sin límite (ADR-0016).
 - **Métrica:** `logicflows_history_pending_hours` indica cuántas horas faltan por agregar.
 
 ## Avisos de alarmas

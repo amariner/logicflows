@@ -1,3 +1,6 @@
+import type { DailyScript } from './daily-script.ts';
+import { GUION_DIARIO } from './guion-diario.ts';
+
 /** Intervalo de duración, en milisegundos. */
 export interface DurationRange {
   readonly minMs: number;
@@ -31,12 +34,21 @@ export interface Scenario {
   readonly description: string;
   readonly incidents: IncidentRates | null;
   readonly network: NetworkChaos | null;
+  /** Guion diario: incidencias a hora fija en lugar de al azar (ADR-0019). */
+  readonly script?: DailyScript;
 }
 
 const minutes = (value: number) => value * 60_000;
 const seconds = (value: number) => value * 1_000;
 
 export const SCENARIOS = {
+  guion: {
+    description:
+      'La demo para compradores: cada día repite el mismo guion de esperas, pausas y fallos a hora local, con alarmas graves en horario laboral (ADR-0019).',
+    incidents: null,
+    network: null,
+    script: GUION_DIARIO,
+  },
   normal: {
     description: 'Producción continua, sin incidencias ni problemas de red.',
     incidents: null,

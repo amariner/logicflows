@@ -413,4 +413,38 @@ describe('histórico agregado por hora (LF-79, LF-80)', () => {
         .production('demo', CELL, new Date(at('08:00')), new Date(at('11:00'))),
     ).toEqual({ boxes: 470, pallets: 11 });
   });
+
+  it('con la ventana de la demo, borra los agregados y los avisos enviados antiguos (ADR-0019)', async () => {
+    await query(
+      `insert into push_notified_alarms (site_id, cell_id, code, raised_at, notified_at)
+       values ('demo', '${CELL}', 'ROB-001', '2026-11-29T09:00:00Z', '2026-11-29T09:00:00Z'),
+              ('demo', '${CELL}', 'ROB-002', '2026-11-30T12:00:00Z', '2026-11-30T12:00:00Z')`,
+    );
+    const config = {
+      get: (key: keyof AppConfig) => (key === 'HISTORY_AGGREGATES_RETENTION_DAYS' ? 31 : 0),
+    } as unknown as ConfigService<AppConfig, true>;
+    const silent = { info: () => undefined, warn: () => undefined, error: () => undefined };
+    const retention = new RetentionService(
+      app.get<Database>(DATABASE),
+      config,
+      silent as unknown as PinoLogger,
+    );
+    const hours = Number(
+      (
+        await query<{ n: string }>(
+          `select count(*) as n from cell_hourly where hour < '2026-10-31T00:00:00Z'`,
+        )
+      )[0]?.n,
+    );
+    expect(hours).toBeGreaterThan(0);
+    // 31 días antes del 1 de diciembre: se borran las horas de septiembre y el aviso de hace dos días.
+    const deleted = await retention.runOnce(new Date('2026-12-01T00:00:00Z'));
+    expect(deleted).toBe(hours + 1);
+    expect(await hourRow(at('09:00'))).toBeUndefined();
+    expect(
+      await query<{ code: string }>(
+        `select code from push_notified_alarms where cell_id = '${CELL}'`,
+      ),
+    ).toEqual([{ code: 'ROB-002' }]);
+  });
 });

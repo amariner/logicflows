@@ -4,6 +4,12 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ## [Sin publicar]
 
+### Añadido
+
+- **Escenario `guion` del simulador** (ADR-0019, LF-95): repite cada día un guion de esperas, pausas, fallos y una parada de emergencia a hora fija de Madrid. Las alarmas graves caen en horario laboral. El histórico simulado sigue el mismo guion.
+- **Retención de los agregados por hora** (`HISTORY_AGGREGATES_RETENTION_DAYS`), y borrado diario de los avisos ya enviados (LF-95).
+- **`infra/railway/cargar-ventana.sh`:** vacía el histórico de un entorno y lo vuelve a generar con el guion (LF-95).
+
 ### Cambiado
 
 - Las copias de seguridad de PostgreSQL quedan preparadas, pero no se activan en producción: LogicFlows es una demostración con datos simulados. El procedimiento de activación y su coste revisado, menos de 0,60 USD al mes, están en `docs/despliegue.md` (ADR-0017, LF-82).

@@ -8,23 +8,31 @@ import type { AppConfig } from '../config/config.ts';
 import { DATABASE } from '../database/database.module.ts';
 import type { Database } from '../database/database.module.ts';
 import {
+  cellHourly,
   cellHourlyPending,
   cellStateChanges,
   cellStatusEvents,
+  pushNotifiedAlarms,
   telemetrySamples,
 } from '../database/schema.ts';
 
 const DAY_MS = 86_400_000;
 const BATCH = 5_000;
 const EVERY_MS = 3_600_000;
+/**
+ * Los avisos ya enviados solo sirven para no repetir el de una activación, y
+ * solo se avisa de las de los últimos 15 minutos (ADR-0015): basta un día.
+ */
+const NOTIFIED_ALARMS_DAYS = 1;
 
 type RawTable = typeof telemetrySamples | typeof cellStateChanges | typeof cellStatusEvents;
 
 /**
- * Borra el dato en bruto más antiguo que la retención (ADR-0016), por lotes
- * para no bloquear la ingesta. Conserva siempre el último mensaje de cada
- * célula, del que se recupera el estado al arrancar. Con retención 0 no borra
- * nada.
+ * Borra el histórico más antiguo que la retención de cada tabla (ADR-0016 y
+ * ADR-0019): el dato en bruto por lotes, para no bloquear la ingesta, y
+ * conservando siempre el último mensaje de cada célula, del que se recupera el
+ * estado al arrancar; después, los agregados por hora. Con retención 0, la
+ * tabla no se toca. Los avisos ya enviados se borran siempre al día.
  */
 @Injectable()
 export class RetentionService implements OnModuleInit, OnModuleDestroy {
@@ -37,9 +45,6 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit(): void {
-    if (this.#rawDays === 0 && this.#eventsDays === 0) {
-      return;
-    }
     this.#timer = setInterval(() => {
       void this.runOnce();
     }, EVERY_MS);
@@ -57,6 +62,10 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
     return this.config.get('HISTORY_EVENTS_RETENTION_DAYS', { infer: true });
   }
 
+  get #aggregatesDays(): number {
+    return this.config.get('HISTORY_AGGREGATES_RETENTION_DAYS', { infer: true });
+  }
+
   /** Aplica la retención una vez. Devuelve cuántas filas borró. */
   async runOnce(now = new Date()): Promise<number> {
     let deleted = 0;
@@ -69,6 +78,15 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
         deleted += await this.#purge(cellStateChanges, cutoff);
         deleted += await this.#purge(cellStatusEvents, cutoff);
       }
+      if (this.#aggregatesDays > 0) {
+        const cutoff = this.#cutoff(now, this.#aggregatesDays);
+        const result = await this.db.execute(sql`delete from ${cellHourly} where hour < ${cutoff}`);
+        deleted += result.rowCount ?? 0;
+      }
+      const notified = await this.db.execute(
+        sql`delete from ${pushNotifiedAlarms} where notified_at < ${this.#cutoff(now, NOTIFIED_ALARMS_DAYS)}`,
+      );
+      deleted += notified.rowCount ?? 0;
       if (deleted > 0) {
         this.logger.info({ deleted }, 'Retención del histórico aplicada');
       }

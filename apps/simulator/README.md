@@ -38,7 +38,7 @@ Los mensajes `state` incluyen las alarmas activas y se publican también cuando 
 
 ## Escenarios
 
-`SIMULATOR_SCENARIO` elige qué incidencias y problemas de red se producen durante la simulación. Cada segundo, cada incidencia ocurre con una probabilidad que corresponde a su frecuencia por hora; con `SIMULATOR_SEED` la secuencia se repite exactamente.
+`SIMULATOR_SCENARIO` elige qué incidencias y problemas de red se producen durante la simulación. En los escenarios por frecuencia, cada segundo, cada incidencia ocurre con una probabilidad que corresponde a su frecuencia por hora. Con `SIMULATOR_SEED`, el histórico simulado se repite exactamente; en directo, solo aproximadamente, porque el orden de los temporizadores reales también cuenta.
 
 | Escenario | Para qué sirve | Incidencias por hora | Red |
 |---|---|---|---|
@@ -46,6 +46,7 @@ Los mensajes `state` incluyen las alarmas activas y se publican también cuando 
 | `turno` | Ver cómo se comporta el sistema en un turno realista | 4 sin cajas y 2 salida ocupada (30 s – 3 min), 1 pausa, 1 fallo y una parada de emergencia cada 5 horas | Sin problemas |
 | `averias` | Probar la monitorización de una célula problemática | 12 fallos, 3 paradas de emergencia, 6 sin cajas y 6 salida ocupada, 1 pausa | Sin problemas |
 | `red-inestable` | Comprobar que la API aplica las reglas de ADR-0004 | Ninguna | 6 cortes por hora (5-30 s), 10 % de mensajes duplicados y 5 % retrasados para que lleguen desordenados |
+| `guion` | La demo para compradores, en producción (ADR-0019) | Las de `src/guion-diario.ts`, a hora fija de Madrid y repetidas cada día: 10 esperas, 6 pausas, 5 fallos (3 graves, entre las 9:47 y las 20:05) y una parada de emergencia a las 11:15 | Sin problemas |
 | `demo` | Enseñar todos los estados en pocos minutos | 30 fallos, 10 paradas de emergencia, 30 sin cajas y 20 salida ocupada (10-30 s), 10 pausas | 4 cortes por hora (5-15 s), 5 % duplicados y 2 % desordenados |
 
 La velocidad se ajusta con `SIMULATOR_BOX_INTERVAL_MS` y los tiempos de recuperación con sus variables. Para una demostración ágil:
@@ -53,6 +54,8 @@ La velocidad se ajusta con `SIMULATOR_BOX_INTERVAL_MS` y los tiempos de recupera
 ```sh
 SIMULATOR_SCENARIO=demo SIMULATOR_BOX_INTERVAL_MS=1000 SIMULATOR_FAULT_RECOVERY_MS=5000 SIMULATOR_EMERGENCY_STOP_RECOVERY_MS=8000 pnpm simulator
 ```
+
+**Guion diario (`guion`).** Lo que pasa cada día lo decide el reloj, no el azar: cada incidencia de `src/guion-diario.ts` ocurre a su hora local, todos los días, aunque el simulador se reinicie. Al arrancar no repite lo que ya pasó; sigue desde la hora actual. La semilla solo da la variación del ciclo. El histórico simulado sigue el mismo guion, así que el pasado y el directo encajan.
 
 **Problemas de red simulados:**
 
@@ -110,7 +113,7 @@ Dentro de la imagen del simulador está como `node dist/backfill-main.js`.
 | `SIMULATOR_BOX_INTERVAL_MS` | `4000` | Tiempo nominal entre cajas mientras produce |
 | `SIMULATOR_CYCLE_VARIATION` | `0.1` | Variación aleatoria del ciclo, de 0 a 0,5 (0,1 = ±10 %) |
 | `SIMULATOR_PALLET_CHANGE_MS` | `8000` | Tiempo de cambio de pallet |
-| `SIMULATOR_SCENARIO` | `normal` | Escenario de incidencias y red: `normal`, `turno`, `averias`, `red-inestable` o `demo` |
+| `SIMULATOR_SCENARIO` | `normal` | Escenario de incidencias y red: `normal`, `turno`, `averias`, `red-inestable`, `demo` o `guion` |
 | `SIMULATOR_SEED` | — | Semilla para repetir exactamente una simulación |
 | `SIMULATOR_FAULT_RECOVERY_MS` | `20000` | Tiempo hasta resolver un fallo y rearmar |
 | `SIMULATOR_EMERGENCY_STOP_RECOVERY_MS` | `30000` | Tiempo hasta liberar y rearmar una parada de emergencia |
