@@ -249,7 +249,7 @@ Según [ADR-0017](adr/0017-copias-de-seguridad.md). En la demo están preparadas
 | Instantáneas del volumen | diarias (6 días) y semanales (27 días), incrementales; en el peor caso, 10 copias completas | 0,05–0,40 USD |
 | **Total** | | **< 0,60 USD** |
 
-El uso del proyecto en octubre se estimaba en 1,63 USD, dentro de los 5 USD incluidos en el plan Hobby. Activarlas no cambiaría la factura mientras el total no pasara de 5 USD.
+Sería menos del 10 % del consumo del proyecto, que en la demo depende sobre todo de la memoria ([Consumo de producción](#consumo-de-producción)).
 
 **Pasos para activarlas:**
 
@@ -287,6 +287,27 @@ Una variable sellada no se puede leer, pero sí sustituir. Para rotar un secreto
 **Probado en producción el 1 de octubre de 2026** con la contraseña de la base de datos de la API: `/health/ready` siguió en `up` durante el cambio y después del despliegue.
 
 **Límite conocido:** entre el cambio en PostgreSQL y el despliegue de la API pasan unos segundos. En ese intervalo, la versión anterior conserva sus conexiones abiertas, pero no podría abrir otras nuevas. Para rotar sin ese intervalo harían falta dos usuarios alternos. No compensa mientras la rotación sea manual y poco frecuente.
+
+## Consumo de producción
+
+Railway cobra la memoria y la CPU por minuto: 10 USD por GB y mes, y 20 USD por vCPU y mes. El plan Hobby incluye 5 USD de uso al mes. La demo apenas usa CPU, así que **el coste lo marca la memoria**. Se mide con `railway metrics -s <servicio> -e production`.
+
+| Servicio | Memoria el 4 de octubre de 2026 | Después de LF-96 |
+|---|---|---|
+| `identity` (Keycloak) | 747 MB | unos 430 MB (medido en local) |
+| `Postgres` | 150 MB | 150 MB |
+| `api` | 88 MB | 88 MB |
+| `dashboard` | 40 MB | 40 MB |
+| `simulator` | 36 MB | 36 MB |
+| `broker` | 9 MB | 9 MB |
+| **Total** | **unos 1 070 MB, ~10,7 USD al mes** | **unos 750 MB, ~7,5 USD al mes** |
+
+**Lo que se ha ajustado (LF-96):**
+
+- **Keycloak:** heap de Java fijo (`-Xmx256m`) y caché local. Por defecto, Keycloak reserva un porcentaje de la memoria que ve, y en Railway ve la de toda la máquina, 8 GB. Con una sola réplica no necesita el clúster de Infinispan.
+- **PostgreSQL no se toca:** lo gestiona la plantilla de Railway, y bajar su memoria apenas ahorraría unos céntimos.
+
+La previsión que muestra `railway usage` con pocos días de mes no es fiable: el 3 de octubre indicaba 1,63 USD para todo el mes. Para estimar, la memoria total en GB por 10 USD da el coste mensual.
 
 ## Particularidades de Railway
 

@@ -12,6 +12,7 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ### Cambiado
 
+- Keycloak usa un heap de Java fijo (256 MB) y caché local: en producción pasa de unos 750 a unos 430 MB de memoria, el mayor coste de la demo (LF-96).
 - Las copias de seguridad de PostgreSQL quedan preparadas, pero no se activan en producción: LogicFlows es una demostración con datos simulados. El procedimiento de activación y su coste revisado, menos de 0,60 USD al mes, están en `docs/despliegue.md` (ADR-0017, LF-82).
 
 ## [0.3.0] - 2026-10-04
