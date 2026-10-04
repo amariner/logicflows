@@ -80,5 +80,7 @@ LogicFlows es hoy una demostración con una célula simulada: sus datos no son r
 - **Queda preparado, sin fusionar:** el cambio que crea en producción el bucket `copias`, el servicio programado y el flujo diario de restauración. Está en la rama `feature/LF-82-activar-copias` (pull request #77, cerrada sin fusionar). Su plan de Railway solo crea esos dos recursos.
 - **El coste revisado** y el procedimiento de activación están en `docs/despliegue.md`.
 
+**Con la ventana fija de [ADR-0019](0019-datos-de-la-demo.md),** la base de datos de la demo se queda en unas decenas de megabytes y se regenera con el histórico simulado.
+
 **Cuándo activarlas:** en cuanto LogicFlows reciba datos de una planta real, o antes de activar la retención del dato en bruto si esos datos deben poder recuperarse.
 
