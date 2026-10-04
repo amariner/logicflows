@@ -87,10 +87,13 @@ COPY infra/keycloak/realm-logicflows.json infra/keycloak/realm-produccion.mjs ./
 RUN node realm-produccion.mjs realm-logicflows.json logicflows.json
 
 # Keycloak compilado para producción con PostgreSQL y comprobaciones de salud.
-# El resultado es Java y sirve para cualquier arquitectura.
+# El resultado es Java y sirve para cualquier arquitectura. Con una sola
+# réplica, la caché es local: sin clúster de Infinispan ni descubrimiento de
+# nodos, que consumen memoria e hilos (LF-96).
 FROM --platform=$BUILDPLATFORM quay.io/keycloak/keycloak:26.7.5 AS identity-build
 ENV KC_DB=postgres \
-    KC_HEALTH_ENABLED=true
+    KC_HEALTH_ENABLED=true \
+    KC_CACHE=local
 RUN /opt/keycloak/bin/kc.sh build
 
 # Proveedor de identidad (ADR-0009) en modo producción. Al arrancar necesita
@@ -100,8 +103,11 @@ RUN /opt/keycloak/bin/kc.sh build
 FROM quay.io/keycloak/keycloak:26.7.5 AS identity
 COPY --from=identity-build /opt/keycloak/ /opt/keycloak/
 COPY --from=identity-realm /realm/logicflows.json /opt/keycloak/data/import/realm-logicflows.json
+# Memoria de Java fija (LF-96): por defecto, Keycloak reserva un porcentaje de
+# la memoria que ve, y en Railway ve la de toda la máquina.
 ENV KC_HTTP_ENABLED=true \
-    KC_PROXY_HEADERS=xforwarded
+    KC_PROXY_HEADERS=xforwarded \
+    JAVA_OPTS_KC_HEAP="-Xms64m -Xmx256m -XX:MaxMetaspaceSize=192m"
 EXPOSE 8080 9000
 # La imagen no incluye curl: se consulta el puerto de gestión con bash.
 HEALTHCHECK --interval=10s --timeout=5s --start-period=60s --retries=10 \
