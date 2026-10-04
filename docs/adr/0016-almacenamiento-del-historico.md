@@ -1,6 +1,6 @@
 # ADR-0016: Almacenamiento y retención del histórico
 
-- **Estado:** Aceptado
+- **Estado:** Aceptado. En la demo, las ventanas las fija [ADR-0019](0019-datos-de-la-demo.md)
 - **Fecha:** 2026-10-03
 - **Responsable:** Andreu Mariner, Tech Lead
 - **Tarea:** LF-76
