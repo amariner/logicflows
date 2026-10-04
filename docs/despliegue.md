@@ -197,7 +197,18 @@ Producción es una demo para posibles compradores ([ADR-0019](adr/0019-datos-de-
 infra/railway/cargar-ventana.sh production 31
 ```
 
-El script detiene el simulador y vacía el histórico (`infra/postgres/vaciar-historico.sql`). Después reinicia la API y genera los 31 días con el histórico simulado, en un servicio temporal con la imagen del simulador desplegada y sus credenciales por referencia. Por último, espera a que la API lo guarde y vuelve a arrancar el simulador. Tarda unos 8 minutos. **Borra el histórico:** solo tiene sentido con datos simulados.
+El script sigue este orden, porque la API descarta una sesión anterior a la última que conoce (ADR-0004), y también la conoce por los mensajes retenidos que el broker le entrega al suscribirse:
+
+1. Detiene el simulador con `railway down`. Escalarlo a 0 réplicas no lo detiene: Railway lo vuelve a desplegar.
+2. Borra sus mensajes retenidos en el broker.
+3. Vacía el histórico (`infra/postgres/vaciar-historico.sql`).
+4. Reinicia la API.
+5. Genera los días con el histórico simulado.
+6. Vuelve a arrancar el simulador.
+
+Los pasos 2 y 5 corren en servicios temporales con las credenciales del simulador por referencia, que se borran al terminar. Se crean con una imagen que termina al instante y después se cambian de una vez, con un solo despliegue: con la imagen del simulador, Railway arrancaría el simulador en directo en cuanto se crea el servicio.
+
+Tarda unos 10 minutos. Después, la API sigue guardando el histórico durante otro cuarto de hora (unos 300 mensajes por segundo en Railway, el 5 de octubre de 2026). **Borra el histórico:** solo tiene sentido con datos simulados.
 
 ## Copias de seguridad
 
