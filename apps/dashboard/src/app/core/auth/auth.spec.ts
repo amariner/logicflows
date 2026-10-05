@@ -1,13 +1,16 @@
+import { HttpTestingController } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { Router } from '@angular/router';
+import type { ActivatedRouteSnapshot, RouterStateSnapshot, UrlTree } from '@angular/router';
 import {
   AbstractSecurityStorage,
   DefaultLocalStorageService,
   DefaultSessionStorageService,
   OidcSecurityService,
 } from 'angular-auth-oidc-client';
-import { of, throwError } from 'rxjs';
+import { firstValueFrom, of, throwError } from 'rxjs';
 import type { Observable } from 'rxjs';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { TEST_AUTH, testProviders } from '../../../testing/providers';
 import { parseAppConfig } from '../config/app-config';
@@ -19,6 +22,8 @@ import {
   AuthService,
   openIdConfiguration,
   safeReturnPath,
+  sessionGuard,
+  withoutAuthResponse,
 } from './auth';
 
 interface FakeAuthResult {
@@ -39,6 +44,7 @@ const fakeOidc = (isAuthenticated: boolean) => ({
     }),
   ),
   authorize: vi.fn<(configId?: string, options?: UrlHandlerOptions) => void>(),
+  preloadAuthWellKnownDocument: vi.fn<() => Observable<unknown>>(() => of({})),
   getAccessToken: vi.fn(() => of(isAuthenticated ? 'token-de-acceso' : '')),
   logoff: vi.fn<(configId?: string, options?: UrlHandlerOptions) => Observable<null>>(() =>
     of(null),
@@ -130,15 +136,80 @@ describe('sesión del visor', () => {
     online.mockRestore();
   });
 
-  it('si el proveedor no responde, lo indica sin entrar en un bucle de redirecciones', async () => {
-    const oidc = {
-      ...fakeOidc(false),
-      checkAuth: vi.fn(() => throwError(() => new Error('Failed to fetch'))),
-    };
-    const auth = setup({ auth: true, oidc: oidc });
+  it('si el proveedor no responde, lo indica y ofrece reintentar sin redirigir (LF-92)', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const oidc = fakeOidc(false);
+    oidc.preloadAuthWellKnownDocument.mockReturnValue(
+      throwError(() => new Error('Http failure response: 0 Unknown Error')),
+    );
+    const auth = setup({ auth: true, oidc });
     expect(await auth.ensureSession()).toBe(false);
-    expect(auth.problem()).toContain('No se puede contactar');
+    expect(auth.problem()).toBe('No se puede contactar con el servicio de inicio de sesión.');
     expect(oidc.authorize).not.toHaveBeenCalled();
+    expect(error).toHaveBeenCalledWith(
+      expect.stringContaining('configuración del proveedor'),
+      expect.any(Error),
+    );
+    error.mockRestore();
+  });
+
+  it('si la comprobación falla por otra causa, no la presenta como un fallo de red ni entra en un bucle', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const oidc = fakeOidc(false);
+    oidc.checkAuth.mockReturnValue(throwError(() => new Error('inesperado')));
+    const auth = setup({ auth: true, oidc });
+    expect(await auth.ensureSession()).toBe(false);
+    expect(auth.problem()).toBe('No se pudo comprobar la sesión.');
+    expect(oidc.authorize).not.toHaveBeenCalled();
+    expect(error).toHaveBeenCalledWith(
+      expect.stringContaining('comprobar la sesión'),
+      expect.any(Error),
+    );
+    error.mockRestore();
+  });
+
+  describe('al volver a una dirección de vuelta del proveedor ya usada (LF-92)', () => {
+    beforeEach(() => {
+      sessionStorage.clear();
+      history.replaceState(null, '', '/cells?code=usado&state=viejo&session_state=s');
+      vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    });
+
+    afterEach(() => {
+      history.replaceState(null, '', '/');
+      vi.restoreAllMocks();
+    });
+
+    const staleThenSession = (isAuthenticated: boolean) => {
+      const oidc = fakeOidc(isAuthenticated);
+      oidc.checkAuth.mockReturnValueOnce(
+        throwError(() => new Error('could not find matching config for state viejo')),
+      );
+      return oidc;
+    };
+
+    it('la descarta y conserva la sesión que había, sin avisos', async () => {
+      const oidc = staleThenSession(true);
+      const auth = setup({ auth: true, oidc });
+      expect(await auth.ensureSession()).toBe(true);
+      expect(oidc.checkAuth).toHaveBeenCalledTimes(2);
+      expect(`${location.pathname}${location.search}`).toBe('/cells');
+      expect(auth.problem()).toBeNull();
+      expect(oidc.authorize).not.toHaveBeenCalled();
+      expect(console.warn).toHaveBeenCalledWith(
+        expect.stringContaining('se descarta una vuelta del proveedor'),
+        expect.any(Error),
+      );
+    });
+
+    it('sin sesión, vuelve a iniciarla y recuerda la página sin la vuelta', async () => {
+      const oidc = staleThenSession(false);
+      const auth = setup({ auth: true, oidc });
+      expect(await auth.ensureSession('/cells?code=usado&state=viejo&session_state=s')).toBe(false);
+      expect(oidc.authorize).toHaveBeenCalledTimes(1);
+      expect(auth.problem()).toBeNull();
+      expect(auth.takeReturnPath()).toBe('/cells');
+    });
   });
 
   it('cerrar sesión la cierra también en el proveedor', () => {
@@ -294,6 +365,107 @@ describe('sesión en la app Android (LF-68)', () => {
     setup({ auth: true, oidc, native }).logout();
     oidc.logoff.mock.calls[0]?.[1]?.urlHandler('https://idp.test/logout');
     expect(native.openInSystemBrowser).toHaveBeenCalledWith('https://idp.test/logout');
+  });
+});
+
+describe('con la librería de OpenID Connect (LF-92)', () => {
+  const WELL_KNOWN = `${TEST_AUTH.issuer}/.well-known/openid-configuration`;
+
+  beforeEach(() => {
+    sessionStorage.clear();
+    history.replaceState(null, '', '/cells?code=usado&state=viejo');
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    history.replaceState(null, '', '/');
+    vi.restoreAllMocks();
+  });
+
+  const setupReal = () => {
+    TestBed.configureTestingModule({ providers: testProviders({ auth: true }) });
+    const oidc = TestBed.inject(OidcSecurityService);
+    // La redirección real sacaría a la prueba de la página.
+    const authorize = vi.spyOn(oidc, 'authorize').mockImplementation(() => undefined);
+    return {
+      oidc,
+      authorize,
+      http: TestBed.inject(HttpTestingController),
+      auth: TestBed.inject(AuthService),
+    };
+  };
+
+  it('causa: una vuelta ya usada hace fallar checkAuth sin consultar la red', async () => {
+    const { oidc, http } = setupReal();
+    await expect(firstValueFrom(oidc.checkAuth())).rejects.toThrow(
+      'could not find matching config for state viejo',
+    );
+    http.verify();
+  });
+
+  it('el visor la descarta y vuelve a iniciar sesión sin presentarlo como un fallo de red', async () => {
+    const { auth, authorize, http } = setupReal();
+    const session = auth.ensureSession('/cells?code=usado&state=viejo');
+    await vi.waitFor(() => {
+      http.expectOne(WELL_KNOWN).flush({
+        issuer: TEST_AUTH.issuer,
+        authorization_endpoint: `${TEST_AUTH.issuer}/protocol/openid-connect/auth`,
+      });
+    });
+    expect(await session).toBe(false);
+    expect(authorize).toHaveBeenCalledTimes(1);
+    expect(auth.problem()).toBeNull();
+    expect(`${location.pathname}${location.search}`).toBe('/cells');
+    expect(auth.takeReturnPath()).toBe('/cells');
+  });
+
+  it('si el proveedor no responde, lo indica en lugar de quedarse en blanco', async () => {
+    history.replaceState(null, '', '/cells');
+    const { auth, authorize, http } = setupReal();
+    const session = auth.ensureSession();
+    // La librería reintenta dos veces la descarga de la configuración.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await vi.waitFor(() => {
+        http.expectOne(WELL_KNOWN).error(new ProgressEvent('error'));
+      });
+    }
+    expect(await session).toBe(false);
+    expect(auth.problem()).toBe('No se puede contactar con el servicio de inicio de sesión.');
+    expect(authorize).not.toHaveBeenCalled();
+  });
+});
+
+describe('guarda de las vistas', () => {
+  const guard = (url: string) =>
+    TestBed.runInInjectionContext(() =>
+      sessionGuard({} as ActivatedRouteSnapshot, { url } as RouterStateSnapshot),
+    );
+
+  beforeEach(() => {
+    sessionStorage.clear();
+  });
+
+  it('tras iniciar sesión no deja en la barra la dirección de vuelta del proveedor (LF-92)', async () => {
+    setup({ auth: true, oidc: fakeOidc(true) });
+    const result = (await guard('/cells?code=abc&state=xyz')) as UrlTree;
+    expect(TestBed.inject(Router).serializeUrl(result)).toBe('/cells');
+  });
+
+  it('deja pasar las demás direcciones tal cual', async () => {
+    setup({ auth: true, oidc: fakeOidc(true) });
+    expect(await guard('/cells/demo/cell-01/history?from=2026-10-01T00:00:00.000Z')).toBe(true);
+  });
+
+  it.each([
+    ['/cells?code=a&state=b', '/cells'],
+    ['/cells?state=b&session_state=s&iss=x&code=a', '/cells'],
+    ['/cells?error=access_denied&error_description=x&state=b', '/cells'],
+    ['/cells/demo/cell-01/history?x=1&code=a&state=b', '/cells/demo/cell-01/history?x=1'],
+    ['/cells?code=a', '/cells?code=a'],
+    ['/cells?from=2026-10-01T00:00:00.000Z', '/cells?from=2026-10-01T00:00:00.000Z'],
+  ])('quita la vuelta del proveedor de %s', (path, expected) => {
+    expect(withoutAuthResponse(path)).toBe(expected);
   });
 });
 

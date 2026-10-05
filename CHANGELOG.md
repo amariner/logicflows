@@ -21,6 +21,7 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 ### Corregido
 
 - Los textos del visor, el CSV del histórico y las alarmas del simulador dicen «palé» y «palés» en lugar de «pallet». Los identificadores del contrato (`palletsTotal`, `pallet`…) no cambian, y las alarmas ya registradas conservan su texto (LF-93).
+- El visor web mostraba «No se puede contactar con el servicio de inicio de sesión» al volver a una dirección de inicio de sesión ya usada, por ejemplo con **Atrás**, aunque la sesión seguía siendo válida. Ahora la descarta y conserva la sesión o la inicia de nuevo. Y si Keycloak no responde, muestra ese aviso con **Reintentar** en lugar de quedarse en blanco (LF-92).
 
 ## [0.3.0] - 2026-10-04
 

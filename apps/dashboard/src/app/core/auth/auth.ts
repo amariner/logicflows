@@ -12,7 +12,7 @@ import {
   StsConfigStaticLoader,
   provideAuth,
 } from 'angular-auth-oidc-client';
-import type { OpenIdConfiguration } from 'angular-auth-oidc-client';
+import type { LoginResponse, OpenIdConfiguration } from 'angular-auth-oidc-client';
 import { firstValueFrom } from 'rxjs';
 
 import { AppConfigService } from '../config/app-config';
@@ -38,6 +38,32 @@ export function safeReturnPath(value: string | null): string | null {
     return null;
   }
   return value;
+}
+
+/** Parámetros con los que el proveedor vuelve tras iniciar sesión (RFC 6749 y OpenID Connect). */
+const AUTH_RESPONSE_PARAMS = [
+  'code',
+  'state',
+  'session_state',
+  'iss',
+  'error',
+  'error_description',
+  'error_uri',
+];
+
+/**
+ * La ruta sin la vuelta del proveedor (`?code=…&state=…`), o la misma ruta si
+ * no la lleva. Una vuelta solo se puede procesar una vez (LF-92).
+ */
+export function withoutAuthResponse(path: string): string {
+  const url = new URL(path, 'http://visor.invalid');
+  if (!url.searchParams.has('state')) {
+    return path;
+  }
+  for (const name of AUTH_RESPONSE_PARAMS) {
+    url.searchParams.delete(name);
+  }
+  return `${url.pathname}${url.search}${url.hash}`;
 }
 
 /** Última URL de arranque ya usada para iniciar sesión: no se reutiliza. */
@@ -173,7 +199,8 @@ export class AuthService {
   }
 
   #rememberReturnPath(path: string | undefined): void {
-    const safe = safeReturnPath(path ?? null);
+    const checked = safeReturnPath(path ?? null);
+    const safe = checked === null ? null : withoutAuthResponse(checked);
     try {
       if (safe === null) {
         sessionStorage.removeItem(RETURN_PATH_KEY);
@@ -214,12 +241,10 @@ export class AuthService {
     const callback = await this.#pendingLaunchCallback();
     let result;
     try {
-      // Si la app arrancó con la vuelta de Keycloak, se completa con ella.
-      result = await firstValueFrom(
-        callback === undefined ? this.#oidc.checkAuth() : this.#oidc.checkAuth(callback),
-      );
-    } catch {
-      this.#problem.set('No se puede contactar con el servicio de inicio de sesión.');
+      result = await this.#checkAuth(callback);
+    } catch (error) {
+      console.error('Inicio de sesión: no se pudo comprobar la sesión.', error);
+      this.#problem.set('No se pudo comprobar la sesión.');
       this.#retryWhenOnline();
       return false;
     }
@@ -232,6 +257,11 @@ export class AuthService {
     this.#rememberReturnPath(
       requestedPath ?? (this.#native.native ? undefined : `${location.pathname}${location.search}`),
     );
+    if (!(await this.#providerReachable())) {
+      this.#problem.set('No se puede contactar con el servicio de inicio de sesión.');
+      this.#retryWhenOnline();
+      return false;
+    }
     if (this.#native.native) {
       return new Promise<boolean>((resolve) => {
         this.#pendingLogin = resolve;
@@ -240,6 +270,54 @@ export class AuthService {
     }
     this.#oidc.authorize();
     return false;
+  }
+
+  /**
+   * Comprueba la sesión; si la app arrancó con la vuelta de Keycloak, la
+   * completa con ella. Una vuelta que no corresponde a ningún inicio de sesión
+   * en curso en esta pestaña (ya usada, al pulsar «atrás» o abrirla desde el
+   * historial) la rechaza la librería sin consultar la red. Se descarta y se
+   * comprueba sin ella: la sesión que hubiera sigue valiendo y, si no hay
+   * ninguna, se inicia otra (LF-92).
+   */
+  async #checkAuth(callback: string | undefined): Promise<LoginResponse> {
+    const path = `${location.pathname}${location.search}${location.hash}`;
+    try {
+      return await firstValueFrom(
+        callback === undefined ? this.#oidc.checkAuth() : this.#oidc.checkAuth(callback),
+      );
+    } catch (error) {
+      const clean = withoutAuthResponse(path);
+      if (callback === undefined && clean === path) {
+        throw error;
+      }
+      console.warn(
+        'Inicio de sesión: se descarta una vuelta del proveedor que no corresponde a ningún inicio de sesión en curso.',
+        error,
+      );
+      if (clean !== path) {
+        history.replaceState(history.state, '', clean);
+      }
+      return firstValueFrom(this.#oidc.checkAuth());
+    }
+  }
+
+  /**
+   * Si la librería no puede descargar la configuración del proveedor al
+   * iniciar sesión, no redirige ni avisa, y el visor se queda en blanco. Se
+   * descarga antes para poder indicarlo y ofrecer reintentar (LF-92).
+   */
+  async #providerReachable(): Promise<boolean> {
+    try {
+      await firstValueFrom(this.#oidc.preloadAuthWellKnownDocument());
+      return true;
+    } catch (error) {
+      console.error(
+        'Inicio de sesión: no se pudo descargar la configuración del proveedor de identidad.',
+        error,
+      );
+      return false;
+    }
   }
 
   /**
@@ -316,7 +394,8 @@ export class AuthService {
 
 /**
  * Las vistas del visor requieren sesión cuando hay proveedor de identidad.
- * Tras iniciarla, se vuelve a la página que se había pedido (LF-86).
+ * Tras iniciarla, se vuelve a la página que se había pedido (LF-86), nunca a
+ * la dirección de vuelta del proveedor, que no se puede volver a usar (LF-92).
  */
 export const sessionGuard: CanActivateFn = async (_route, state) => {
   const auth = inject(AuthService);
@@ -324,6 +403,6 @@ export const sessionGuard: CanActivateFn = async (_route, state) => {
   if (!(await auth.ensureSession(state.url))) {
     return false;
   }
-  const path = auth.takeReturnPath();
-  return path !== null && path !== state.url ? router.parseUrl(path) : true;
+  const path = auth.takeReturnPath() ?? withoutAuthResponse(state.url);
+  return path !== state.url ? router.parseUrl(path) : true;
 };
