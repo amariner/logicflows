@@ -71,7 +71,7 @@ run_temporary() {
   if ! grep -q "$marker" <<< "$logs"; then
     grep -vE '^\s*$' <<< "$logs" | tail -20
     echo "El paso no terminó. El simulador sigue detenido: se arranca con" >&2
-    echo "  railway service redeploy --service simulator --from-source --yes" >&2
+    echo "  railway service scale --service simulator $region=1 us-west2=0" >&2
     exit 1
   fi
 }
@@ -107,5 +107,8 @@ run_temporary ventana "ghcr.io/amariner/logicflows-simulator:$version" \
 wait_s=$((days * 9000 / 300 / 4 + 60))
 echo "6/6 Esperando ${wait_s} s a que la API lo guarde y arrancando el simulador…"
 sleep "$wait_s"
-railway service redeploy --service simulator --environment "$environment" --from-source --yes > /dev/null
+# Tras `railway down`, un despliegue nuevo va a la región por defecto (us-west2,
+# comprobado el 5 de octubre de 2026): se fija la región, como en
+# .railway/railway.ts, y eso ya lo vuelve a desplegar.
+railway service scale --service simulator --environment "$environment" "$region=1" us-west2=0 > /dev/null
 echo "Ventana cargada."
