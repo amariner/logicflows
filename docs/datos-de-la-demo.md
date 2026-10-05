@@ -83,15 +83,17 @@ vacuum (full, analyze) cell_hourly;
 
 Railway cobra la memoria y la CPU por minuto: 10 USD por GB y mes, y 20 USD por vCPU y mes. El plan Hobby incluye 5 USD de uso al mes. La demo apenas usa CPU, así que **el coste lo marca la memoria**. Para estimar el mes: memoria total en GB × 10 USD. La previsión de `railway usage` con pocos días de mes no es fiable (el 3 de octubre indicaba 1,63 USD para todo el mes).
 
-| Servicio | 4 oct 2026 | 5 oct 2026 | Tras desplegar LF-96 (esperado) |
+| Servicio | 4 oct 2026 | 5 oct 2026, antes de LF-96 | 5 oct 2026, con LF-96 (`sha-81982e8`) |
 |---|---|---|---|
-| `identity` (Keycloak) | 747 MB | 567 MB | 567 MB |
-| `api` | 88 MB | 240–290 MB | unos 140 MB |
-| `Postgres` | 150 MB | 193–211 MB, bajando tras la carga | unos 150 MB |
-| `dashboard` | 40 MB | 41 MB | 41 MB |
+| `identity` (Keycloak) | 747 MB | 567 MB | 538 MB |
+| `api` | 88 MB | 240–290 MB | **97 MB** |
+| `Postgres` | 150 MB | 193–211 MB | 214 MB |
+| `dashboard` | 40 MB | 41 MB | 40 MB |
 | `simulator` | 36 MB | 40 MB | 40 MB |
-| `broker` | 9 MB | 5 MB | 5 MB |
+| `broker` | 9 MB | 5 MB | 9 MB |
 | **Total** | **unos 1 070 MB, ~10,7 USD al mes** | **unos 1 100 MB, ~11 USD al mes** | **unos 940 MB, ~9,4 USD al mes** |
+
+En Railway, la API queda por debajo de lo medido en local (140 MB de memoria residente): Railway no mide exactamente lo mismo que `VmRSS`, así que se compara siempre con la misma herramienta. PostgreSQL no volvió a sus 150 MB tras la carga del 4 de octubre; si sigue así, es lo siguiente que conviene mirar.
 
 **Lo que se ha ajustado (LF-96):**
 
