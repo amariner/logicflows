@@ -184,31 +184,7 @@ Necesita la [CLI de Railway](https://docs.railway.com/cli) con sesión iniciada 
 
 ## Datos de la demo
 
-Producción es una demo para posibles compradores ([ADR-0019](adr/0019-datos-de-la-demo.md)): parece viva, se comporta igual cada día y no crece.
-
-- **Simulador:** `SIMULATOR_SCENARIO=guion` y `SIMULATOR_SEED=7`. Cada día repite el guion de `apps/simulator/src/guion-diario.ts`, a hora de Madrid. Las alarmas graves llegan a las 9:47, 11:15 (parada de emergencia), 16:40 y 20:05, así que una demo puede enseñar un aviso en el móvil sin tocar Railway.
-- **API:** `HISTORY_RAW_RETENTION_DAYS=2`, `HISTORY_EVENTS_RETENTION_DAYS=31` y `HISTORY_AGGREGATES_RETENTION_DAYS=31`. La retención se aplica cada hora.
-- **Tamaño:** unos 15 MB, estables. Medido en local el 4 de octubre de 2026: 31 días del guion ocupan 81 MB con toda la telemetría en bruto. Dos días de telemetría en directo, una muestra por caja, son unos 12 MB, y los estados y agregados de 31 días, menos de 1 MB.
-- **Las previsualizaciones** siguen en `normal` y sin retención: sus pruebas no esperan paradas y duran poco.
-
-**Cargar la ventana** con la base de datos vacía o para reiniciar la demo:
-
-```sh
-infra/railway/cargar-ventana.sh production 31
-```
-
-El script sigue este orden, porque la API descarta una sesión anterior a la última que conoce (ADR-0004), y también la conoce por los mensajes retenidos que el broker le entrega al suscribirse:
-
-1. Detiene el simulador con `railway down`. Escalarlo a 0 réplicas no lo detiene: Railway lo vuelve a desplegar.
-2. Borra sus mensajes retenidos en el broker.
-3. Vacía el histórico (`infra/postgres/vaciar-historico.sql`).
-4. Reinicia la API.
-5. Genera los días con el histórico simulado.
-6. Vuelve a arrancar el simulador.
-
-Los pasos 2 y 5 corren en servicios temporales con las credenciales del simulador por referencia, que se borran al terminar. Se crean con una imagen que termina al instante y después se cambian de una vez, con un solo despliegue: con la imagen del simulador, Railway arrancaría el simulador en directo en cuanto se crea el servicio.
-
-Tarda unos 10 minutos. Después, la API sigue guardando el histórico durante otro cuarto de hora (unos 300 mensajes por segundo en Railway, el 5 de octubre de 2026). **Borra el histórico:** solo tiene sentido con datos simulados.
+Producción es una demo con datos simulados que no crece ([ADR-0019](adr/0019-datos-de-la-demo.md)): el simulador sigue un guion diario y la API conserva una ventana fija (2 días de telemetría en bruto, 31 de estados y agregados). Cómo se generan, cargar o reiniciar la ventana (`infra/railway/cargar-ventana.sh`), medirla y compactarla está en [Datos de la demo](datos-de-la-demo.md).
 
 ## Copias de seguridad
 
@@ -260,7 +236,7 @@ Según [ADR-0017](adr/0017-copias-de-seguridad.md). En la demo están preparadas
 | Instantáneas del volumen | diarias (6 días) y semanales (27 días), incrementales; en el peor caso, 10 copias completas | 0,05–0,40 USD |
 | **Total** | | **< 0,60 USD** |
 
-Sería menos del 10 % del consumo del proyecto, que en la demo depende sobre todo de la memoria ([Consumo de producción](#consumo-de-producción)).
+Sería menos del 10 % del consumo del proyecto, que en la demo depende sobre todo de la memoria ([Consumo](datos-de-la-demo.md#consumo)).
 
 **Pasos para activarlas:**
 
@@ -301,24 +277,7 @@ Una variable sellada no se puede leer, pero sí sustituir. Para rotar un secreto
 
 ## Consumo de producción
 
-Railway cobra la memoria y la CPU por minuto: 10 USD por GB y mes, y 20 USD por vCPU y mes. El plan Hobby incluye 5 USD de uso al mes. La demo apenas usa CPU, así que **el coste lo marca la memoria**. Se mide con `railway metrics -s <servicio> -e production`.
-
-| Servicio | Memoria el 4 de octubre de 2026 | Después de LF-96 |
-|---|---|---|
-| `identity` (Keycloak) | 747 MB | unos 430 MB (medido en local) |
-| `Postgres` | 150 MB | 150 MB |
-| `api` | 88 MB | 88 MB |
-| `dashboard` | 40 MB | 40 MB |
-| `simulator` | 36 MB | 36 MB |
-| `broker` | 9 MB | 9 MB |
-| **Total** | **unos 1 070 MB, ~10,7 USD al mes** | **unos 750 MB, ~7,5 USD al mes** |
-
-**Lo que se ha ajustado (LF-96):**
-
-- **Keycloak:** heap de Java fijo (`-Xmx256m`) y caché local. Por defecto, Keycloak reserva un porcentaje de la memoria que ve, y en Railway ve la de toda la máquina, 8 GB. Con una sola réplica no necesita el clúster de Infinispan.
-- **PostgreSQL no se toca:** lo gestiona la plantilla de Railway, y bajar su memoria apenas ahorraría unos céntimos.
-
-La previsión que muestra `railway usage` con pocos días de mes no es fiable: el 3 de octubre indicaba 1,63 USD para todo el mes. Para estimar, la memoria total en GB por 10 USD da el coste mensual.
+El coste lo marca la memoria: 10 USD por GB y mes, con 5 USD incluidos en el plan Hobby. La tabla de consumo por servicio, los ajustes de Keycloak y de Node y cómo medirlo están en [Datos de la demo](datos-de-la-demo.md#consumo).
 
 ## Particularidades de Railway
 
