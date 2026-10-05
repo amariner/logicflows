@@ -49,7 +49,7 @@ export const ALARMS = {
   blocked: {
     code: 'OUT-001',
     severity: 'LOW',
-    message: 'Salida de pallets ocupada',
+    message: 'Salida de palés ocupada',
     source: 'supply',
   },
 } as const satisfies Record<string, AlarmDefinition>;

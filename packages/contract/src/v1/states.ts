@@ -13,7 +13,7 @@ export const CELL_STATES = [
 export type CellState = (typeof CELL_STATES)[number];
 export const cellStateSchema = z.enum(CELL_STATES);
 
-/** Causa de una espera: sin cajas a la entrada o salida de pallets ocupada. */
+/** Causa de una espera: sin cajas a la entrada o salida de palés ocupada. */
 export const WAITING_REASONS = ['STARVED', 'BLOCKED'] as const;
 export type WaitingReason = (typeof WAITING_REASONS)[number];
 export const waitingReasonSchema = z.enum(WAITING_REASONS);

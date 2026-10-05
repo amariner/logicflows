@@ -156,12 +156,12 @@ export class HistoryRepository {
     };
   }
 
-  /** Cajas y pallets producidos en una hora, leídos del dato en bruto. */
+  /** Cajas y palés producidos en una hora, leídos del dato en bruto. */
   async hourProduction({ siteId, cellId, hour }: CellHour): Promise<ProductionTotals> {
     return rawProduction(this.db, siteId, cellId, hour, new Date(hour.getTime() + HOUR_MS));
   }
 
-  /** Cajas y pallets producidos en [from, to), leídos del dato en bruto. */
+  /** Cajas y palés producidos en [from, to), leídos del dato en bruto. */
   async rawProduction(
     siteId: string,
     cellId: string,

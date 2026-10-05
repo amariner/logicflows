@@ -6,7 +6,7 @@ Reproduce una célula de paletizado sin hardware real y publica su conexión, su
 
 1. Se conecta al broker con MQTT 5 y registra su *Last Will* (`status` con `online: false`).
 2. Arranca: `STOPPED` → `STARTING` y, tras la secuencia de arranque, `RUNNING`.
-3. Mientras produce, paletiza una caja por ciclo y publica una telemetría por caja. Cada ciclo dura `SIMULATOR_BOX_INTERVAL_MS` con una variación aleatoria de ±`SIMULATOR_CYCLE_VARIATION`, como un robot real. Completa capas y pallets según el formato configurado y, tras cada pallet completo, espera `SIMULATOR_PALLET_CHANGE_MS` mientras se retira y se coloca uno vacío. El tiempo de ciclo publicado refleja esas esperas y el ritmo es la media de los últimos 60 segundos.
+3. Mientras produce, paletiza una caja por ciclo y publica una telemetría por caja. Cada ciclo dura `SIMULATOR_BOX_INTERVAL_MS` con una variación aleatoria de ±`SIMULATOR_CYCLE_VARIATION`, como un robot real. Completa capas y palés según el formato configurado y, tras cada palé completo, espera `SIMULATOR_PALLET_CHANGE_MS` mientras se retira y se coloca uno vacío. El tiempo de ciclo publicado refleja esas esperas y el ritmo es la media de los últimos 60 segundos.
 4. Publica telemetría al menos cada 10 segundos aunque no haya cajas.
 5. Tras cada conexión o reconexión vuelve a publicar su conexión, su estado y su telemetría, así que se recupera aunque el broker haya perdido sus datos.
 6. Al recibir `SIGINT` o `SIGTERM` se detiene de forma controlada (`STOPPED`), publica `online: false` y cierra la conexión.
@@ -24,7 +24,7 @@ El simulador reproduce los estados de ADR-0003 mediante incidencias, cada una co
 | Atasco en la cinta de entrada | `FAULT` | `CONV-002` · media | Igual que un fallo |
 | Parada de emergencia | `EMERGENCY_STOP` | `SAF-001` · crítica | Liberación y rearme tras `SIMULATOR_EMERGENCY_STOP_RECOVERY_MS` → `STOPPED` (o `FAULT` si queda un fallo activo), y arranque tras `SIMULATOR_RESTART_DELAY_MS` |
 | Sin cajas en la entrada | `WAITING` (`STARVED`) | `CONV-001` · baja | Reanuda sola cuando llegan cajas |
-| Salida de pallets ocupada | `WAITING` (`BLOCKED`) | `OUT-001` · baja | Reanuda sola cuando se libera la salida |
+| Salida de palés ocupada | `WAITING` (`BLOCKED`) | `OUT-001` · baja | Reanuda sola cuando se libera la salida |
 | Pausa del operario | `PAUSED` | — | El operario reanuda |
 
 Reglas de ADR-0003 que se cumplen:
@@ -112,14 +112,14 @@ Dentro de la imagen del simulador está como `node dist/backfill-main.js`.
 | `SIMULATOR_CELL_ID` | `cell-01` | Célula |
 | `SIMULATOR_BOX_INTERVAL_MS` | `4000` | Tiempo nominal entre cajas mientras produce |
 | `SIMULATOR_CYCLE_VARIATION` | `0.1` | Variación aleatoria del ciclo, de 0 a 0,5 (0,1 = ±10 %) |
-| `SIMULATOR_PALLET_CHANGE_MS` | `8000` | Tiempo de cambio de pallet |
+| `SIMULATOR_PALLET_CHANGE_MS` | `8000` | Tiempo de cambio de palé |
 | `SIMULATOR_SCENARIO` | `normal` | Escenario de incidencias y red: `normal`, `turno`, `averias`, `red-inestable`, `demo` o `guion` |
 | `SIMULATOR_SEED` | — | Semilla para repetir exactamente una simulación |
 | `SIMULATOR_FAULT_RECOVERY_MS` | `20000` | Tiempo hasta resolver un fallo y rearmar |
 | `SIMULATOR_EMERGENCY_STOP_RECOVERY_MS` | `30000` | Tiempo hasta liberar y rearmar una parada de emergencia |
 | `SIMULATOR_RESTART_DELAY_MS` | `5000` | Tiempo entre el rearme y la orden de arranque |
 | `SIMULATOR_STARTUP_DURATION_MS` | `3000` | Duración de la secuencia de arranque |
-| `SIMULATOR_LAYERS_PER_PALLET` | `5` | Capas de un pallet completo |
+| `SIMULATOR_LAYERS_PER_PALLET` | `5` | Capas de un palé completo |
 | `SIMULATOR_BOXES_PER_LAYER` | `8` | Cajas de una capa completa |
 | `LOG_LEVEL` | `info` | `debug`, `info`, `warn` o `error` |
 

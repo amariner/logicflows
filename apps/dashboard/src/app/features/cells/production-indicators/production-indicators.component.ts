@@ -5,7 +5,7 @@ import type { ProductionIndicators } from '../indicators';
 
 /**
  * Indicadores de producción de una célula: cajas destacadas para leerlas a
- * distancia y, debajo, pallets, capa con el avance del pallet, ritmo y tiempo
+ * distancia y, debajo, palés, capa con el avance del palé, ritmo y tiempo
  * de ciclo, siempre con sus unidades.
  */
 @Component({

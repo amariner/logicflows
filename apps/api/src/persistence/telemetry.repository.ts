@@ -111,7 +111,7 @@ export class TelemetryRepository {
     return [...cells.values()];
   }
 
-  /** Cajas y pallets producidos en [from, to), leídos del dato en bruto. */
+  /** Cajas y palés producidos en [from, to), leídos del dato en bruto. */
   async production(
     siteId: string,
     cellId: string,

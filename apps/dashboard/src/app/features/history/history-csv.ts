@@ -8,7 +8,7 @@ const HEADER = [
   'Desde',
   'Hasta',
   'Cajas',
-  'Pallets',
+  'Palés',
   'Tiempo total (s)',
   'Sin datos (s)',
   'Fuera de producción (s)',

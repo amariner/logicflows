@@ -1,4 +1,4 @@
-/** Formato del pallet: capas por pallet y cajas por capa. */
+/** Formato del palé: capas por palé y cajas por capa. */
 export interface PalletFormat {
   readonly layersPerPallet: number;
   readonly boxesPerLayer: number;
@@ -8,9 +8,9 @@ export interface PalletFormat {
 export interface ProductionCounters {
   /** Cajas paletizadas desde que arrancó el simulador. Solo crece. */
   readonly boxesTotal: number;
-  /** Pallets completados desde que arrancó el simulador. Solo crece. */
+  /** Palés completados desde que arrancó el simulador. Solo crece. */
   readonly palletsTotal: number;
-  /** Capa en curso del pallet actual, empezando en 1. */
+  /** Capa en curso del palé actual, empezando en 1. */
   readonly currentLayer: number;
   /** Cajas ya colocadas en la capa en curso. */
   readonly boxesInLayer: number;
@@ -24,8 +24,8 @@ export const INITIAL_COUNTERS: ProductionCounters = {
 };
 
 /**
- * Coloca una caja: completa la capa al llegar a `boxesPerLayer` y el pallet
- * al completar su última capa, momento en que empieza un pallet nuevo.
+ * Coloca una caja: completa la capa al llegar a `boxesPerLayer` y el palé
+ * al completar su última capa, momento en que empieza un palé nuevo.
  */
 export function placeBox(counters: ProductionCounters, format: PalletFormat): ProductionCounters {
   const boxesTotal = counters.boxesTotal + 1;

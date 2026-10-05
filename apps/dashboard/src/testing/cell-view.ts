@@ -19,7 +19,7 @@ export function buildCellView(overrides: Partial<CellView> = {}): CellView {
       pallets: '1',
       layer: '2 de 5',
       palletProgress: 0.25,
-      palletProgressLabel: 'Pallet en curso: 10 de 40 cajas',
+      palletProgressLabel: 'Palé en curso: 10 de 40 cajas',
       throughput: { value: '820', unit: 'cajas/h' },
       cycleTime: { value: '4,2', unit: 's' },
     },

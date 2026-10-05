@@ -76,7 +76,7 @@ export const telemetryMessageSchema = z
     conveyor: z.object({ state: z.enum(CONVEYOR_STATES) }),
   })
   .refine((message) => message.pallet.currentLayer <= message.pallet.layersPerPallet, {
-    message: 'La capa en curso no puede superar las capas del pallet',
+    message: 'La capa en curso no puede superar las capas del palé',
     path: ['pallet', 'currentLayer'],
   })
   .refine((message) => message.pallet.boxesInLayer <= message.pallet.boxesPerLayer, {

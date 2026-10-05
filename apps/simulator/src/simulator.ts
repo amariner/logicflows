@@ -19,7 +19,7 @@ export interface SimulatorOptions {
   readonly boxIntervalMs: number;
   /** Variación aleatoria del tiempo de ciclo: 0,1 = ±10 %. */
   readonly cycleVariation: number;
-  /** Tiempo para retirar un pallet completo y colocar uno vacío. */
+  /** Tiempo para retirar un palé completo y colocar uno vacío. */
   readonly palletChangeMs: number;
   /** Duración de la secuencia de arranque. */
   readonly startupDurationMs: number;
@@ -63,7 +63,7 @@ const SUPPLY_ALARMS: Readonly<Record<WaitingReason, AlarmDefinition>> = {
  * telemetría según ADR-0004.
  *
  * La célula arranca y paletiza una caja por ciclo (con una variación
- * aleatoria del tiempo y una pausa para cambiar cada pallet completo). Admite
+ * aleatoria del tiempo y una pausa para cambiar cada palé completo). Admite
  * incidencias (fallos, parada de emergencia, esperas y pausas) que siguen las
  * transiciones y el rearme de ADR-0003: tras un fallo o una parada de
  * emergencia la célula vuelve a STOPPED y el operario da la orden de arranque.
@@ -283,7 +283,7 @@ export class Simulator {
 
     const palletCompleted = production.palletsTotal > palletsBefore;
     if (palletCompleted) {
-      this.#logger.info({ palletsTotal: production.palletsTotal }, 'Pallet completado');
+      this.#logger.info({ palletsTotal: production.palletsTotal }, 'Palé completado');
     }
     this.#scheduleNextBox(palletCompleted ? this.#options.palletChangeMs : 0);
   }

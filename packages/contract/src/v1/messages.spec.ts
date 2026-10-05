@@ -104,7 +104,7 @@ describe('mensajes', () => {
       ['un contador no entero', { palletsTotal: 1.5 }],
       ['un ritmo negativo', { throughputBoxesPerHour: -10 }],
       [
-        'una capa en curso mayor que las capas del pallet',
+        'una capa en curso mayor que las capas del palé',
         { pallet: { currentLayer: 6, layersPerPallet: 5, boxesInLayer: 0, boxesPerLayer: 8 } },
       ],
       [

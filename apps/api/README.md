@@ -15,7 +15,7 @@ Esqueleto operativo (LF-23), ingesta de telemetría (LF-26), canal de tiempo rea
 | `GET /metrics` | Métricas en formato Prometheus para Grafana Cloud ([ADR-0013](../../docs/adr/0013-observabilidad.md)). Exige `METRICS_TOKEN`; sin la variable responde `404`. |
 | `GET /api/v1/cells` | Estado actual de todas las células. |
 | `GET /api/v1/sites/{siteId}/cells/{cellId}` | Estado actual de una célula. |
-| `GET /api/v1/sites/{siteId}/cells/{cellId}/production?from&to` | Cajas y pallets producidos en un periodo. |
+| `GET /api/v1/sites/{siteId}/cells/{cellId}/production?from&to` | Cajas y palés producidos en un periodo. |
 | `GET /api/v1/sites/{siteId}/cells/{cellId}/history?from&to&resolution&timeZone` | Histórico e indicadores de planta, en total y por horas o por días. |
 | `GET /api/v1/sites/{siteId}/cells/{cellId}/events?from&to&limit` | Registro de cambios de estado, con sus alarmas y su duración, y de conexión. |
 | `POST /api/v1/realtime/tickets` | Tique de un solo uso para abrir el canal de tiempo real. |
@@ -70,7 +70,7 @@ La conexión no bloquea el arranque: si el broker no está disponible, la API ar
 Consultas bajo `/api/v1`: la versión mayor forma parte de la ruta.
 
 - **Estado actual:** la misma información que envía el canal de tiempo real (conexión, estado con alarmas y telemetría de cada célula).
-- **Producción:** cajas y pallets producidos en `[from, to)`, calculados por diferencias de contadores. `from` y `to` son fechas ISO 8601 con zona horaria; sin ellas, las últimas 24 horas. El rango máximo es de 31 días.
+- **Producción:** cajas y palés producidos en `[from, to)`, calculados por diferencias de contadores. `from` y `to` son fechas ISO 8601 con zona horaria; sin ellas, las últimas 24 horas. El rango máximo es de 31 días.
 - **Histórico e indicadores:** producción, tiempos, disponibilidad, rendimiento y paradas por causa en `[from, to)`, en total (`summary`) y por horas o por días (`periods`), con las definiciones de [indicadores de planta](../../docs/indicadores-de-planta.md).
   - `from` y `to` son horas en punto; con `resolution=day`, medianoches de `timeZone` (zona IANA, UTC por defecto). Los días del cambio de hora tienen 23 o 25 horas.
   - Sin fechas: las últimas 24 horas por horas, o los últimos 7 días por días, incluido el periodo en curso.
@@ -191,7 +191,7 @@ Los logs se emiten en JSON con pino (`nestjs-pino`): una línea por evento con e
 
 ## Histórico agregado por hora
 
-El histórico se resume por célula y hora en `cell_hourly`: cajas, pallets, segundos en cada situación, paradas por causa y alarmas activadas ([ADR-0016](../../docs/adr/0016-almacenamiento-del-historico.md), [indicadores de planta](../../docs/indicadores-de-planta.md)).
+El histórico se resume por célula y hora en `cell_hourly`: cajas, palés, segundos en cada situación, paradas por causa y alarmas activadas ([ADR-0016](../../docs/adr/0016-almacenamiento-del-historico.md), [indicadores de planta](../../docs/indicadores-de-planta.md)).
 
 - **Horas pendientes.** Al guardar un mensaje, su hora queda en `cell_hourly_pending`; un estado o una conexión marcan también la hora siguiente. La migración `0002` marca todas las horas que ya tenían datos.
 - **Agregación.** `HistoryAggregator` recalcula hasta 200 horas pendientes cada `HISTORY_AGGREGATION_INTERVAL_MS` (30 s por defecto):

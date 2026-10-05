@@ -17,7 +17,7 @@ export interface ProductionIndicators {
   readonly boxes: string;
   readonly pallets: string;
   readonly layer: string;
-  /** Avance del pallet en curso, de 0 a 1. */
+  /** Avance del palé en curso, de 0 a 1. */
   readonly palletProgress: number;
   readonly palletProgressLabel: string;
   readonly throughput: Measure;
@@ -31,7 +31,7 @@ export const EMPTY_INDICATORS: ProductionIndicators = {
   pallets: MISSING,
   layer: MISSING,
   palletProgress: 0,
-  palletProgressLabel: 'Sin datos del pallet en curso',
+  palletProgressLabel: 'Sin datos del palé en curso',
   throughput: { value: MISSING, unit: '' },
   cycleTime: { value: MISSING, unit: '' },
 };
@@ -50,7 +50,7 @@ export function toIndicators(telemetry: TelemetryMessage | null): ProductionIndi
     pallets: integer.format(telemetry.palletsTotal),
     layer: `${String(currentLayer)} de ${String(layersPerPallet)}`,
     palletProgress,
-    palletProgressLabel: `Pallet en curso: ${integer.format(boxesInPallet)} de ${integer.format(boxesPerPallet)} cajas`,
+    palletProgressLabel: `Palé en curso: ${integer.format(boxesInPallet)} de ${integer.format(boxesPerPallet)} cajas`,
     throughput: { value: integer.format(telemetry.throughputBoxesPerHour), unit: 'cajas/h' },
     cycleTime:
       telemetry.cycleTimeMs === null

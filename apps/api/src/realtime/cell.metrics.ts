@@ -74,7 +74,7 @@ export class CellMetrics {
       ],
       [
         'pallets',
-        'Pallets completados por la célula según su último mensaje de telemetría.',
+        'Palés completados por la célula según su último mensaje de telemetría.',
         'palletsTotal',
       ],
     ] as const;

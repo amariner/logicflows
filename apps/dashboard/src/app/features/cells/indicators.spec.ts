@@ -24,7 +24,7 @@ describe('indicadores de producción', () => {
       pallets: '1312',
       layer: '3 de 5',
       palletProgress: 20 / 40,
-      palletProgressLabel: 'Pallet en curso: 20 de 40 cajas',
+      palletProgressLabel: 'Palé en curso: 20 de 40 cajas',
       throughput: { value: '820', unit: 'cajas/h' },
       cycleTime: { value: '4,3', unit: 's' },
     });
@@ -37,7 +37,7 @@ describe('indicadores de producción', () => {
     });
   });
 
-  it('el avance del pallet empieza en cero y llega al total en la última capa', () => {
+  it('el avance del palé empieza en cero y llega al total en la última capa', () => {
     const progress = (currentLayer: number, boxesInLayer: number) =>
       toIndicators(
         buildTelemetryMessage({

@@ -26,17 +26,17 @@ describe('indicadores de producción', () => {
     expect(text(element, 'throughput')).toBe('820 cajas/h');
     expect(text(element, 'cycle-time')).toBe('4,2 s');
     expect([...element.querySelectorAll('dt')].map((dt) => dt.textContent.trim())).toEqual([
-      'Pallets',
+      'Palés',
       'Capa',
       'Ritmo',
       'Ciclo',
     ]);
   });
 
-  it('describe el avance del pallet a los lectores de pantalla', async () => {
+  it('describe el avance del palé a los lectores de pantalla', async () => {
     const element = await render();
     const bar = element.querySelector('[data-testid="pallet-progress"]');
-    expect(bar?.getAttribute('aria-label')).toBe('Pallet en curso: 10 de 40 cajas');
+    expect(bar?.getAttribute('aria-label')).toBe('Palé en curso: 10 de 40 cajas');
   });
 
   it('atenúa los valores de una célula desconectada', async () => {

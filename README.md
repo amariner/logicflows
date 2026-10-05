@@ -5,7 +5,7 @@ Plataforma IIoT para monitorizar en tiempo real células robotizadas de paletiza
 > **Estado:** [`v0.3.0`](CHANGELOG.md) publicada: **Hito 3 · App Android (demo)**, en producción en Railway y con el APK firmado en su [release](https://github.com/amariner/logicflows/releases/tag/v0.3.0). Siguiente: entrega del **Hito 4 · Histórico y análisis** (`v0.4.0`).
 
 <p>
-  <img src="docs/imagenes/visor-escritorio.png" alt="Visor de LogicFlows en escritorio, tema oscuro: la célula cell-01 produciendo, con el contador de cajas, pallets, capa, ritmo y tiempo de ciclo" width="68%">
+  <img src="docs/imagenes/visor-escritorio.png" alt="Visor de LogicFlows en escritorio, tema oscuro: la célula cell-01 produciendo, con el contador de cajas, palés, capa, ritmo y tiempo de ciclo" width="68%">
   <img src="docs/imagenes/visor-movil.png" alt="El mismo visor en un móvil, tema claro" width="28%">
 </p>
 
