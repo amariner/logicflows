@@ -38,8 +38,13 @@ RUN find apps/dashboard/www -type f -size +1k ! -name config.json \
 RUN pnpm --filter @logicflows/api deploy --prod --legacy /prod/api \
  && pnpm --filter @logicflows/simulator deploy --prod --legacy /prod/simulator
 
+# Node calcula el tamaño del montón con la memoria que ve, y en Railway ve la de
+# toda la máquina (8 GB): reserva una generación joven de decenas de megas que
+# no devuelve. Limitarla baja la API de unos 280 a 140 MB sin limitar el montón
+# total, que sigue pudiendo crecer si llega de golpe la cola del broker (LF-96).
 FROM node:24.21.0-alpine AS node-runtime
-ENV NODE_ENV=production
+ENV NODE_ENV=production \
+    NODE_OPTIONS=--max-semi-space-size=8
 WORKDIR /app
 USER node
 
