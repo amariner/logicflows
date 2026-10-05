@@ -18,7 +18,7 @@ import { createHmac } from 'node:crypto';
 import { defineRailway, image, postgres, preserve, project, service, volume } from 'railway/iac';
 
 /** Versión desplegada en producción: etiqueta de las imágenes en GHCR. */
-const VERSION = 'sha-1d9fc80';
+const VERSION = 'sha-81982e8';
 
 /** Ámsterdam: latencia baja desde España y datos dentro de la UE. */
 const REGION = 'europe-west4-drams3a';
