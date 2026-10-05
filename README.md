@@ -253,6 +253,7 @@ TypeScript está fijado en la versión 6.0 porque Angular 22 y typescript-eslint
 - Guiones de la demo: [Hito 1, en local](docs/demo.md), [Hito 2, en producción](docs/demo-hito-2.md), [Hito 3, app Android](docs/demo-hito-3.md) y [Hito 4, histórico](docs/demo-hito-4.md)
 - [Decisiones de arquitectura (ADR)](docs/adr/README.md)
 - [Despliegue en Railway: servicios, configuración, secretos y rotación](docs/despliegue.md)
+- [Datos de la demo: generación, ventana fija, mantenimiento y consumo](docs/datos-de-la-demo.md)
 - [Indicadores de planta: disponibilidad, rendimiento y paradas por causa](docs/indicadores-de-planta.md)
 - [Guía de contribución y Definition of Done](CONTRIBUTING.md)
 - [Estrategia de pruebas](docs/estrategia-de-pruebas.md)

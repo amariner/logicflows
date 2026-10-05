@@ -9,10 +9,13 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 - **Escenario `guion` del simulador** (ADR-0019, LF-95): repite cada día un guion de esperas, pausas, fallos y una parada de emergencia a hora fija de Madrid. Las alarmas graves caen en horario laboral. El histórico simulado sigue el mismo guion.
 - **Retención de los agregados por hora** (`HISTORY_AGGREGATES_RETENTION_DAYS`), y borrado diario de los avisos ya enviados (LF-95).
 - **`infra/railway/cargar-ventana.sh`:** vacía el histórico de un entorno y lo vuelve a generar con el guion (LF-95).
+- **`docs/datos-de-la-demo.md`:** cómo se generan, cargan, miden y compactan los datos de la demo, el consumo por servicio y el registro de mediciones, con `infra/postgres/medir-ventana.sql` para medir la ventana (LF-95, LF-96).
 
 ### Cambiado
 
 - Keycloak usa un heap de Java fijo (256 MB) y caché local: en producción pasa de unos 750 a unos 430 MB de memoria, el mayor coste de la demo (LF-96).
+- La API y el simulador limitan la generación joven del montón de Node (`--max-semi-space-size=8`): la API arranca en unos 140 MB en lugar de 250, sin limitar el montón total (LF-96).
+- `cargar-ventana.sh` vuelve a arrancar el simulador en Ámsterdam: tras `railway down`, Railway lo desplegaba en la región por defecto (LF-96).
 - Las copias de seguridad de PostgreSQL quedan preparadas, pero no se activan en producción: LogicFlows es una demostración con datos simulados. El procedimiento de activación y su coste revisado, menos de 0,60 USD al mes, están en `docs/despliegue.md` (ADR-0017, LF-82).
 
 ## [0.3.0] - 2026-10-04
