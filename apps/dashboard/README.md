@@ -73,6 +73,8 @@ Con `auth` en `config.json`, el visor usa OpenID Connect con Authorization Code 
 - **Token solo hacia la API.** Se añade a las peticiones a `apiUrl` y a ninguna otra.
 - **Tiempo real.** Cada conexión pide antes un tique a la API. Si la API la cierra con el código `4401`, el visor pide otro tique y reconecta.
 - **Menú.** Muestra el nombre del usuario y el botón **Cerrar sesión**, que también cierra la sesión en el proveedor.
+- **Vuelta del proveedor ya usada** (LF-92). La dirección con la que vuelve Keycloak (`/cells?code=…&state=…`) solo sirve una vez. Si se vuelve a abrir, por ejemplo con **Atrás** tras escribir la contraseña o desde el historial, la librería la rechaza sin consultar la red. El visor la descarta: la quita de la barra, conserva la sesión si la había y, si no, vuelve a iniciarla. La consola del navegador lo indica con un aviso.
+- **Proveedor inaccesible** (LF-92). Antes de redirigir, el visor descarga la configuración del proveedor (`/.well-known/openid-configuration`). Si falla, muestra «No se puede contactar con el servicio de inicio de sesión» y **Reintentar**, en lugar de quedarse en blanco: la librería no avisa de ese fallo.
 
 ## Configuración
 
