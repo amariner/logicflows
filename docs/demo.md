@@ -29,7 +29,7 @@ Abrir el visor en `http://localhost:8100` en un navegador de escritorio y, si es
 | Paso | Qué hacer | Qué se ve | Qué demuestra |
 |---|---|---|---|
 | 1 | Abrir el visor e iniciar sesión con `operario` / `operario-local` | El inicio de sesión de LogicFlows y, después, la célula `cell-01` «Produciendo» con el indicador «En directo» | Inicio de sesión con OpenID Connect; simulador, broker, API y visor conectados |
-| 2 | Observar el contador | Las cajas, la capa y el avance del pallet aumentan sin recargar; al completar 40 cajas cuenta un pallet y empieza otro | Tiempo real por WebSocket, ciclo de paletizado realista |
+| 2 | Observar el contador | Las cajas, la capa y el avance del palé aumentan sin recargar; al completar 40 cajas cuenta un palé y empieza otro | Tiempo real por WebSocket, ciclo de paletizado realista |
 | 3 | Esperar una incidencia | «En espera» en ámbar, con la causa: sin cajas o salida ocupada | Estado `WAITING` de ADR-0003: la máquina está bien, el problema es externo |
 | 4 | Esperar un fallo | «Fallo» en rojo, con la alarma, su severidad y desde cuándo; la producción se detiene | Alarmas con texto, icono y color (ISA-101); nunca solo color |
 | 5 | Esperar la recuperación | La alarma desaparece, la célula pasa por «Detenida» y «Arrancando» y vuelve a producir | El rearme nunca arranca la máquina por sí solo (ADR-0003) |

@@ -47,7 +47,7 @@ describe('histórico en CSV (LF-88)', () => {
   it('una fila por periodo, en hora local, con separador ; y decimales con coma', () => {
     const lines = toHistoryCsv(history).split('\r\n');
     expect(lines[0]).toBe(
-      '﻿Desde;Hasta;Cajas;Pallets;Tiempo total (s);Sin datos (s);Fuera de producción (s);Planificado (s);En producción (s);Paradas (s);Disponibilidad (%);Rendimiento (%)',
+      '﻿Desde;Hasta;Cajas;Palés;Tiempo total (s);Sin datos (s);Fuera de producción (s);Planificado (s);En producción (s);Paradas (s);Disponibilidad (%);Rendimiento (%)',
     );
     expect(lines[1]).toBe(
       '2026-10-05 00:00;2026-10-05 01:00;810;20;3600;0;0;3600;3240;360;90,0;90,5',

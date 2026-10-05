@@ -119,7 +119,7 @@ export class CellController {
   @Get('production')
   @ApiOperation({
     summary: 'Producción de una célula en un periodo',
-    description: `Cajas y pallets producidos en [from, to), calculados por diferencias de los contadores acumulados. Las horas completas salen del histórico agregado. Sin fechas, las últimas 24 horas. Rango máximo: ${String(MAX_RANGE_DAYS)} días.`,
+    description: `Cajas y palés producidos en [from, to), calculados por diferencias de los contadores acumulados. Las horas completas salen del histórico agregado. Sin fechas, las últimas 24 horas. Rango máximo: ${String(MAX_RANGE_DAYS)} días.`,
   })
   @ApiCellParams()
   @ApiQuery({ name: 'from', required: false, example: '2026-10-05T06:00:00.000Z' })

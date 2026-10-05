@@ -15,7 +15,7 @@ Esqueleto (LF-24), producción en tiempo real (LF-28) y panel de estado (LF-34):
 
 ## Indicadores de producción
 
-`ProductionIndicatorsComponent` muestra el contador de cajas destacado y, debajo, pallets, capa en curso, ritmo (cajas/h) y tiempo de ciclo (s, con un decimal), con la barra de avance del pallet en curso descrita para lectores de pantalla. Las cifras usan separador de miles y ancho fijo; las unidades se escriben siempre y se muestran más pequeñas. Sin datos se muestra «—», nunca un cero. Se actualizan con cada telemetría y se atenúan cuando la célula está desconectada.
+`ProductionIndicatorsComponent` muestra el contador de cajas destacado y, debajo, palés, capa en curso, ritmo (cajas/h) y tiempo de ciclo (s, con un decimal), con la barra de avance del palé en curso descrita para lectores de pantalla. Las cifras usan separador de miles y ancho fijo; las unidades se escriben siempre y se muestran más pequeñas. Sin datos se muestra «—», nunca un cero. Se actualizan con cada telemetría y se atenúan cuando la célula está desconectada.
 
 ## Histórico
 
@@ -24,12 +24,12 @@ Cada tarjeta resume lo que lleva hoy la célula, cajas y disponibilidad desde la
 Cada tarjeta enlaza con el histórico de su célula (`/cells/{siteId}/{cellId}/history`, LF-81). La página se carga aparte, así que no aumenta el bundle inicial:
 
 - **Periodo:** hoy por horas, o los últimos 7 o 30 días por días, en la zona horaria del dispositivo. «Hoy» se actualiza solo cada minuto, sin parpadeos, mientras la página está visible y hay conexión (LF-87). Lo pide a `GET /api/v1/sites/{siteId}/cells/{cellId}/history` (LF-80).
-- **Indicadores** de [indicadores de planta](../../docs/indicadores-de-planta.md): disponibilidad, rendimiento, cajas y pallets, con el tiempo en producción, el planificado, el tiempo sin datos y el ritmo nominal. Si no están definidos, «—».
+- **Indicadores** de [indicadores de planta](../../docs/indicadores-de-planta.md): disponibilidad, rendimiento, cajas y palés, con el tiempo en producción, el planificado, el tiempo sin datos y el ritmo nominal. Si no están definidos, «—».
 - **Gráfico de cajas** por hora o por día. Es un SVG propio y no usa ninguna librería:
   - Solo hacen falta barras, y una librería de gráficos añadiría decenas de kilobytes.
   - Los colores salen de los tokens `--lf-tone-*`, así que sirven para el tema claro y el oscuro sin más configuración.
   - El SVG se oculta a los lectores de pantalla, que leen un resumen («6000 cajas en total. La hora con más producción…»). Debajo, «Ver los datos en una tabla» abre la tabla equivalente para cualquiera (WCAG 1.1.1 y 1.3.1).
-- **Descargar en CSV** (LF-88): una fila por hora o por día del periodo, con cajas, pallets, tiempos e indicadores, para una hoja de cálculo en español: `;` como separador, decimales con coma y UTF-8 con BOM. En el navegador se descarga; en la app Android se guarda en la caché y se abre el menú de compartir del sistema (`@capacitor/filesystem` y `@capacitor/share`).
+- **Descargar en CSV** (LF-88): una fila por hora o por día del periodo, con cajas, palés, tiempos e indicadores, para una hoja de cálculo en español: `;` como separador, decimales con coma y UTF-8 con BOM. En el navegador se descarga; en la app Android se guarda en la caché y se abre el menú de compartir del sistema (`@capacitor/filesystem` y `@capacitor/share`).
 - **Registro de estados y alarmas** (LF-84), del más reciente al más antiguo:
   - cada cambio de estado con su hora local, su duración y sus alarmas activas, de más a menos grave;
   - los cambios de conexión;

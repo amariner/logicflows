@@ -71,15 +71,15 @@ describe('simulador', () => {
     expect(connection.ofKind('telemetry')).toHaveLength(initial + 2);
   });
 
-  it('tras completar un pallet espera el cambio de pallet antes de la siguiente caja', () => {
+  it('tras completar un palé espera el cambio de palé antes de la siguiente caja', () => {
     const { connection, simulator } = setup();
     simulator.start();
     connection.connect();
-    // Arranque de 2 s y una caja por segundo: el pallet de 2 × 2 se completa a los 6 s.
+    // Arranque de 2 s y una caja por segundo: el palé de 2 × 2 se completa a los 6 s.
     vi.advanceTimersByTime(6_000);
     expect(connection.ofKind('telemetry').at(-1)).toMatchObject({ boxesTotal: 4, palletsTotal: 1 });
 
-    // Cambio de pallet de 5 s más un ciclo: la siguiente caja llega a los 12 s.
+    // Cambio de palé de 5 s más un ciclo: la siguiente caja llega a los 12 s.
     vi.advanceTimersByTime(5_999);
     expect(simulator.cell.production(Date.now()).boxesTotal).toBe(4);
     vi.advanceTimersByTime(1);

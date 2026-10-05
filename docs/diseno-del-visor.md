@@ -42,8 +42,8 @@ Las alarmas activas aparecen **justo debajo del estado**, ordenadas de más a me
 | Indicador | Formato | Ejemplo |
 |---|---|---|
 | Cajas | Entero con separador de miles, grande | **15.234** cajas |
-| Pallets | Entero | 312 pallets |
-| Capa | «capa *n* de *m*», con barra de progreso del pallet | capa 3 de 5 |
+| Palés | Entero | 312 palés |
+| Capa | «capa *n* de *m*», con barra de progreso del palé | capa 3 de 5 |
 | Ritmo | Entero, cajas por hora | 820 cajas/h |
 | Tiempo de ciclo | Segundos con un decimal | 4,2 s |
 | Robot y cinta | Texto: en movimiento / parado / averiado | Robot: en movimiento |
@@ -92,10 +92,10 @@ Menú lateral fijo y rejilla de tarjetas que aprovecha el ancho.
 │              │ ┃ ⚠ FALLO                     │ │ ▶ Produciendo               ││
 │              │ ┃ ┌─────────────────────────┐ │ │                             ││
 │              │ ┃ │⚠ Alta · ROB-001 · 2 min │ │ │   15.234 cajas              ││
-│              │ ┃ │ Colisión del robot      │ │ │   312 pallets · capa 3 de 5 ││
+│              │ ┃ │ Colisión del robot      │ │ │   312 palés · capa 3 de 5   ││
 │              │ ┃ └─────────────────────────┘ │ │   ▓▓▓▓▓▓░░░░                ││
 │              │ ┃   8.120 cajas               │ │   820 cajas/h · ciclo 4,2 s ││
-│              │ ┃   162 pallets · capa 1 de 5 │ │   Robot: en movimiento      ││
+│              │ ┃   162 palés · capa 1 de 5   │ │   Robot: en movimiento      ││
 │              │ ┃   ▓░░░░░░░░░                │ │   Cinta: en marcha          ││
 │              │ ┃   0 cajas/h · ciclo —       │ └────────────────────────────┘│
 │              │ ┃   Robot: averiado           │                               │
@@ -120,7 +120,7 @@ Una columna; el menú se despliega con el botón de la barra. Con una parada de 
 │┃   Parada de emergencia     │
 │┃   activada                 │
 │┃   4.310 cajas              │
-│┃   86 pallets · capa 2 de 5 │
+│┃   86 palés · capa 2 de 5   │
 │┃   ▓▓▓░░░░░░░               │
 │┃   0 cajas/h · ciclo —      │
 │┃   Robot: parado            │

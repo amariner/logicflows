@@ -9,7 +9,7 @@ export interface ProductionTotals {
 }
 
 /**
- * Cajas y pallets producidos en [from, to), leídos del dato en bruto. Suma las
+ * Cajas y palés producidos en [from, to), leídos del dato en bruto. Suma las
  * diferencias entre muestras consecutivas de cada sesión (ADR-0004): la
  * primera muestra de una sesión y un contador que disminuye (reinicio) cuentan
  * desde cero. Solo lee el periodo y la última muestra anterior de cada sesión,

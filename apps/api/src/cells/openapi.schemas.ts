@@ -50,7 +50,7 @@ export const productionSchema: SchemaObject = {
     from: { type: 'string', format: 'date-time', description: 'Inicio del periodo (incluido)' },
     to: { type: 'string', format: 'date-time', description: 'Fin del periodo (excluido)' },
     boxes: { type: 'integer', minimum: 0, description: 'Cajas paletizadas en el periodo' },
-    pallets: { type: 'integer', minimum: 0, description: 'Pallets completados en el periodo' },
+    pallets: { type: 'integer', minimum: 0, description: 'Palés completados en el periodo' },
   },
 };
 
@@ -84,7 +84,7 @@ const indicatorsSchema: SchemaObject = {
     from: { type: 'string', format: 'date-time', description: 'Inicio (incluido)' },
     to: { type: 'string', format: 'date-time', description: 'Fin (excluido)' },
     boxes: { type: 'integer', minimum: 0, description: 'Cajas paletizadas' },
-    pallets: { type: 'integer', minimum: 0, description: 'Pallets completados' },
+    pallets: { type: 'integer', minimum: 0, description: 'Palés completados' },
     seconds: {
       type: 'object',
       required: ['total', 'noData', 'outOfProduction', 'planned', 'running', 'stopped'],

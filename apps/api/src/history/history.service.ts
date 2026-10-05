@@ -67,7 +67,7 @@ export class HistoryService {
   }
 
   /**
-   * Cajas y pallets producidos en [from, to), con el mismo resultado que el
+   * Cajas y palés producidos en [from, to), con el mismo resultado que el
    * dato en bruto (LF-33). Las horas completas salen de los agregados; los
    * extremos y las horas pendientes de recalcular, del dato en bruto.
    */

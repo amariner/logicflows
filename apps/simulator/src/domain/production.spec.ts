@@ -32,7 +32,7 @@ describe('producción', () => {
     });
   });
 
-  it('completa el pallet con su última capa y empieza uno nuevo', () => {
+  it('completa el palé con su última capa y empieza uno nuevo', () => {
     expect(placeBoxes(6)).toEqual({
       boxesTotal: 6,
       palletsTotal: 1,
