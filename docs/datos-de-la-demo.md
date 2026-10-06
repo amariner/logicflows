@@ -23,7 +23,7 @@ La API borra cada hora lo que queda fuera de la ventana (`RetentionService`):
 
 Los avisos ya enviados se borran siempre al cabo de un día. La retención no borra una hora que siga pendiente de agregar.
 
-Con la ventana llena, la base de datos `logicflows` ocupa unos **15 MB**: unos 6 MB de telemetría de dos días, y menos de 1 MB de estados y agregados de 31 días.
+Con la ventana llena, la base de datos `logicflows` ocupa unos **21 MB**: unos 12 MB de telemetría de dos días y menos de 1 MB de estados y agregados de 31 días. La carga espacia la telemetría a una muestra cada 10 s (unas 360 por hora), y el simulador en vivo escribe una por caja (unas 830 por hora). Por eso, justo después de cargar la ventana, la base de datos ocupa menos (unos 15 MB) y crece durante dos días hasta estabilizarse.
 
 ## Cargar o reiniciar la ventana
 
@@ -118,7 +118,7 @@ El ritmo con el ajuste sigue siendo cuatro veces el que admite Railway (unos 300
 | 4 oct 2026 | Ventana de 31 días en local, con toda la telemetría | 81 MB |
 | 5 oct 2026, 06:46 UTC | Producción, primera retención aplicada | 21 304 muestras desde el 3 oct a las 06:20, 1 740 cambios de estado y 744 horas desde el 4 sep; el fichero sigue en 81 MB (72 MB de telemetría) |
 | 5 oct 2026, 06:47 UTC | Producción, tras `VACUUM FULL` | **15 MB** (telemetría, 5,9 MB) |
-| 6 oct 2026 | Producción, un día después | Pendiente: debe seguir en unos 15 MB |
+| 6 oct 2026, 09:42 UTC | Producción, un día después | **19 MB** (telemetría, 10 MB): 33 918 muestras desde el 4 oct a las 08:54. La retención funciona y no hay espacio sin devolver; el aumento se debe a que la telemetría en vivo (unas 830 muestras por hora desde el 4 oct a las 22:00) sustituye a la cargada (362 por hora). Con la ventana entera en vivo, desde el 6 oct a las 22:00 UTC, debe quedar en unos 21 MB |
 
 ## Lo que enseñó la carga en producción
 
