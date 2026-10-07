@@ -16,6 +16,10 @@ export default defineConfig({
     timezoneId: 'Europe/Madrid',
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  // Capturas de referencia (LF-110): de Linux, generadas en la CI. En otro
+  // sistema el texto se dibuja distinto, así que en local no se comparan.
+  snapshotPathTemplate: '{testDir}/capturas/{arg}{ext}',
+  ignoreSnapshots: process.env['CI'] === undefined,
   webServer: {
     command: 'node static-server.ts',
     cwd: import.meta.dirname,
