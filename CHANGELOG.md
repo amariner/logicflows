@@ -4,6 +4,36 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ## [Sin publicar]
 
+**Hito 5 · Rediseño visual.** El visor, el inicio de sesión y la app Android con un sistema de diseño propio en claro y oscuro, más visual para las demos y fiel a ISA-101: interfaz neutra y color intenso solo para lo anómalo. Incluye las acciones de la retrospectiva del Hito 4.
+
+### Añadido
+
+- **Tokens de diseño** (`@logicflows/design-tokens`, ADR-0020, LF-101): colores en claro y oscuro, tipografía (Inter y JetBrains Mono, incluidas en la aplicación), espaciado, radios y tonos de estado. Una prueba comprueba el contraste WCAG 2.2 AA de cada par de texto y fondo.
+- **Tema claro y oscuro** en el visor (LF-105): sigue al sistema o se elige en el menú, y se recuerda.
+- **Componentes base** (LF-103): etiqueta de estado, alarma, indicador y cabecera con «En directo».
+- **Detalle de una célula** (`/cells/{siteId}/{cellId}`, LF-106), en tiempo real: estado, alarmas, el esquema de la cinta, el robot y el palé capa a capa, y la producción.
+- **Resumen de estados** encima del panel: cuántas células hay en cada estado, de lo más grave a lo normal (LF-106).
+- **Tema de Keycloak** con la marca de LogicFlows para el inicio de sesión (LF-108).
+- **Capturas de referencia** de las pantallas clave en la CI (LF-110).
+- **`pnpm --filter @logicflows/dashboard marca`:** genera los iconos y la pantalla de arranque de la PWA y de Android a partir del pictograma (LF-109).
+- **Documentación de diseño:** [proceso](docs/diseno/proceso.md), [pantallas](docs/diseno/pantallas.md) y [diseño del visor](docs/diseno-del-visor.md) revisado (LF-110, LF-111).
+
+### Cambiado
+
+- Panel, tarjeta e histórico con el diseño nuevo (LF-106, LF-107).
+- Icono y pantalla de arranque con los colores de la marca. El palé deja de ser ámbar, que en el visor significa «en espera» (LF-109).
+- La API confirma al broker un cambio de estado solo después de guardarlo, y reintenta si PostgreSQL falla en lugar de descartarlo. Mientras PostgreSQL no responde, el tiempo real se detiene (ADR-0004, LF-117).
+- El mensaje y la marca de su hora del histórico se guardan en la misma transacción (ADR-0016, LF-114).
+
+### Corregido
+
+- El visor podía entrar en un bucle de redirecciones si el inicio de sesión no se completaba. Ahora, tras dos intentos, se detiene y ofrece reintentar (LF-118).
+- Pruebas que fallaban a veces: la agregación del histórico (LF-113) y el reloj virtual del simulador (LF-116).
+
+### Para desplegar
+
+- El tema de Keycloak se activa una sola vez en el realm de producción, que ya existe ([pasos](infra/keycloak/README.md)).
+
 ## [0.4.0] - 2026-10-07
 
 **Hito 4 · Histórico y análisis.** Cierra el histórico que llegó a producción con `v0.3.0` (indicadores de planta, registro de estados y alarmas y descarga en CSV) y deja la demo lista para compradores. Producción mantiene una ventana fija de datos simulados que se repiten cada día, con un tamaño estable (unos 21 MB) y un consumo de unos 9,4 USD al mes. Incluye las correcciones de la prueba en móvil del Hito 3.

@@ -5,8 +5,8 @@ Plataforma IIoT para monitorizar en tiempo real células robotizadas de paletiza
 > **Estado:** [`v0.4.0`](CHANGELOG.md) publicada: **Hito 4 · Histórico y análisis**, en producción en Railway y con el APK firmado en su [release](https://github.com/amariner/logicflows/releases/tag/v0.4.0). Siguiente: **Hito 5 · Rediseño visual**.
 
 <p>
-  <img src="docs/imagenes/visor-escritorio.png" alt="Visor de LogicFlows en escritorio, tema oscuro: la célula cell-01 produciendo, con el contador de cajas, palés, capa, ritmo y tiempo de ciclo" width="68%">
-  <img src="docs/imagenes/visor-movil.png" alt="El mismo visor en un móvil, tema claro" width="28%">
+  <img src="docs/imagenes/visor-escritorio.png" alt="Panel de células de LogicFlows en escritorio, tema oscuro: resumen de estados, aviso de parada de emergencia y una tarjeta por célula con su estado, sus alarmas y su producción" width="68%">
+  <img src="docs/imagenes/visor-movil.png" alt="Detalle de una célula en un móvil, tema claro: estado, alarmas y el esquema de la cinta, el robot y el palé" width="28%">
 </p>
 
 ## Arranque rápido
@@ -251,7 +251,7 @@ TypeScript está fijado en la versión 6.0 porque Angular 22 y typescript-eslint
 ## Documentación
 
 - [Registro de cambios](CHANGELOG.md)
-- Guiones de la demo: [Hito 1, en local](docs/demo.md), [Hito 2, en producción](docs/demo-hito-2.md), [Hito 3, app Android](docs/demo-hito-3.md) y [Hito 4, histórico](docs/demo-hito-4.md)
+- Guiones de la demo: [Hito 1, en local](docs/demo.md), [Hito 2, en producción](docs/demo-hito-2.md), [Hito 3, app Android](docs/demo-hito-3.md), [Hito 4, histórico](docs/demo-hito-4.md) y [Hito 5, rediseño visual](docs/demo-hito-5.md)
 - [Decisiones de arquitectura (ADR)](docs/adr/README.md)
 - [Despliegue en Railway: servicios, configuración, secretos y rotación](docs/despliegue.md)
 - [Datos de la demo: generación, ventana fija, mantenimiento y consumo](docs/datos-de-la-demo.md)
