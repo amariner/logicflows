@@ -66,6 +66,11 @@ const setup = (options: {
   return TestBed.inject(AuthService);
 };
 
+// Cada prueba empieza sin intentos de inicio de sesión anteriores (LF-118).
+beforeEach(() => {
+  sessionStorage.removeItem('logicflows.intentos-de-inicio-de-sesion');
+});
+
 describe('sesión del visor', () => {
   it('en el navegador, el estado del inicio de sesión vive en sessionStorage', () => {
     setup({ auth: true, oidc: fakeOidc(true) });
@@ -95,6 +100,46 @@ describe('sesión del visor', () => {
     expect(await auth.ensureSession()).toBe(false);
     expect(oidc.checkAuth).toHaveBeenCalledTimes(1);
     expect(oidc.authorize).toHaveBeenCalledTimes(1);
+  });
+
+  describe('intentos seguidos sin conseguir sesión (LF-118)', () => {
+    /** Cada intento es una carga nueva de la página. */
+    const attempt = async (authenticated = false) => {
+      TestBed.resetTestingModule();
+      const oidc = fakeOidc(authenticated);
+      const auth = setup({ auth: true, oidc });
+      const result = await auth.ensureSession();
+      return { auth, oidc, result };
+    };
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('tras dos intentos deja de redirigir y lo indica, en lugar de entrar en un bucle', async () => {
+      expect((await attempt()).oidc.authorize).toHaveBeenCalledTimes(1);
+      expect((await attempt()).oidc.authorize).toHaveBeenCalledTimes(1);
+      const third = await attempt();
+      expect(third.result).toBe(false);
+      expect(third.oidc.authorize).not.toHaveBeenCalled();
+      expect(third.auth.problem()).toBe('No se pudo completar el inicio de sesión.');
+    });
+
+    it('una sesión conseguida vuelve a permitir los dos intentos', async () => {
+      await attempt();
+      await attempt();
+      expect((await attempt(true)).result).toBe(true);
+      expect((await attempt()).oidc.authorize).toHaveBeenCalledTimes(1);
+    });
+
+    it('los intentos de hace más de dos minutos no cuentan', async () => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(new Date('2026-10-08T08:00:00Z'));
+      await attempt();
+      await attempt();
+      vi.setSystemTime(new Date('2026-10-08T08:03:00Z'));
+      expect((await attempt()).oidc.authorize).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('sin sesión, recuerda la página pedida y la devuelve una sola vez (LF-86)', async () => {

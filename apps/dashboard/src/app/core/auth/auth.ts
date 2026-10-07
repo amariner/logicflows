@@ -27,6 +27,17 @@ export const APP_LOGOUT_CALLBACK = `${APP_URL_SCHEME}:/logout`;
 const RETURN_PATH_KEY = 'logicflows.volver-tras-iniciar-sesion';
 
 /**
+ * Inicios de sesión seguidos sin conseguir sesión (LF-118). Si Keycloak
+ * devuelve el código pero el visor no obtiene la sesión, por ejemplo porque el
+ * token se rechaza por un reloj desajustado, Keycloak devolvería otro código
+ * al instante y el visor entraría en un bucle de redirecciones.
+ */
+const LOGIN_ATTEMPTS_KEY = 'logicflows.intentos-de-inicio-de-sesion';
+/** Dos intentos: el de LF-92 (una vuelta ya usada) y uno más. */
+const MAX_LOGIN_ATTEMPTS = 2;
+const LOGIN_ATTEMPTS_WINDOW_MS = 120_000;
+
+/**
  * La ruta si es del propio visor: empieza por una sola barra, sin barras
  * invertidas ni esquema. Evita que el retorno lleve a otro sitio.
  */
@@ -268,8 +279,60 @@ export class AuthService {
         this.#oidc.authorize(undefined, { urlHandler: this.#openInSystemBrowser });
       });
     }
+    if (!this.#countLoginAttempt()) {
+      this.#problem.set('No se pudo completar el inicio de sesión.');
+      const path = `${location.pathname}${location.search}${location.hash}`;
+      const clean = withoutAuthResponse(path);
+      if (clean !== path) {
+        history.replaceState(history.state, '', clean);
+      }
+      return false;
+    }
     this.#oidc.authorize();
     return false;
+  }
+
+  /**
+   * «Reintentar» tras un inicio de sesión que no se completó: vuelve a
+   * empezar, sin el límite de intentos.
+   */
+  retryLogin(): void {
+    this.#forgetLoginAttempts();
+    window.location.reload();
+  }
+
+  /**
+   * Anota un intento de inicio de sesión. Devuelve `false` si ya van
+   * demasiados seguidos sin sesión: en lugar de redirigir otra vez, se avisa.
+   */
+  #countLoginAttempt(now = Date.now()): boolean {
+    try {
+      const stored = JSON.parse(sessionStorage.getItem(LOGIN_ATTEMPTS_KEY) ?? 'null') as {
+        count?: unknown;
+        since?: unknown;
+      } | null;
+      const since = typeof stored?.since === 'number' ? stored.since : now;
+      const recent = now - since < LOGIN_ATTEMPTS_WINDOW_MS;
+      const count = recent && typeof stored?.count === 'number' ? stored.count : 0;
+      if (count >= MAX_LOGIN_ATTEMPTS) {
+        return false;
+      }
+      sessionStorage.setItem(
+        LOGIN_ATTEMPTS_KEY,
+        JSON.stringify({ count: count + 1, since: recent ? since : now }),
+      );
+    } catch {
+      // Sin almacenamiento no se puede contar: se redirige como siempre.
+    }
+    return true;
+  }
+
+  #forgetLoginAttempts(): void {
+    try {
+      sessionStorage.removeItem(LOGIN_ATTEMPTS_KEY);
+    } catch {
+      // Sin almacenamiento no hay nada que olvidar.
+    }
   }
 
   /**
@@ -376,6 +439,7 @@ export class AuthService {
   }
 
   #acceptSession(userData: unknown): void {
+    this.#forgetLoginAttempts();
     const data = userData as { preferred_username?: unknown; name?: unknown } | null;
     const name = data?.name ?? data?.preferred_username;
     this.#userName.set(typeof name === 'string' ? name : null);
