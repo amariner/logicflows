@@ -1,0 +1,61 @@
+name: Auditoría de dependencias
+
+# Audita las dependencias de main cada día (LF-99). Los avisos de seguridad se
+# publican en cualquier momento, sin que cambie el código, así que no bastan
+# las pull requests: la CI solo audita las que cambian el lockfile. Si hay un
+# aviso de severidad alta o crítica, abre o actualiza una incidencia.
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Auditoría de dependencias
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          cache: true
+
+      # pnpm audit solo necesita el lockfile, pero pnpm comprueba la versión de
+      # Node.js declarada en devEngines.runtime al ejecutar cualquier orden.
+      - name: Instalar dependencias
+        run: pnpm install --frozen-lockfile
+
+      - name: Auditoría
+        id: audit
+        run: pnpm audit --audit-level high
+
+      # Una incidencia abierta envía una notificación al responsable del
+      # repositorio. Si ya existe, se añade un comentario con la nueva ejecución.
+      - name: Avisar del fallo
+        if: failure() && steps.audit.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title='Dependencias: aviso de seguridad alto o crítico'
+          {
+            echo "La auditoría diaria de \`main\` ha encontrado avisos de severidad alta o crítica."
+            echo
+            echo "- Ejecución y detalle de los avisos: $RUN_URL"
+            echo "- Para corregirlo: abrir una tarea en Jira y actualizar la dependencia afectada en el lockfile (\`pnpm update -r --depth Infinity <paquete>\` y \`pnpm dedupe\`), como en LF-98. Mientras tanto, las pull requests que cambien el lockfile no pasarán la CI."
+          } > aviso.md
+          issue=$(gh issue list --repo "$REPO" --state open --search "\"$title\" in:title" \
+            --json number --jq '.[0].number // empty')
+          if [ -n "$issue" ]; then
+            gh issue comment "$issue" --repo "$REPO" --body-file aviso.md
+          else
+            gh issue create --repo "$REPO" --title "$title" --body-file aviso.md
+          fi

@@ -40,9 +40,28 @@ jobs:
       - name: Tipos
         run: pnpm typecheck
 
+      # Una pull request solo puede introducir una vulnerabilidad si cambia el
+      # lockfile. Si no lo cambia, un aviso publicado después no la bloquea: lo
+      # detecta la auditoría diaria de main (LF-99). En pull_request, HEAD es
+      # el commit de fusión, así que comparar con la base muestra solo sus
+      # cambios.
+      - name: ¿Cambia el lockfile?
+        id: lockfile
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch --quiet --depth=1 origin "$BASE_REF"
+          if git diff --quiet FETCH_HEAD HEAD -- pnpm-lock.yaml; then
+            echo "cambia=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "cambia=true" >> "$GITHUB_OUTPUT"
+          fi
+
       # Falla con vulnerabilidades conocidas de severidad alta o crítica en
       # cualquier dependencia (LF-52).
       - name: Auditoría de dependencias
+        if: github.event_name != 'pull_request' || steps.lockfile.outputs.cambia == 'true'
         run: pnpm audit --audit-level high
 
       - name: Lint

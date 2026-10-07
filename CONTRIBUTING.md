@@ -80,6 +80,14 @@ Un conjunto de reglas del repositorio («Proteger main») hace obligatorias esta
 
 La aprobación de la revisión se da en la conversación de la pull request y no se exige como aprobación formal de GitHub, porque el autor no puede aprobar su propia pull request. Tampoco se exige que la rama esté al día con `main` antes de fusionar: el rebase la actualiza y la CI vuelve a ejecutarse sobre `main` tras cada fusión.
 
+### Auditoría de dependencias
+
+Los avisos de seguridad se publican en cualquier momento, aunque el código no cambie. Para que un aviso nuevo no bloquee pull requests ajenas a las dependencias:
+
+- La CI audita una pull request (`pnpm audit --audit-level high`) **solo si cambia `pnpm-lock.yaml`**. Si no lo cambia, el paso aparece como omitido: sin cambiar las dependencias, la pull request no puede introducir una vulnerabilidad.
+- La auditoría completa se ejecuta en cada push a `main` y **cada día** en su propio [flujo de trabajo](.github/workflows/auditoria.yml). Si encuentra un aviso alto o crítico, abre o actualiza una incidencia de GitHub. La corrección se planifica en Jira como cualquier tarea.
+- El umbral es `high`, sin excepciones. Un aviso se corrige actualizando la dependencia, no bajando el umbral.
+
 ## Definition of Done
 
 Una tarea está terminada cuando se cumple todo lo que le aplica:
