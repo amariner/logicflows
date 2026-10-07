@@ -106,7 +106,9 @@ describe('guion diario (ADR-0019)', () => {
     expect(target.emergencyStop).not.toHaveBeenCalled();
   });
 
-  it('se repite cada día, también la incidencia de medianoche', () => {
+  // Simula dos días con el reloj virtual: en la CI cargada tarda varias veces
+  // lo que en local, así que su límite es mayor que el de 5 s (LF-116).
+  it('se repite cada día, también la incidencia de medianoche', { timeout: 20_000 }, () => {
     const { clock, target } = setup(madrid('09:00'));
     clock.runUntil(madrid('09:00') + 2 * 86_400_000);
     expect(target.fault).toHaveBeenCalledTimes(2);
