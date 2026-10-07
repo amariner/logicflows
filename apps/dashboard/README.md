@@ -36,7 +36,7 @@ Piezas de interfaz reutilizables en `src/app/ui/` (LF-103). Solo usan los tokens
 
 ## Detalle de una célula
 
-`/cells/{siteId}/{cellId}` (LF-106): estado, alarmas activas, esquema de la célula (cinta → robot → palé capa a capa), indicadores y lo que lleva hoy, en tiempo real. Se llega desde «Detalle» en cada tarjeta, y enlaza con el histórico. El panel muestra encima de las tarjetas cuántas células hay en cada estado. Ver [Panel de células y detalle](../../docs/diseno/panel-y-detalle.md).
+`/cells/{siteId}/{cellId}` (LF-106): estado, alarmas activas, esquema de la célula (cinta → robot → palé capa a capa), indicadores y lo que lleva hoy, en tiempo real. Se llega desde «Detalle» en cada tarjeta, y enlaza con el histórico. El panel muestra encima de las tarjetas cuántas células hay en cada estado. Ver [Pantallas del visor](../../docs/diseno/pantallas.md).
 
 ## Indicadores de producción
 

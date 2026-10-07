@@ -3,14 +3,16 @@ figure {
 }
 
 figcaption {
-  font-weight: 600;
+  font-weight: var(--lf-font-weight-semibold);
+  color: var(--lf-color-text);
 }
 
 .max,
 .axis {
-  margin: 0.25rem 0;
-  font-size: 0.875rem;
-  color: var(--lf-color-neutral-fg);
+  margin: var(--lf-space-1) 0;
+  font-family: var(--lf-font-mono);
+  font-size: var(--lf-font-size-sm);
+  color: var(--lf-color-text-muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -21,7 +23,7 @@ figcaption {
 
 .plot {
   height: 10rem;
-  border-bottom: 1px solid var(--lf-color-neutral-fg);
+  border-bottom: 1px solid var(--lf-color-border-strong);
 }
 
 svg {
@@ -31,12 +33,13 @@ svg {
 }
 
 rect {
-  fill: var(--lf-color-info-fg);
+  fill: var(--lf-color-primary);
 }
 
 summary {
   cursor: pointer;
-  padding: 0.5rem 0;
+  padding: var(--lf-space-2) 0;
+  color: var(--lf-color-primary);
 }
 
 .table {
@@ -45,13 +48,19 @@ summary {
 
 table {
   border-collapse: collapse;
+  font-size: var(--lf-font-size-sm);
   font-variant-numeric: tabular-nums;
 }
 
 th,
 td {
-  padding: 0.25rem 0.75rem 0.25rem 0;
+  padding: var(--lf-space-1) var(--lf-space-3) var(--lf-space-1) 0;
+  border-bottom: 1px solid var(--lf-color-border);
   text-align: right;
+}
+
+td {
+  font-family: var(--lf-font-mono);
 }
 
 th[scope='row'],

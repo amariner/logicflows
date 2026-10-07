@@ -1,6 +1,6 @@
-# Panel de células y detalle (Hito 5)
+# Pantallas del visor (Hito 5)
 
-Resultado de [LF-106](https://logicflows.atlassian.net/browse/LF-106): el panel y el nuevo detalle de una célula con los tokens de diseño ([ADR-0020](../adr/0020-tokens-de-diseno.md)) y los componentes base (LF-103), según la dirección elegida en la [exploración con Stitch](exploracion-stitch.md).
+Resultado de [LF-106](https://logicflows.atlassian.net/browse/LF-106) y [LF-107](https://logicflows.atlassian.net/browse/LF-107): el panel, el nuevo detalle de una célula y el histórico con los tokens de diseño ([ADR-0020](../adr/0020-tokens-de-diseno.md)) y los componentes base (LF-103), según la dirección elegida en la [exploración con Stitch](exploracion-stitch.md).
 
 | Panel · claro | Panel · oscuro |
 |---|---|
@@ -32,3 +32,14 @@ Las capturas salen de la build de producción con la API simulada de las pruebas
 - **El esquema solo usa datos del contrato** (ADR-0004): estado del robot y de la cinta, y capa y cajas del palé en curso. No muestra modelo de robot, formato del palé ni metas de turno, que la exploración inventaba.
 - **Etiquetas de 14 px como mínimo**, y la monoespaciada solo en cifras y códigos de alarma. La exploración usaba etiquetas de 10 px.
 - **Sin navegación inferior ni acciones sobre las alarmas.** Reconocer alarmas es parte de la operación de planta.
+
+## Histórico
+
+| Histórico · claro | Histórico · oscuro |
+|---|---|
+| ![Histórico de una célula, tema claro](capturas/visor-historico-claro-escritorio.png) | ![Histórico de una célula, tema oscuro](capturas/visor-historico-oscuro-escritorio.png) |
+
+- **Cada bloque en su panel**, como el detalle: indicadores, gráfico, paradas por causa y registro.
+- **Indicadores** con `app-indicator`: cifras en monoespaciada, como en el resto del visor.
+- **Gráfico** en el color primario, con el eje y la tabla equivalente en monoespaciada. Conserva su resumen para lectores de pantalla y la tabla.
+- **Registro:** el icono de cada entrada va sobre el fondo suave de su tono, como las etiquetas de estado, y la hora en monoespaciada. Las alarmas de cada entrada siguen en una línea («Alta · ROB-001 · mensaje»): es un registro compacto, no el aviso destacado de la tarjeta.
