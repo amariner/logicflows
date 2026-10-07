@@ -1,0 +1,144 @@
+/*
+ * Inicio de sesión con el aspecto de LogicFlows (LF-108). Solo cambia el
+ * aspecto: los flujos y los textos son los de Keycloak. Traduce los tokens de
+ * diseño (tokens.css, ADR-0020) a las variables de PatternFly 5, en claro y en
+ * oscuro: PatternFly sigue al sistema con la clase pf-v5-theme-dark y los
+ * tokens, con su media query.
+ */
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('../fonts/inter-latin-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('../fonts/inter-latin-500-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('../fonts/inter-latin-600-normal.woff2') format('woff2');
+}
+
+:root,
+:root.pf-v5-theme-dark {
+  --pf-v5-global--FontFamily--text: var(--lf-font-sans);
+  --pf-v5-global--FontFamily--heading: var(--lf-font-sans);
+  --pf-v5-global--FontFamily--sans-serif: var(--lf-font-sans);
+
+  --pf-v5-global--Color--100: var(--lf-color-text);
+  --pf-v5-global--Color--200: var(--lf-color-text-muted);
+  --pf-v5-global--BackgroundColor--100: var(--lf-color-surface-1);
+  --pf-v5-global--BackgroundColor--200: var(--lf-color-surface-0);
+  --pf-v5-global--BorderColor--100: var(--lf-color-border-strong);
+  --pf-v5-global--BorderColor--300: var(--lf-color-border);
+
+  --pf-v5-global--primary-color--100: var(--lf-color-primary);
+  --pf-v5-global--primary-color--200: color-mix(in srgb, var(--lf-color-primary), #000 12%);
+  --pf-v5-global--primary-color--light-100: var(--lf-color-primary);
+  --pf-v5-global--link--Color: var(--lf-color-primary);
+  --pf-v5-global--link--Color--hover: var(--lf-color-primary);
+  --pf-v5-global--active-color--100: var(--lf-color-focus);
+
+  --pf-v5-global--danger-color--100: var(--lf-color-danger-fg);
+  --pf-v5-global--danger-color--200: var(--lf-color-danger-fg);
+
+  --keycloak-card-top-color: var(--lf-color-primary);
+}
+
+/* Fondo liso de la superficie base, sin la imagen de Keycloak. */
+.login-pf body {
+  background: var(--lf-color-surface-0);
+}
+
+/* La tarjeta: superficie, borde y radio de los tokens. */
+.pf-v5-c-login__main {
+  border: 1px solid var(--lf-color-border);
+  border-radius: var(--lf-radius-lg);
+  background: var(--lf-color-surface-1);
+  box-shadow: var(--lf-shadow-2);
+  overflow: hidden;
+}
+
+.pf-v5-c-login__main-header {
+  border-top-width: var(--lf-space-1);
+}
+
+/*
+ * Cabecera: el nombre del producto con la tipografía del visor. No hay
+ * logotipo. Keycloak la pinta en blanco con !important para su fondo oscuro.
+ */
+#kc-header-wrapper {
+  padding: var(--lf-space-8) 0 var(--lf-space-4);
+  font-family: var(--lf-font-sans);
+  font-size: var(--lf-font-size-2xl);
+  font-weight: var(--lf-font-weight-semibold);
+  letter-spacing: -0.01em;
+  color: var(--lf-color-text) !important;
+  text-transform: none;
+}
+
+/*
+ * PatternFly define los colores de cada componente en el propio componente, y
+ * su tema oscuro los cambia ahí: se sustituyen al mismo nivel. El borde de los
+ * campos cumple 3:1 (WCAG 1.4.11).
+ */
+.login-pf .pf-v5-c-form-control {
+  --pf-v5-c-form-control--BorderRadius: var(--lf-radius-md);
+  --pf-v5-c-form-control--BackgroundColor: var(--lf-color-surface-0);
+  --pf-v5-c-form-control--Color: var(--lf-color-text);
+  --pf-v5-c-form-control--before--BorderTopColor: var(--lf-color-border-strong);
+  --pf-v5-c-form-control--before--BorderRightColor: var(--lf-color-border-strong);
+  --pf-v5-c-form-control--before--BorderBottomColor: transparent;
+  --pf-v5-c-form-control--before--BorderLeftColor: var(--lf-color-border-strong);
+  --pf-v5-c-form-control--after--BorderBottomColor: var(--lf-color-border-strong);
+  --pf-v5-c-form-control--hover--after--BorderBottomColor: var(--lf-color-primary);
+  --pf-v5-c-form-control--focus--after--BorderBottomColor: var(--lf-color-primary);
+}
+
+.login-pf .pf-v5-c-button {
+  --pf-v5-c-button--BorderRadius: var(--lf-radius-md);
+  --pf-v5-c-button--m-primary--BackgroundColor: var(--lf-color-primary);
+  --pf-v5-c-button--m-primary--Color: var(--lf-color-on-primary);
+  --pf-v5-c-button--m-primary--hover--BackgroundColor: color-mix(
+    in srgb,
+    var(--lf-color-primary),
+    #000 12%
+  );
+  --pf-v5-c-button--m-primary--hover--Color: var(--lf-color-on-primary);
+  --pf-v5-c-button--m-primary--focus--BackgroundColor: color-mix(
+    in srgb,
+    var(--lf-color-primary),
+    #000 12%
+  );
+  --pf-v5-c-button--m-primary--focus--Color: var(--lf-color-on-primary);
+  --pf-v5-c-button--m-primary--active--BackgroundColor: color-mix(
+    in srgb,
+    var(--lf-color-primary),
+    #000 12%
+  );
+  --pf-v5-c-button--m-primary--active--Color: var(--lf-color-on-primary);
+  --pf-v5-c-button--m-control--BackgroundColor: var(--lf-color-surface-0);
+  --pf-v5-c-button--m-control--Color: var(--lf-color-text);
+  --pf-v5-c-button--m-control--after--BorderTopColor: var(--lf-color-border-strong);
+  --pf-v5-c-button--m-control--after--BorderRightColor: var(--lf-color-border-strong);
+  --pf-v5-c-button--m-control--after--BorderBottomColor: var(--lf-color-border-strong);
+  --pf-v5-c-button--m-control--after--BorderLeftColor: var(--lf-color-border-strong);
+  font-weight: var(--lf-font-weight-semibold);
+}
+
+/* Los títulos de la tarjeta, con la tipografía y el color del texto. */
+.login-pf .pf-v5-c-title {
+  font-weight: var(--lf-font-weight-semibold);
+  color: var(--lf-color-text);
+}

@@ -1,6 +1,7 @@
 {
   "realm": "logicflows",
   "displayName": "LogicFlows",
+  "loginTheme": "logicflows",
   "enabled": true,
   "sslRequired": "external",
   "internationalizationEnabled": true,

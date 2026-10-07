@@ -58,6 +58,12 @@ services:
       - '127.0.0.1:${KEYCLOAK_PORT:-8180}:8080'
     volumes:
       - ./infra/keycloak/realm-logicflows.json:/opt/keycloak/data/import/realm-logicflows.json:ro
+      # Tema de inicio de sesión (LF-108), con los tokens y las fuentes del
+      # paquete de diseño: en la imagen se copian al construirla. La carpeta del
+      # tema no es de solo lectura para que Docker pueda montar dentro.
+      - ./infra/keycloak/themes/logicflows:/opt/keycloak/themes/logicflows
+      - ./packages/design-tokens/tokens.css:/opt/keycloak/themes/logicflows/login/resources/css/tokens.css:ro
+      - ./packages/design-tokens/node_modules/@fontsource/inter/files:/opt/keycloak/themes/logicflows/login/resources/fonts:ro
     healthcheck:
       # La imagen no incluye curl: se consulta el puerto de gestión con bash.
       test:
