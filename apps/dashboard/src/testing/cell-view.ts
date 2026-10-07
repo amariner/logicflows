@@ -24,6 +24,7 @@ export function buildCellView(overrides: Partial<CellView> = {}): CellView {
       cycleTime: { value: '4,2', unit: 's' },
     },
     componentsLabel: 'Robot: en movimiento · Cinta: en marcha',
+    schematic: null,
     ...overrides,
   };
 }

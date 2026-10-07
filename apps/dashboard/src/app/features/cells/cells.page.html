@@ -6,6 +6,15 @@
 <ion-content class="ion-padding">
   <!-- Región enfocable: permite desplazar el contenido con el teclado (WCAG 2.1.1). -->
   <section class="cells" tabindex="0" aria-label="Células">
+    @if (summary().length > 0) {
+      <ul class="summary" aria-label="Resumen de estados">
+        @for (item of summary(); track item.key) {
+          <li>
+            <app-state-badge [label]="item.label" [icon]="item.icon" [tone]="item.tone" />
+          </li>
+        }
+      </ul>
+    }
     <app-cell-list [cells]="cells()" [today]="today()" />
   </section>
 </ion-content>

@@ -40,15 +40,27 @@
       Hoy: <strong>{{ day.boxes }}</strong> cajas · disponibilidad
       <strong>{{ day.availability }}</strong>
     </p>
-    <ion-button
-      class="history-link"
-      fill="clear"
-      size="small"
-      [routerLink]="['/cells', view.siteId, view.cellId, 'history']"
-      [attr.aria-label]="'Histórico de ' + view.cellId"
-    >
-      <ion-icon slot="start" aria-hidden="true" name="bar-chart-sharp" />
-      Histórico
-    </ion-button>
+    <div class="actions">
+      <ion-button
+        class="detail-link"
+        fill="clear"
+        size="small"
+        [routerLink]="['/cells', view.siteId, view.cellId]"
+        [attr.aria-label]="'Detalle de ' + view.cellId"
+      >
+        <ion-icon slot="start" aria-hidden="true" name="analytics-sharp" />
+        Detalle
+      </ion-button>
+      <ion-button
+        class="history-link"
+        fill="clear"
+        size="small"
+        [routerLink]="['/cells', view.siteId, view.cellId, 'history']"
+        [attr.aria-label]="'Histórico de ' + view.cellId"
+      >
+        <ion-icon slot="start" aria-hidden="true" name="bar-chart-sharp" />
+        Histórico
+      </ion-button>
+    </div>
   </ion-card-content>
 </ion-card>

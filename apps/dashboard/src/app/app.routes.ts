@@ -11,6 +11,13 @@ export const routes: Routes = [
     loadComponent: () => import('./features/cells/cells.page').then((m) => m.CellsPage),
   },
   {
+    path: 'cells/:siteId/:cellId',
+    title: 'Célula · LogicFlows',
+    canActivate: [sessionGuard],
+    loadComponent: () =>
+      import('./features/cells/cell-detail/cell-detail.page').then((m) => m.CellDetailPage),
+  },
+  {
     path: 'cells/:siteId/:cellId/history',
     title: 'Histórico · LogicFlows',
     canActivate: [sessionGuard],

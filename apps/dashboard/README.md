@@ -34,6 +34,10 @@ Piezas de interfaz reutilizables en `src/app/ui/` (LF-103). Solo usan los tokens
 
 `app-connection-status` muestra «En directo» con un punto que late. El punto se queda quieto si el sistema pide reducir el movimiento (`prefers-reduced-motion`). La presentación de estados y severidades (texto, icono y tono) está en `src/app/ui/presentation.ts`.
 
+## Detalle de una célula
+
+`/cells/{siteId}/{cellId}` (LF-106): estado, alarmas activas, esquema de la célula (cinta → robot → palé capa a capa), indicadores y lo que lleva hoy, en tiempo real. Se llega desde «Detalle» en cada tarjeta, y enlaza con el histórico. El panel muestra encima de las tarjetas cuántas células hay en cada estado. Ver [Panel de células y detalle](../../docs/diseno/panel-y-detalle.md).
+
 ## Indicadores de producción
 
 `ProductionIndicatorsComponent` muestra el contador de cajas destacado y, debajo, palés, capa en curso, ritmo (cajas/h) y tiempo de ciclo (s, con un decimal), con la barra de avance del palé en curso descrita para lectores de pantalla. Las cifras usan separador de miles y ancho fijo; las unidades se escriben siempre y se muestran más pequeñas. Sin datos se muestra «—», nunca un cero. Se actualizan con cada telemetría y se atenúan cuando la célula está desconectada.

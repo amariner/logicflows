@@ -1,0 +1,78 @@
+<app-page-header [title]="cellId" [connection]="connection()">
+  <ion-button
+    headerStart
+    routerLink="/cells"
+    routerDirection="back"
+    aria-label="Volver a las células"
+  >
+    <ion-icon slot="icon-only" aria-hidden="true" name="arrow-back-sharp" />
+  </ion-button>
+  <app-emergency-banner [cells]="cells()" />
+</app-page-header>
+
+<ion-content class="ion-padding">
+  <!-- Región enfocable: permite desplazar el contenido con el teclado (WCAG 2.1.1). -->
+  <section class="detail" tabindex="0" [attr.aria-label]="'Célula ' + cellId">
+    <h1>
+      {{ cellId }} <span>· Planta {{ siteId }}</span>
+    </h1>
+
+    @if (cell(); as view) {
+      <div class="status">
+        <app-state-badge
+          data-testid="state"
+          size="lg"
+          [label]="view.stateLabel"
+          [icon]="view.stateIcon"
+          [tone]="view.stateTone"
+        />
+        @if (view.online === false) {
+          <p class="disconnected">Célula desconectada: último dato conocido</p>
+        }
+      </div>
+
+      @if (view.alarms.length > 0) {
+        <ul class="alarms" aria-label="Alarmas activas">
+          @for (alarm of view.alarms; track alarm.code) {
+            <li data-testid="alarm"><app-alarm-item [alarm]="alarm" /></li>
+          }
+        </ul>
+      }
+
+      <div class="panels">
+        <section class="panel" aria-labelledby="schematic-title">
+          <h2 id="schematic-title">Célula</h2>
+          @if (view.schematic; as schematic) {
+            <app-cell-schematic [schematic]="schematic" />
+          } @else {
+            <p class="empty">Sin datos de la cinta, el robot ni el palé.</p>
+          }
+        </section>
+
+        <section class="panel" aria-labelledby="production-title">
+          <h2 id="production-title">Producción</h2>
+          <app-production-indicators
+            [indicators]="view.indicators"
+            [stale]="view.online === false"
+          />
+          @let day = today();
+          <p class="today" data-testid="today">
+            Hoy: <strong>{{ day.boxes }}</strong> cajas · disponibilidad
+            <strong>{{ day.availability }}</strong>
+          </p>
+        </section>
+      </div>
+    } @else {
+      <p class="empty">Todavía no hay datos de esta célula.</p>
+    }
+
+    <ion-button
+      fill="outline"
+      [routerLink]="['/cells', siteId, cellId, 'history']"
+      [attr.aria-label]="'Histórico de ' + cellId"
+    >
+      <ion-icon slot="start" aria-hidden="true" name="bar-chart-sharp" />
+      Histórico
+    </ion-button>
+  </section>
+</ion-content>
