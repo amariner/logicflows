@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { IonProgressBar } from '@ionic/angular';
 
 import type { ProductionIndicators } from '../indicators';
+import { IndicatorComponent } from '../../../ui/indicator.component';
 
 /**
  * Indicadores de producción de una célula: cajas destacadas para leerlas a
@@ -13,7 +14,7 @@ import type { ProductionIndicators } from '../indicators';
   templateUrl: './production-indicators.component.html',
   styleUrl: './production-indicators.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [IonProgressBar],
+  imports: [IndicatorComponent, IonProgressBar],
 })
 export class ProductionIndicatorsComponent {
   readonly indicators = input.required<ProductionIndicators>();

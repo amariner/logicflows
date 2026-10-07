@@ -27,14 +27,15 @@ import type { CellView } from '../cell-view';
     .banner {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
-      padding: 0.75rem 1rem;
+      gap: var(--lf-space-3);
+      padding: var(--lf-space-3) var(--lf-space-4);
       background: var(--lf-color-danger-fg);
       color: var(--lf-color-surface-0);
-      font-size: 1.125rem;
+      font-size: var(--lf-font-size-lg);
+      line-height: var(--lf-line-height-tight);
     }
     ion-icon {
-      font-size: 1.75rem;
+      font-size: var(--lf-font-size-xl);
       flex-shrink: 0;
     }
     p {

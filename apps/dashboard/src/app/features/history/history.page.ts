@@ -11,22 +11,13 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import {
-  IonButton,
-  IonButtons,
-  IonContent,
-  IonHeader,
-  IonIcon,
-  IonRouterLink,
-  IonTitle,
-  IonToolbar,
-} from '@ionic/angular';
+import { IonButton, IonContent, IonIcon, IonRouterLink } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import { arrowBackSharp, downloadSharp } from 'ionicons/icons';
 import { EMPTY, Subject, catchError, forkJoin, map, of, startWith, switchMap } from 'rxjs';
 
-import { ConnectionStatusComponent } from '../../core/connection-status/connection-status.component';
 import { RealtimeService } from '../../core/realtime/realtime.service';
+import { PageHeaderComponent } from '../../ui/page-header.component';
 import { BarChartComponent } from './bar-chart/bar-chart.component';
 import { EventsLogComponent } from './events-log/events-log.component';
 import { toEventsView } from './events-view';
@@ -79,16 +70,12 @@ const PERIODS: readonly { readonly value: PeriodChoice; readonly label: string }
   imports: [
     BarChartComponent,
     EventsLogComponent,
-    ConnectionStatusComponent,
     IonButton,
-    IonButtons,
     IonContent,
-    IonHeader,
     IonIcon,
     IonRouterLink,
+    PageHeaderComponent,
     RouterLink,
-    IonTitle,
-    IonToolbar,
   ],
 })
 export class HistoryPage {

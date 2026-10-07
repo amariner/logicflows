@@ -15,14 +15,16 @@ const render = async (state: ConnectionState) => {
 
 describe('indicador de conexión', () => {
   it.each([
-    ['open', 'En directo', 'success'],
+    ['open', 'En directo', 'ok'],
     ['connecting', 'Conectando…', 'warning'],
     ['closed', 'Sin conexión', 'danger'],
-  ] as const)('en %s muestra «%s» y no depende solo del color', async (state, label, color) => {
+  ] as const)('en %s muestra «%s» y no depende solo del color', async (state, label, tone) => {
     const element = await render(state);
-    const chip = element.querySelector<HTMLElement & { color?: string }>('ion-chip');
-    expect(chip?.textContent.trim()).toBe(label);
-    expect(chip?.color).toBe(color);
-    expect(chip?.getAttribute('role')).toBe('status');
+    const status = element.querySelector<HTMLElement>('[role="status"]');
+    expect(status?.textContent.trim()).toBe(label);
+    expect(status?.classList.contains(`tone-${tone}`)).toBe(true);
+    expect(status?.getAttribute('aria-live')).toBe('polite');
+    // En directo, el punto que late es decorativo; los demás llevan icono.
+    expect(status?.querySelector('[aria-hidden="true"]')).not.toBeNull();
   });
 });

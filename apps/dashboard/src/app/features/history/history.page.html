@@ -1,16 +1,13 @@
-<ion-header>
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-button routerLink="/cells" routerDirection="back" aria-label="Volver a las células">
-        <ion-icon slot="icon-only" aria-hidden="true" name="arrow-back-sharp" />
-      </ion-button>
-    </ion-buttons>
-    <ion-title>Histórico</ion-title>
-    <ion-buttons slot="end">
-      <app-connection-status [state]="connection()" />
-    </ion-buttons>
-  </ion-toolbar>
-</ion-header>
+<app-page-header title="Histórico" [connection]="connection()">
+  <ion-button
+    headerStart
+    routerLink="/cells"
+    routerDirection="back"
+    aria-label="Volver a las células"
+  >
+    <ion-icon slot="icon-only" aria-hidden="true" name="arrow-back-sharp" />
+  </ion-button>
+</app-page-header>
 
 <ion-content class="ion-padding">
   <!-- Región enfocable: permite desplazar el contenido con el teclado (WCAG 2.1.1). -->

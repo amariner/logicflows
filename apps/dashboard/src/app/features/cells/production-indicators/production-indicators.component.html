@@ -5,28 +5,22 @@
     <span class="unit">cajas</span>
   </p>
 
-  <dl>
-    <div>
-      <dt>Palés</dt>
-      <dd data-testid="pallets">{{ kpi.pallets }}</dd>
-    </div>
-    <div>
-      <dt>Capa</dt>
-      <dd data-testid="layer">{{ kpi.layer }}</dd>
-    </div>
-    <div>
-      <dt>Ritmo</dt>
-      <dd data-testid="throughput">
-        {{ kpi.throughput.value }} <span class="measure-unit">{{ kpi.throughput.unit }}</span>
-      </dd>
-    </div>
-    <div>
-      <dt>Ciclo</dt>
-      <dd data-testid="cycle-time">
-        {{ kpi.cycleTime.value }} <span class="measure-unit">{{ kpi.cycleTime.unit }}</span>
-      </dd>
-    </div>
-  </dl>
+  <div class="grid">
+    <app-indicator label="Palés" testId="pallets" [value]="kpi.pallets" />
+    <app-indicator label="Capa" testId="layer" [value]="kpi.layer" />
+    <app-indicator
+      label="Ritmo"
+      testId="throughput"
+      [value]="kpi.throughput.value"
+      [unit]="kpi.throughput.unit"
+    />
+    <app-indicator
+      label="Ciclo"
+      testId="cycle-time"
+      [value]="kpi.cycleTime.value"
+      [unit]="kpi.cycleTime.unit"
+    />
+  </div>
 
   <ion-progress-bar
     [value]="kpi.palletProgress"

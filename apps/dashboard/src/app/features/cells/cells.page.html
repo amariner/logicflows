@@ -1,15 +1,7 @@
-<ion-header>
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-menu-button aria-label="Abrir el menú" />
-    </ion-buttons>
-    <ion-title>Células</ion-title>
-    <ion-buttons slot="end">
-      <app-connection-status [state]="connection()" />
-    </ion-buttons>
-  </ion-toolbar>
+<app-page-header title="Células" [connection]="connection()">
+  <ion-menu-button headerStart aria-label="Abrir el menú" />
   <app-emergency-banner [cells]="cells()" />
-</ion-header>
+</app-page-header>
 
 <ion-content class="ion-padding">
   <!-- Región enfocable: permite desplazar el contenido con el teclado (WCAG 2.1.1). -->
