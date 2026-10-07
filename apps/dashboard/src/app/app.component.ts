@@ -114,7 +114,7 @@ export class AppComponent {
   }
 
   protected reload(): void {
-    window.location.reload();
+    this.auth.retryLogin();
   }
 
   constructor() {
