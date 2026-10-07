@@ -27,6 +27,7 @@ Un ADR aceptado no se reescribe. Si la decisión cambia, se crea un ADR nuevo qu
 | [0017](0017-copias-de-seguridad.md) | Copias de seguridad de PostgreSQL | Aceptado |
 | [0018](0018-mensajeria-sin-kafka.md) | Mensajería sin Kafka por ahora | Aceptado |
 | [0019](0019-datos-de-la-demo.md) | Datos de la demo: guion diario y ventana fija | Aceptado |
+| [0020](0020-tokens-de-diseno.md) | Tokens de diseño compartidos en código | Aceptado |
 
 ## Estados
 
