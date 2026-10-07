@@ -2,8 +2,8 @@ import {
   SEVERITY_PRESENTATION,
   STATE_PRESENTATION,
   WAITING_REASON_LABELS,
-} from '../cells/presentation';
-import type { Tone } from '../cells/presentation';
+} from '../../ui/presentation';
+import type { Tone } from '../../ui/presentation';
 import { formatDuration } from './history-view';
 import type { CellEvents } from './history.types';
 

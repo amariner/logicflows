@@ -55,6 +55,8 @@ const TEXT_PAIRS: [string, string][] = [
     [`${tone}-fg`, 'surface-1'],
     [`${tone}-fg`, 'surface-2'],
     [`${tone}-fg`, `${tone}-bg`],
+    // Texto de una alarma sobre el fondo de su severidad.
+    ['text', `${tone}-bg`],
   ]),
 ];
 

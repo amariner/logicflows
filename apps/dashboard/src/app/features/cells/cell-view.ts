@@ -8,8 +8,8 @@ import {
   SEVERITY_PRESENTATION,
   STATE_PRESENTATION,
   WAITING_REASON_LABELS,
-} from './presentation';
-import type { Tone } from './presentation';
+} from '../../ui/presentation';
+import type { Tone } from '../../ui/presentation';
 
 const defaultTimeFormat = new Intl.DateTimeFormat('es-ES', { hour: '2-digit', minute: '2-digit' });
 

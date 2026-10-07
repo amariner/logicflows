@@ -8,21 +8,14 @@ import {
   inject,
   untracked,
 } from '@angular/core';
-import {
-  IonButtons,
-  IonContent,
-  IonHeader,
-  IonMenuButton,
-  IonTitle,
-  IonToolbar,
-} from '@ionic/angular';
+import { IonContent, IonMenuButton } from '@ionic/angular';
 
-import { ConnectionStatusComponent } from '../../core/connection-status/connection-status.component';
 import { RealtimeService } from '../../core/realtime/realtime.service';
 import { CellListComponent } from './cell-list/cell-list.component';
 import { EmergencyBannerComponent } from './emergency-banner/emergency-banner.component';
 import { toCellView } from './cell-view';
 import { TodaySummaries } from './today-summary';
+import { PageHeaderComponent } from '../../ui/page-header.component';
 
 /** Cada cuánto se actualiza el resumen de hoy de las tarjetas (LF-91). */
 export const TODAY_REFRESH_MS = new InjectionToken<number>('TODAY_REFRESH_MS', {
@@ -42,14 +35,10 @@ export const TODAY_REFRESH_MS = new InjectionToken<number>('TODAY_REFRESH_MS', {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CellListComponent,
-    ConnectionStatusComponent,
     EmergencyBannerComponent,
-    IonButtons,
     IonContent,
-    IonHeader,
     IonMenuButton,
-    IonTitle,
-    IonToolbar,
+    PageHeaderComponent,
   ],
 })
 export class CellsPage {

@@ -1,52 +1,35 @@
 .counter {
-  margin: 0.5rem 0 0.75rem;
-  color: var(--ion-text-color, #000);
+  margin: var(--lf-space-2) 0 var(--lf-space-3);
+  color: var(--lf-color-text);
 }
 
 .value {
+  font-family: var(--lf-font-mono);
   font-size: 3.5rem;
-  font-weight: 700;
+  font-weight: var(--lf-font-weight-semibold);
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
 .unit {
-  margin-left: 0.5rem;
-  font-size: 1.25rem;
+  margin-left: var(--lf-space-2);
+  font-size: var(--lf-font-size-lg);
+  color: var(--lf-color-text-muted);
 }
 
-dl {
+.grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem 1rem;
-  margin: 0 0 0.75rem;
-}
-
-dt {
-  font-size: 0.875rem;
-  color: var(--lf-color-neutral-fg);
-}
-
-dd {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--ion-text-color, #000);
-  white-space: nowrap;
-}
-
-.measure-unit {
-  font-size: 1rem;
-  font-weight: 400;
+  gap: var(--lf-space-2) var(--lf-space-4);
+  margin: 0 0 var(--lf-space-3);
 }
 
 ion-progress-bar {
-  height: 0.5rem;
-  border-radius: 0.25rem;
+  height: var(--lf-space-2);
+  border-radius: var(--lf-radius-sm);
 }
 
 .stale .value,
-.stale dd {
+.stale app-indicator {
   opacity: 0.6;
 }

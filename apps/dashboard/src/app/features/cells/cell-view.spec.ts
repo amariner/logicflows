@@ -7,7 +7,7 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import { toCellView } from './cell-view';
-import { STATE_PRESENTATION } from './presentation';
+import { STATE_PRESENTATION } from '../../ui/presentation';
 
 const empty: CellSnapshot = {
   siteId: 'demo',

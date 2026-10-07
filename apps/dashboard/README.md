@@ -21,6 +21,19 @@ El aspecto sale del paquete [`@logicflows/design-tokens`](../../packages/design-
 - `src/theme/variables.scss` traduce los tokens a las variables de Ionic: fondo, texto, bordes, superficies de tarjetas y barras, y el color primario. Los componentes usan los tokens directamente, nunca valores sueltos.
 - **Claro y oscuro:** el tema sigue al sistema hasta que el usuario elige «Claro» u «Oscuro» en el menú. La elección se guarda en el dispositivo. `ThemeService` pone en `<html>` la clase de los tokens (`lf-dark` o `lf-light`) y la de la paleta oscura de Ionic (`ion-palette-dark`), para que cambien a la vez. Antes de que arranque la aplicación, los tokens ya siguen al sistema.
 
+## Componentes base
+
+Piezas de interfaz reutilizables en `src/app/ui/` (LF-103). Solo usan los tokens de diseño, nunca valores sueltos, así que funcionan en claro y en oscuro:
+
+| Componente | Uso |
+|---|---|
+| `app-state-badge` | Estado con icono, texto y el tono de ADR-0003 sobre su fondo suave. Tamaño normal o grande (`size="lg"`). |
+| `app-alarm-item` | Alarma: severidad escrita con su icono y su color, código en monoespaciada, desde cuándo y mensaje en el color del texto. |
+| `app-indicator` | Indicador con su nombre y su valor: cifra en monoespaciada, con la unidad aparte. Es una lista de definiciones (`dl`) por sí mismo. |
+| `app-page-header` | Cabecera de página: navegación (lo proyectado con `headerStart`), título y estado de la conexión. Lo demás se proyecta debajo de la barra, como el aviso de parada de emergencia. |
+
+`app-connection-status` muestra «En directo» con un punto que late. El punto se queda quieto si el sistema pide reducir el movimiento (`prefers-reduced-motion`). La presentación de estados y severidades (texto, icono y tono) está en `src/app/ui/presentation.ts`.
+
 ## Indicadores de producción
 
 `ProductionIndicatorsComponent` muestra el contador de cajas destacado y, debajo, palés, capa en curso, ritmo (cajas/h) y tiempo de ciclo (s, con un decimal), con la barra de avance del palé en curso descrita para lectores de pantalla. Las cifras usan separador de miles y ancho fijo; las unidades se escriben siempre y se muestran más pequeñas. Sin datos se muestra «—», nunca un cero. Se actualizan con cada telemetría y se atenúan cuando la célula está desconectada.

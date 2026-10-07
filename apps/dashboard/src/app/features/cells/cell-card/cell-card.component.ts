@@ -28,6 +28,8 @@ import type { CellView } from '../cell-view';
 import { NO_SUMMARY } from '../today-summary';
 import type { TodaySummary } from '../today-summary';
 import { ProductionIndicatorsComponent } from '../production-indicators/production-indicators.component';
+import { AlarmItemComponent } from '../../../ui/alarm-item.component';
+import { StateBadgeComponent } from '../../../ui/state-badge.component';
 
 /**
  * Tarjeta de una célula: estado, alarmas activas y producción. Sigue
@@ -40,6 +42,7 @@ import { ProductionIndicatorsComponent } from '../production-indicators/producti
   styleUrl: './cell-card.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AlarmItemComponent,
     IonButton,
     IonCard,
     IonCardContent,
@@ -50,6 +53,7 @@ import { ProductionIndicatorsComponent } from '../production-indicators/producti
     IonRouterLink,
     ProductionIndicatorsComponent,
     RouterLink,
+    StateBadgeComponent,
   ],
 })
 export class CellCardComponent {
