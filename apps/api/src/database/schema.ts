@@ -180,7 +180,9 @@ export const cellHourly = pgTable(
 
 /**
  * Horas que hay que recalcular porque llegó un mensaje que las afecta. Se
- * marcan al guardar cada mensaje y las vacía el proceso de agregación.
+ * marcan al guardar cada mensaje y las vacía el proceso de agregación. Cada
+ * marca sube la versión: el agregador solo quita la hora si no ha cambiado
+ * mientras la calculaba (LF-114).
  */
 export const cellHourlyPending = pgTable(
   'cell_hourly_pending',
@@ -189,6 +191,7 @@ export const cellHourlyPending = pgTable(
     cellId: text('cell_id').notNull(),
     hour: instant('hour').notNull(),
     markedAt: instant('marked_at').notNull(),
+    version: integer('version').notNull().default(1),
   },
   (table) => [primaryKey({ columns: [table.siteId, table.cellId, table.hour] })],
 );

@@ -61,7 +61,6 @@ export class HistoryAggregator implements OnModuleInit, OnModuleDestroy {
     try {
       await this.repository.exclusively(async (repository) => {
         for (const pending of await repository.oldestPending(BATCH)) {
-          // Antes de leer: lo que se marque desde aquí seguirá pendiente.
           const computedFrom = await repository.clock();
           const timeline = await repository.hourTimeline(pending);
           const production = await repository.hourProduction(pending);
@@ -73,7 +72,7 @@ export class HistoryAggregator implements OnModuleInit, OnModuleDestroy {
           // Una hora que no ha terminado sigue pendiente: se completa en las
           // siguientes pasadas, aunque la célula no envíe nada más.
           if (computedFrom.getTime() >= pending.hour.getTime() + HOUR_MS) {
-            await repository.clearPending(pending, computedFrom);
+            await repository.clearPending(pending);
           }
           processed++;
         }

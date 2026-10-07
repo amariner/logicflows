@@ -10,9 +10,10 @@ import {
 import mqtt from 'mqtt';
 import type { MqttClient } from 'mqtt';
 import type { Pool } from 'pg';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { POOL } from '../database/database.module.ts';
+import { HistoryRepository } from '../history/history.repository.ts';
 import { MqttIngestionService } from '../ingestion/mqtt-ingestion.service.ts';
 import { CellStateStore } from '../realtime/cell-state.store.ts';
 import { createApp } from '../testing/app.ts';
@@ -191,5 +192,28 @@ describe('persistencia en PostgreSQL', () => {
       telemetry: { sessionId: SESSION_B, boxesTotal: 9 },
     });
     await restarted.close();
+  });
+
+  it('si no se puede marcar su hora del histórico, el mensaje no se guarda (LF-114)', async () => {
+    // Guardar el mensaje y marcar su hora van en la misma transacción: no
+    // puede quedar un mensaje guardado cuya hora no se vuelva a agregar.
+    const markPending = vi
+      .spyOn(HistoryRepository.prototype, 'markPending')
+      .mockRejectedValueOnce(new Error('conexión perdida'));
+    try {
+      await publish('telemetry', telemetry(SESSION_B, 3, 12, 20));
+      await publish('telemetry', telemetry(SESSION_B, 4, 14, 21));
+      // Se guardan de uno en uno: cuando aparece el segundo, el primero ya se trató.
+      await eventually(async () => {
+        expect(await count('telemetry_samples')).toBe(7);
+      });
+      const seqs = await pool.query<{ seq: number }>(
+        `select seq from telemetry_samples where session_id = '${SESSION_B}' order by seq`,
+      );
+      expect(seqs.rows.map((row) => row.seq)).toEqual([0, 1, 2, 4]);
+      expect(markPending).toHaveBeenCalledTimes(2);
+    } finally {
+      markPending.mockRestore();
+    }
   });
 });
