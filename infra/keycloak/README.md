@@ -43,7 +43,7 @@ infra/keycloak/comprobar-produccion.sh
 La página de inicio de sesión usa el tema `logicflows` (`themes/logicflows/login`). Hereda el de Keycloak 26 (PatternFly 5, con modo oscuro según el sistema) y le aplica los tokens de diseño de [`@logicflows/design-tokens`](../../packages/design-tokens) (ADR-0020): fondo, tarjeta, campos, botón y tipografía Inter, en claro y en oscuro. No cambia los flujos ni los textos, que siguen en español.
 
 - **En la imagen:** la etapa `identity-theme` del `Dockerfile` copia el tema, `tokens.css` y las fuentes del paquete de diseño. No hay copias en el repositorio.
-- **En local:** `compose.yaml` monta el tema, `tokens.css` y las fuentes. Con `start-dev`, Keycloak no guarda los temas en caché: basta con recargar la página tras cambiar el CSS.
+- **En local:** `compose.yaml` monta el tema y `tokens.css`. Las fuentes no se montan, porque están en `node_modules` y el entorno local debe arrancar antes de `pnpm install`; se ve la fuente del sistema. Con `start-dev`, Keycloak no guarda los temas en caché: basta con recargar la página tras cambiar el CSS.
 - **Activación:** `loginTheme` en `realm-logicflows.json`, así que se aplica en local, en las previsualizaciones y en cualquier instalación nueva.
 - **Accesibilidad:** axe sin infracciones de WCAG 2.2 AA en claro y en oscuro. Los bordes de los campos tienen un contraste de 3:1 con la tarjeta.
 
