@@ -72,6 +72,19 @@ export class MqttIngestionService implements OnModuleInit, OnModuleDestroy {
     client.on('message', (topic, payload, packet) => {
       this.#handle(topic, payload.toString('utf8'), packet.retain);
     });
+    // mqtt.js confirma un mensaje QoS 1 (PUBACK) cuando termina esta función,
+    // y no lee el siguiente hasta entonces. Se espera a que esté guardado: si
+    // PostgreSQL falla, el broker conserva los mensajes en la sesión en lugar
+    // de darlos por entregados (LF-117).
+    client.handleMessage = (packet, done) => {
+      if (packet.qos === 0) {
+        done();
+        return;
+      }
+      void this.stream.written().then(() => {
+        done();
+      });
+    };
 
     this.#client = client;
   }
