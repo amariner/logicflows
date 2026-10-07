@@ -119,6 +119,7 @@ El ritmo con el ajuste sigue siendo cuatro veces el que admite Railway (unos 300
 | 5 oct 2026, 06:46 UTC | Producción, primera retención aplicada | 21 304 muestras desde el 3 oct a las 06:20, 1 740 cambios de estado y 744 horas desde el 4 sep; el fichero sigue en 81 MB (72 MB de telemetría) |
 | 5 oct 2026, 06:47 UTC | Producción, tras `VACUUM FULL` | **15 MB** (telemetría, 5,9 MB) |
 | 6 oct 2026, 09:42 UTC | Producción, un día después | **19 MB** (telemetría, 10 MB): 33 918 muestras desde el 4 oct a las 08:54. La retención funciona y no hay espacio sin devolver; el aumento se debe a que la telemetría en vivo (unas 830 muestras por hora desde el 4 oct a las 22:00) sustituye a la cargada (362 por hora). Con la ventana entera en vivo, desde el 6 oct a las 22:00 UTC, debe quedar en unos 21 MB |
+| 7 oct 2026, 05:47 UTC | Producción, con la ventana entera en vivo | **22 MB** (telemetría, 13 MB): 40 350 muestras desde el 5 oct a las 04:53. Coincide con lo previsto (unas 830 por hora durante dos días) |
 
 ## Lo que enseñó la carga en producción
 
