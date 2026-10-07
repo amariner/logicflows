@@ -3,18 +3,28 @@
 }
 
 ion-card {
+  --background: var(--lf-color-surface-1);
+  --color: var(--lf-color-text-muted);
   margin: 0;
   height: 100%;
-  border-left: 0.375rem solid transparent;
+  border: 1px solid var(--lf-color-border);
+  border-radius: var(--lf-radius-lg);
+  box-shadow: var(--lf-shadow-1);
+}
+
+ion-card-title {
+  font-size: var(--lf-font-size-lg);
+  font-weight: var(--lf-font-weight-semibold);
+  color: var(--lf-color-text);
 }
 
 // Solo los estados que requieren atención colorean la tarjeta (ISA-101).
 ion-card.attention {
-  border-left-color: var(--tone);
+  border-left: 0.375rem solid var(--tone);
 }
 
 ion-card.attention.tone-danger {
-  border-width: 0 0 0 0.625rem;
+  border-left-width: 0.625rem;
 }
 
 .tone-ok {
@@ -58,13 +68,20 @@ ion-card.attention.tone-danger {
 }
 
 .components {
-  margin-top: 0.5rem;
+  margin-top: var(--lf-space-2);
 }
 
 .today {
-  margin: 0.75rem 0 0;
+  margin: var(--lf-space-3) 0 0;
 }
 
-.history-link {
-  margin: 0.5rem 0 0;
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--lf-space-2);
+  margin-top: var(--lf-space-2);
+}
+
+.actions ion-button {
+  margin: 0;
 }

@@ -12,6 +12,7 @@ import {
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
+  analyticsSharp,
   barChartSharp,
   handLeftSharp,
   helpCircleSharp,
@@ -64,6 +65,7 @@ export class CellCardComponent {
 
   constructor() {
     addIcons({
+      analyticsSharp,
       barChartSharp,
       handLeftSharp,
       helpCircleSharp,

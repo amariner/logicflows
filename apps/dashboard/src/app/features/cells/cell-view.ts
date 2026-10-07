@@ -2,6 +2,8 @@ import type { CellSnapshot, CellState } from '@logicflows/contract';
 
 import { toIndicators } from './indicators';
 import type { ProductionIndicators } from './indicators';
+import { toSchematic } from './schematic';
+import type { CellSchematic } from './schematic';
 import {
   CONVEYOR_LABELS,
   ROBOT_LABELS,
@@ -45,6 +47,8 @@ export interface CellView {
   readonly indicators: ProductionIndicators;
   /** «Robot: en movimiento · Cinta: en marcha», o `null` sin telemetría. */
   readonly componentsLabel: string | null;
+  /** Esquema cinta → robot → palé, o `null` sin telemetría (LF-106). */
+  readonly schematic: CellSchematic | null;
 }
 
 export function toCellView(snapshot: CellSnapshot, time: TimeFormatter = formatTime): CellView {
@@ -101,5 +105,6 @@ export function toCellView(snapshot: CellSnapshot, time: TimeFormatter = formatT
     boxesTotal: telemetry?.boxesTotal ?? null,
     indicators: toIndicators(telemetry),
     componentsLabel,
+    schematic: toSchematic(telemetry),
   };
 }

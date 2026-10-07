@@ -56,6 +56,24 @@ for (const colorScheme of ['light', 'dark'] as const) {
   }
 }
 
+for (const colorScheme of ['light', 'dark'] as const) {
+  for (const [name, viewport] of Object.entries(VIEWPORTS)) {
+    test(`el detalle de una célula no tiene infracciones de WCAG 2.2 AA en ${name}, tema ${colorScheme === 'light' ? 'claro' : 'oscuro'}`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({ colorScheme });
+      await page.setViewportSize(viewport);
+      // cell-03 está en fallo, con alarmas: el caso más cargado.
+      await page.goto('/cells/demo/cell-03');
+      await expect(page.getByText('Robot averiado')).toBeVisible();
+      await expect(page.getByTestId('alarm')).toHaveCount(2);
+
+      const { violations } = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+      expect(violations.map((violation) => `${violation.id}: ${violation.help}`)).toEqual([]);
+    });
+  }
+}
+
 test.describe('navegación al histórico', () => {
   // Las peticiones del service worker no pasan por la API simulada.
   test.use({ serviceWorkers: 'block' });
@@ -65,6 +83,17 @@ test.describe('navegación al histórico', () => {
     await page.getByRole('link', { name: 'Histórico de cell-01' }).click();
     await expect(page).toHaveURL(/\/cells\/demo\/cell-01\/history$/);
     await expect(page.getByRole('heading', { name: 'Indicadores' })).toBeVisible();
+  });
+
+  test('desde la tarjeta se llega al detalle, y de ahí al histórico (LF-106)', async ({ page }) => {
+    await page.goto('/cells');
+    await page.getByRole('link', { name: 'Detalle de cell-01' }).click();
+    await expect(page).toHaveURL(/\/cells\/demo\/cell-01$/);
+    const detail = page.getByRole('region', { name: 'Célula cell-01' });
+    await expect(detail.getByText('Cinta en marcha')).toBeVisible();
+    // Ionic conserva el panel en el DOM al navegar: se busca dentro del detalle.
+    await detail.getByRole('link', { name: 'Histórico de cell-01' }).click();
+    await expect(page).toHaveURL(/\/cells\/demo\/cell-01\/history$/);
   });
 });
 

@@ -18,7 +18,10 @@ import type { CellView } from '../cell-view';
         <ion-icon aria-hidden="true" name="hand-left-sharp" />
         <p>
           <strong>Parada de emergencia</strong> en
-          {{ stopped().join(', ') }}
+          @for (cellId of stopped(); track cellId; let last = $last) {
+            <span class="cell">{{ cellId }}</span
+            >{{ last ? '' : ', ' }}
+          }
         </p>
       </div>
     }
@@ -40,6 +43,10 @@ import type { CellView } from '../cell-view';
     }
     p {
       margin: 0;
+    }
+    /* Un identificador de célula no se parte entre dos líneas. */
+    .cell {
+      white-space: nowrap;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

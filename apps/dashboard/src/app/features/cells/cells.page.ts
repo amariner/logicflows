@@ -16,6 +16,8 @@ import { EmergencyBannerComponent } from './emergency-banner/emergency-banner.co
 import { toCellView } from './cell-view';
 import { TodaySummaries } from './today-summary';
 import { PageHeaderComponent } from '../../ui/page-header.component';
+import { StateBadgeComponent } from '../../ui/state-badge.component';
+import { summarizeStates } from './state-summary';
 
 /** Cada cuánto se actualiza el resumen de hoy de las tarjetas (LF-91). */
 export const TODAY_REFRESH_MS = new InjectionToken<number>('TODAY_REFRESH_MS', {
@@ -28,8 +30,16 @@ export const TODAY_REFRESH_MS = new InjectionToken<number>('TODAY_REFRESH_MS', {
   templateUrl: './cells.page.html',
   styles: `
     .cells:focus-visible {
-      outline: 2px solid var(--ion-color-primary);
+      outline: 2px solid var(--lf-color-focus);
       outline-offset: 4px;
+    }
+    .summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--lf-space-2);
+      margin: 0 0 var(--lf-space-4);
+      padding: 0;
+      list-style: none;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -39,6 +49,7 @@ export const TODAY_REFRESH_MS = new InjectionToken<number>('TODAY_REFRESH_MS', {
     IonContent,
     IonMenuButton,
     PageHeaderComponent,
+    StateBadgeComponent,
   ],
 })
 export class CellsPage {
@@ -47,6 +58,7 @@ export class CellsPage {
   protected readonly cells = computed(() =>
     this.#realtime.cells().map((snapshot) => toCellView(snapshot)),
   );
+  protected readonly summary = computed(() => summarizeStates(this.cells()));
   readonly #today = inject(TodaySummaries);
   protected readonly today = this.#today.summaries;
 
