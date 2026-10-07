@@ -63,7 +63,7 @@ Para las fuentes:
 ## Consecuencias
 
 - **Figma y el código pueden separarse.** Nada los sincroniza: las capturas de referencia de la CI (LF-110) detectan cambios visuales no deseados en el código, pero no diferencias con Figma.
-- **El visor pesa algo más:** los cinco ficheros `woff2` del alfabeto latino suman entre 150 y 200 kB, que se descargan una vez y quedan en caché. Se medirá en LF-105 junto al tiempo hasta ver datos en red móvil (LF-59).
+- **El visor pesa algo más:** los cinco ficheros `woff2` del alfabeto latino suman unos 115 kB (medido en LF-101), que se descargan una vez y quedan en caché. Se comprobará en LF-105 que no empeora el tiempo hasta ver datos en red móvil (LF-59).
 - **El tema oscuro elegido a mano** necesita guardar la preferencia en el dispositivo. Si no hay preferencia, se sigue al sistema.
 
 ## Criterios de revisión
