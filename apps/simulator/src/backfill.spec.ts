@@ -113,8 +113,10 @@ describe('histórico simulado (LF-77)', () => {
   });
 
   it('con el escenario guion, cada incidencia ocurre a su hora local (ADR-0019)', async () => {
-    // FROM son las 08:00 en Madrid: el día incluye el fallo de las 09:47 y la parada de las 11:15.
-    const published = await run(24, 7, SCENARIOS.guion);
+    // FROM son las 08:00 en Madrid: cuatro horas incluyen el fallo de las 09:47 y
+    // la parada de las 11:15. Simular el día entero agotaba el límite de 5 s en
+    // la CI cargada (LF-116).
+    const published = await run(4, 7, SCENARIOS.guion);
     const states = published
       .map(({ topic, payload }) => decodeMessage(topic, payload))
       .flatMap((d) => (d.ok && d.kind === 'state' ? [d.message] : []));
@@ -122,7 +124,7 @@ describe('histórico simulado (LF-77)', () => {
       states.filter((m) => m.state === state && m.previousState !== state).map((m) => m.since);
     expect(entered('EMERGENCY_STOP')).toEqual(['2026-09-01T09:15:00.000Z']);
     expect(entered('FAULT')).toContain('2026-09-01T07:47:00.000Z');
-    const second = await run(24, 7, SCENARIOS.guion);
+    const second = await run(4, 7, SCENARIOS.guion);
     expect(second.map((p) => p.payload)).toEqual(published.map((p) => p.payload));
   });
 });
