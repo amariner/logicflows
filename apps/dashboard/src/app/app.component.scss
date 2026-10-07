@@ -1,3 +1,8 @@
+// El menú es una sola superficie, por encima del fondo de la página.
+ion-menu {
+  --ion-background-color: var(--lf-color-surface-1);
+}
+
 ion-list-header {
   font-size: 1.25rem;
   font-weight: 600;
@@ -10,10 +15,14 @@ ion-item.selected {
 .session {
   padding: 0.5rem;
 
+  .theme {
+    margin-bottom: 0.5rem;
+  }
+
   ion-note {
     display: block;
     padding: 0 0.5rem 0.25rem;
-    color: var(--lf-tone-neutral);
+    color: var(--lf-color-neutral-fg);
   }
 }
 

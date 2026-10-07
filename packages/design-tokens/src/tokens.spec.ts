@@ -81,6 +81,19 @@ describe('tokens de diseño (ADR-0020)', () => {
     expect(Object.fromEntries(darkBySystem)).toEqual(Object.fromEntries(dark));
   });
 
+  it.each(Object.entries(themes))(
+    'en el tema %s, cada triplete -rgb coincide con su color',
+    (_name, theme) => {
+      const triplets = [...light.keys()].filter((name) => name.endsWith('-rgb'));
+      expect(triplets.length).toBeGreaterThan(0);
+      for (const name of triplets) {
+        const hex = colorOf(theme, name.slice('--lf-color-'.length, -'-rgb'.length));
+        const rgb = [1, 3, 5].map((start) => Number.parseInt(hex.slice(start, start + 2), 16));
+        expect(theme.get(name) ?? light.get(name), name).toBe(rgb.join(', '));
+      }
+    },
+  );
+
   it('el tema oscuro redefine todos los colores del claro', () => {
     const colors = (theme: Map<string, string>) =>
       [...theme.keys()].filter((name) => name.startsWith('--lf-color-')).sort();

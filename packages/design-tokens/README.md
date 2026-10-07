@@ -23,6 +23,8 @@ Tokens de diseño de LogicFlows: variables CSS compartidas por el visor y el tem
 
 Los componentes usan siempre los tokens, nunca valores sueltos. Para un tono de estado, `--lf-state-<estado>-fg` y `--lf-state-<estado>-bg` (`running`, `waiting`, `fault`…).
 
+Algunos colores tienen también su triplete (`--lf-color-primary-rgb: 0, 99, 152`) para usarlos en `rgba()`, como hace Ionic. Una prueba comprueba que coinciden con el color.
+
 ## Temas
 
 El tema claro es el de por defecto. El oscuro se aplica con la clase `lf-dark` en `<html>`, o según el sistema si no se ha elegido tema. La clase `lf-light` fuerza el claro.

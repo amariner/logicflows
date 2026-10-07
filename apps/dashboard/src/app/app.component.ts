@@ -17,6 +17,8 @@ import {
   IonMenuToggle,
   IonRouterLink,
   IonRouterOutlet,
+  IonSegment,
+  IonSegmentButton,
   IonSplitPane,
   IonToast,
   IonToggle,
@@ -31,6 +33,7 @@ import { AppUpdateService } from './core/pwa/app-update';
 import { AlarmNotificationsService } from './core/native/alarm-notifications';
 import { exitOnRootBackButton } from './core/native/back-button';
 import { RealtimeService } from './core/realtime/realtime.service';
+import { ThemeService } from './core/theme/theme';
 
 interface MenuEntry {
   readonly title: string;
@@ -64,6 +67,8 @@ interface MenuEntry {
     IonMenuToggle,
     IonRouterLink,
     IonRouterOutlet,
+    IonSegment,
+    IonSegmentButton,
     IonSplitPane,
     IonToast,
     IonToggle,
@@ -73,6 +78,7 @@ export class AppComponent {
   protected readonly auth = inject(AuthService);
   protected readonly updates = inject(AppUpdateService);
   protected readonly notifications = inject(AlarmNotificationsService);
+  protected readonly theme = inject(ThemeService);
   protected readonly updateButtons: ToastButton[] = [
     {
       text: 'Actualizar',
@@ -98,6 +104,13 @@ export class AppComponent {
 
   protected toggleNotifications(event: CustomEvent<{ checked: boolean }>): void {
     void this.notifications.setEnabled(event.detail.checked);
+  }
+
+  protected chooseTheme(event: CustomEvent<{ value?: string | number }>): void {
+    const value = event.detail.value;
+    if (value === 'system' || value === 'light' || value === 'dark') {
+      this.theme.choose(value);
+    }
   }
 
   protected reload(): void {

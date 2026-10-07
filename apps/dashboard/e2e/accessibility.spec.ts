@@ -145,3 +145,37 @@ test('en móvil el menú se abre con el teclado', async ({ page }) => {
   await page.keyboard.press('Enter');
   await expect(page.getByRole('link', { name: 'Células' })).toBeVisible();
 });
+
+test.describe('tema elegido por el usuario', () => {
+  // Al recargar, el service worker serviría la configuración en caché sin
+  // pasar por los simulacros de la prueba.
+  test.use({ serviceWorkers: 'block' });
+
+  test('el tema elegido en el menú manda sobre el del sistema y se recuerda (LF-105)', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ colorScheme: 'light' });
+    await page.setViewportSize(VIEWPORTS.escritorio);
+    await page.goto('/cells');
+    await expect(page.getByText('cell-01')).toBeVisible();
+    const html = page.locator('html');
+    await expect(html).toHaveClass(/lf-light/);
+
+    // El botón nativo está dentro del componente de Ionic: se pulsa el componente.
+    await page.locator('ion-segment-button[value="dark"]').click();
+    await expect(html).toHaveClass(/lf-dark/);
+    await expect(html).toHaveClass(/ion-palette-dark/);
+    // Ionic pinta con los tokens del tema oscuro: --lf-color-surface-0.
+    const background = () =>
+      html.evaluate((el) => getComputedStyle(el).getPropertyValue('--ion-background-color').trim());
+    await expect.poll(background).toBe('#0e1726');
+
+    await page.reload();
+    await expect(page.getByRole('tablist', { name: 'Tema' })).toBeVisible();
+    await expect(html).toHaveClass(/lf-dark/);
+    await expect(page.getByRole('tab', { name: 'Oscuro' })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+  });
+});

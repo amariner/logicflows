@@ -18,23 +18,23 @@ ion-card.attention.tone-danger {
 }
 
 .tone-ok {
-  --tone: var(--lf-tone-ok);
+  --tone: var(--lf-color-ok-fg);
 }
 
 .tone-info {
-  --tone: var(--lf-tone-info);
+  --tone: var(--lf-color-info-fg);
 }
 
 .tone-neutral {
-  --tone: var(--lf-tone-neutral);
+  --tone: var(--lf-color-neutral-fg);
 }
 
 .tone-warning {
-  --tone: var(--lf-tone-warning);
+  --tone: var(--lf-color-warning-fg);
 }
 
 .tone-danger {
-  --tone: var(--lf-tone-danger);
+  --tone: var(--lf-color-danger-fg);
 }
 
 .state {
@@ -53,7 +53,7 @@ ion-card.attention.tone-danger {
 }
 
 .disconnected {
-  color: var(--lf-tone-danger);
+  color: var(--lf-color-danger-fg);
 }
 
 .alarms {

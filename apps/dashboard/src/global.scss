@@ -25,13 +25,12 @@
 @import '@ionic/angular/css/text-transformation.css';
 @import '@ionic/angular/css/flex-utils.css';
 
-/**
- * Ionic Dark Mode
- * -----------------------------------------------------
- * For more info, please see:
- * https://ionicframework.com/docs/theming/dark-mode
+/*
+ * Tema oscuro de Ionic por clase: lo aplica ThemeService junto a la clase
+ * `lf-dark` de los tokens, según la elección del usuario o el sistema.
  */
+@import '@ionic/angular/css/palettes/dark.class.css';
 
-/* @import "@ionic/angular/css/palettes/dark.always.css"; */
-/* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import '@ionic/angular/css/palettes/dark.system.css';
+/* Sistema de diseño de LogicFlows (ADR-0020): fuentes incluidas y tokens. */
+@import '@logicflows/design-tokens/fonts.css';
+@import '@logicflows/design-tokens/tokens.css';

@@ -29,8 +29,8 @@ import type { CellView } from '../cell-view';
       align-items: center;
       gap: 0.75rem;
       padding: 0.75rem 1rem;
-      background: var(--lf-tone-danger);
-      color: var(--ion-background-color, #fff);
+      background: var(--lf-color-danger-fg);
+      color: var(--lf-color-surface-0);
       font-size: 1.125rem;
     }
     ion-icon {

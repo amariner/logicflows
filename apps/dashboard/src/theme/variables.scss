@@ -1,25 +1,31 @@
-// For information on how to create your own theme, please refer to:
-// https://ionicframework.com/docs/theming/
-
 /*
- * Tonos de estado del visor (docs/diseno-del-visor.md). Cada tono cumple un
- * contraste de 4,5:1 como mínimo sobre el fondo de las tarjetas, en tema
- * claro y oscuro, para usarse en texto, iconos y bordes.
+ * Tema de Ionic a partir de los tokens de diseño (ADR-0020). Los componentes
+ * usan los tokens `--lf-…` directamente; aquí solo se traducen a las
+ * variables con las que Ionic pinta sus propios componentes.
+ *
+ * Los selectores llevan `.md` y `.ios` para pesar lo mismo que la paleta
+ * oscura de Ionic (`.ion-palette-dark.md`), que se carga antes y así queda
+ * sustituida por los tokens en los dos temas.
  */
-:root {
-  --lf-tone-ok: #1b7a34;
-  --lf-tone-info: #1a5fb4;
-  --lf-tone-neutral: #56606b;
-  --lf-tone-warning: #8a5300;
-  --lf-tone-danger: #b3261e;
-}
+:root.md,
+:root.ios {
+  --ion-font-family: var(--lf-font-sans);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --lf-tone-ok: #5fd07a;
-    --lf-tone-info: #8ab4f8;
-    --lf-tone-neutral: #b0b8c2;
-    --lf-tone-warning: #f5b83d;
-    --lf-tone-danger: #ff8a80;
-  }
+  --ion-background-color: var(--lf-color-surface-0);
+  --ion-text-color: var(--lf-color-text);
+  --ion-border-color: var(--lf-color-border);
+  --ion-placeholder-color: var(--lf-color-text-subtle);
+
+  --ion-item-background: var(--lf-color-surface-1);
+  --ion-card-background: var(--lf-color-surface-1);
+  --ion-toolbar-background: var(--lf-color-surface-1);
+  --ion-toolbar-border-color: var(--lf-color-border);
+  --ion-tab-bar-background: var(--lf-color-surface-1);
+
+  /* Ionic aclara y oscurece el primario un 10 % y un 12 % para sus estados. */
+  --ion-color-primary: var(--lf-color-primary);
+  --ion-color-primary-rgb: var(--lf-color-primary-rgb);
+  --ion-color-primary-contrast: var(--lf-color-on-primary);
+  --ion-color-primary-shade: color-mix(in srgb, var(--lf-color-primary), #000 12%);
+  --ion-color-primary-tint: color-mix(in srgb, var(--lf-color-primary), #fff 10%);
 }
