@@ -38,6 +38,15 @@ docker build --target identity -t logicflows-identity:local .
 infra/keycloak/comprobar-produccion.sh
 ```
 
+## Tema de inicio de sesión (LF-108)
+
+La página de inicio de sesión usa el tema `logicflows` (`themes/logicflows/login`). Hereda el de Keycloak 26 (PatternFly 5, con modo oscuro según el sistema) y le aplica los tokens de diseño de [`@logicflows/design-tokens`](../../packages/design-tokens) (ADR-0020): fondo, tarjeta, campos, botón y tipografía Inter, en claro y en oscuro. No cambia los flujos ni los textos, que siguen en español.
+
+- **En la imagen:** la etapa `identity-theme` del `Dockerfile` copia el tema, `tokens.css` y las fuentes del paquete de diseño. No hay copias en el repositorio.
+- **En local:** `compose.yaml` monta el tema, `tokens.css` y las fuentes. Con `start-dev`, Keycloak no guarda los temas en caché: basta con recargar la página tras cambiar el CSS.
+- **Activación:** `loginTheme` en `realm-logicflows.json`, así que se aplica en local, en las previsualizaciones y en cualquier instalación nueva.
+- **Accesibilidad:** axe sin infracciones de WCAG 2.2 AA en claro y en oscuro. Los bordes de los campos tienen un contraste de 3:1 con la tarjeta.
+
 ## Imagen de las previsualizaciones
 
 La etapa `identity-preview` es la imagen de producción con un único usuario: `prueba-e2e`, solo con `viewer` y con el perfil completo ([ADR-0012](../../docs/adr/0012-previsualizaciones-por-pull-request.md)). La genera `realm-produccion.mjs --previsualizacion`. La contraseña se toma al importar de `LOGICFLOWS_E2E_PASSWORD`, que en las previsualizaciones recibe el secreto `E2E_PASSWORD`. Sin esa variable la imagen no arranca: Keycloak guardaría como contraseña el texto literal `${LOGICFLOWS_E2E_PASSWORD}`, que es público.
@@ -118,6 +127,16 @@ La app Android inicia sesión en el navegador del sistema y vuelve por su esquem
    Cerrar sesión debe devolver a la app y pedir otra vez el inicio de sesión.
 
 Permitir `https://localhost` en la API no expone nada nuevo: la API exige un token en cada petición y no usa cookies. Una página que se sirva en `https://localhost` en el ordenador de alguien no tiene ese token.
+
+### Activar el tema de inicio de sesión en producción (LF-108)
+
+El realm de producción ya existe, y `--import-realm` no lo modifica. Una sola vez, después de desplegar una versión con el tema:
+
+1. En la consola, realm `logicflows`, abrir **Realm settings → Themes**.
+2. En **Login theme**, elegir `logicflows` y pulsar **Save**.
+3. Abrir el visor en una ventana privada y comprobar que el inicio de sesión tiene el aspecto de LogicFlows. La prueba de producción debe seguir en verde.
+
+Para volver atrás, elegir `keycloak.v2`.
 
 ### Sustituir el administrador temporal
 

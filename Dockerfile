@@ -18,7 +18,7 @@
 # Se ejecuta en la arquitectura de la máquina que construye: el resultado es
 # JavaScript sin dependencias nativas y sirve para cualquier arquitectura, así
 # que las imágenes ARM no necesitan emulación.
-FROM --platform=$BUILDPLATFORM node:24.21.0-bookworm-slim AS build
+FROM --platform=$BUILDPLATFORM node:24.21.0-bookworm-slim AS deps
 WORKDIR /repo
 RUN corepack enable
 # Solo el lockfile: la descarga de dependencias se guarda en caché mientras no cambie.
@@ -26,6 +26,8 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 RUN pnpm fetch
 COPY . .
 RUN pnpm install --offline --frozen-lockfile
+
+FROM deps AS build
 RUN pnpm --filter @logicflows/contract build \
  && pnpm --filter @logicflows/api --filter @logicflows/simulator --filter @logicflows/dashboard build
 # El visor se sirve comprimido: los ficheros se comprimen una vez aquí y Nginx
@@ -91,6 +93,17 @@ WORKDIR /realm
 COPY infra/keycloak/realm-logicflows.json infra/keycloak/realm-produccion.mjs ./
 RUN node realm-produccion.mjs realm-logicflows.json logicflows.json
 
+# Tema de inicio de sesión (LF-108): los tokens de diseño y las fuentes salen
+# del paquete @logicflows/design-tokens, sin copias en el repositorio.
+FROM deps AS identity-theme
+RUN mkdir -p /theme \
+ && cp -R infra/keycloak/themes/logicflows /theme/ \
+ && cp packages/design-tokens/tokens.css /theme/logicflows/login/resources/css/ \
+ && mkdir -p /theme/logicflows/login/resources/fonts \
+ && cd packages/design-tokens/node_modules/@fontsource/inter/files \
+ && cp -L inter-latin-400-normal.woff2 inter-latin-500-normal.woff2 inter-latin-600-normal.woff2 \
+      /theme/logicflows/login/resources/fonts/
+
 # Keycloak compilado para producción con PostgreSQL y comprobaciones de salud.
 # El resultado es Java y sirve para cualquier arquitectura. Con una sola
 # réplica, la caché es local: sin clúster de Infinispan ni descubrimiento de
@@ -99,6 +112,7 @@ FROM --platform=$BUILDPLATFORM quay.io/keycloak/keycloak:26.7.5 AS identity-buil
 ENV KC_DB=postgres \
     KC_HEALTH_ENABLED=true \
     KC_CACHE=local
+COPY --from=identity-theme /theme/logicflows /opt/keycloak/themes/logicflows
 RUN /opt/keycloak/bin/kc.sh build
 
 # Proveedor de identidad (ADR-0009) en modo producción. Al arrancar necesita

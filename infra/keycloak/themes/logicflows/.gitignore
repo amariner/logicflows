@@ -1,0 +1,4 @@
+# Se copian del paquete de diseño al construir la imagen, o los monta
+# compose.yaml en local: no se guardan aquí.
+login/resources/css/tokens.css
+login/resources/fonts/
