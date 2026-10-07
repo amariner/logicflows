@@ -4,6 +4,10 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ## [Sin publicar]
 
+## [0.4.0] - 2026-10-07
+
+**Hito 4 · Histórico y análisis.** Cierra el histórico que llegó a producción con `v0.3.0` (indicadores de planta, registro de estados y alarmas y descarga en CSV) y deja la demo lista para compradores. Producción mantiene una ventana fija de datos simulados que se repiten cada día, con un tamaño estable (unos 21 MB) y un consumo de unos 9,4 USD al mes. Incluye las correcciones de la prueba en móvil del Hito 3.
+
 ### Añadido
 
 - **Escenario `guion` del simulador** (ADR-0019, LF-95): repite cada día un guion de esperas, pausas, fallos y una parada de emergencia a hora fija de Madrid. Las alarmas graves caen en horario laboral. El histórico simulado sigue el mismo guion.
@@ -17,11 +21,21 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 - La API y el simulador limitan la generación joven del montón de Node (`--max-semi-space-size=8`): la API arranca en unos 140 MB en lugar de 250, sin limitar el montón total (LF-96).
 - `cargar-ventana.sh` vuelve a arrancar el simulador en Ámsterdam: tras `railway down`, Railway lo desplegaba en la región por defecto (LF-96).
 - Las copias de seguridad de PostgreSQL quedan preparadas, pero no se activan en producción: LogicFlows es una demostración con datos simulados. El procedimiento de activación y su coste revisado, menos de 0,60 USD al mes, están en `docs/despliegue.md` (ADR-0017, LF-82).
+- La CI solo audita las dependencias en las pull requests que cambian el lockfile, y un flujo de trabajo diario audita `main` y abre una incidencia si hay avisos altos o críticos. Un aviso nuevo ya no bloquea pull requests que no tocan dependencias (LF-99).
 
 ### Corregido
 
 - Los textos del visor, el CSV del histórico y las alarmas del simulador dicen «palé» y «palés» en lugar de «pallet». Los identificadores del contrato (`palletsTotal`, `pallet`…) no cambian, y las alarmas ya registradas conservan su texto (LF-93).
 - El visor web mostraba «No se puede contactar con el servicio de inicio de sesión» al volver a una dirección de inicio de sesión ya usada, por ejemplo con **Atrás**, aunque la sesión seguía siendo válida. Ahora la descarta y conserva la sesión o la inicia de nuevo. Y si Keycloak no responde, muestra ese aviso con **Reintentar** en lugar de quedarse en blanco (LF-92).
+
+### Seguridad
+
+- `source-map-js` pasa a 1.2.2 por el aviso de severidad alta GHSA-68fv-2mgg-jv7q. Solo llegaba por dependencias de desarrollo (LF-98).
+
+### Limitaciones conocidas
+
+- Los datos son simulados: la ventana conserva 31 días de estados y agregados y 2 días de telemetría en bruto (ADR-0019). Las copias de seguridad están preparadas, pero no se activan (LF-82).
+- La app Android se sigue distribuyendo como APK en las releases de GitHub, no en Google Play (ADR-0014).
 
 ## [0.3.0] - 2026-10-04
 
@@ -167,7 +181,8 @@ Esta versión incluye también el histórico del Hito 4 (indicadores de planta, 
 - La API mantiene el estado en memoria y no admite aún varias réplicas: cada instancia necesitaría su propio identificador de cliente MQTT.
 - La rama `main` no tiene protección técnica: la exige una decisión pendiente sobre la visibilidad del repositorio.
 
-[Sin publicar]: https://github.com/amariner/logicflows/compare/v0.3.0...HEAD
+[Sin publicar]: https://github.com/amariner/logicflows/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/amariner/logicflows/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/amariner/logicflows/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/amariner/logicflows/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/amariner/logicflows/releases/tag/v0.1.0

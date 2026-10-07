@@ -2,7 +2,7 @@
 
 Plataforma IIoT para monitorizar en tiempo real células robotizadas de paletizado: estado de la máquina, producción y alarmas, desde la web y desde el móvil.
 
-> **Estado:** [`v0.3.0`](CHANGELOG.md) publicada: **Hito 3 · App Android (demo)**, en producción en Railway y con el APK firmado en su [release](https://github.com/amariner/logicflows/releases/tag/v0.3.0). Siguiente: entrega del **Hito 4 · Histórico y análisis** (`v0.4.0`).
+> **Estado:** [`v0.4.0`](CHANGELOG.md) publicada: **Hito 4 · Histórico y análisis**, en producción en Railway y con el APK firmado en su [release](https://github.com/amariner/logicflows/releases/tag/v0.4.0). Siguiente: **Hito 5 · Rediseño visual**.
 
 <p>
   <img src="docs/imagenes/visor-escritorio.png" alt="Visor de LogicFlows en escritorio, tema oscuro: la célula cell-01 produciendo, con el contador de cajas, palés, capa, ritmo y tiempo de ciclo" width="68%">
@@ -207,7 +207,7 @@ El workflow [Imágenes](.github/workflows/imagenes.yml) publica las cinco imáge
 | Etiqueta `vX.Y.Z` | `vX.Y.Z`, asignada a las imágenes ya publicadas de ese commit sin recompilar |
 
 ```sh
-docker pull ghcr.io/amariner/logicflows-api:v0.3.0
+docker pull ghcr.io/amariner/logicflows-api:v0.4.0
 ```
 
 Una versión solo puede salir de imágenes construidas y probadas en `main`: si el commit de la etiqueta no tiene imágenes publicadas, la promoción falla. Las pull requests no publican nada. Las imágenes son públicas, como el repositorio, y se descargan sin credenciales. No contienen secretos: toda la configuración entra por variables de entorno al arrancar.
