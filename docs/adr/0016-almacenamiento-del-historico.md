@@ -1,6 +1,6 @@
 # ADR-0016: Almacenamiento y retención del histórico
 
-- **Estado:** Aceptado. En la demo, las ventanas las fija [ADR-0019](0019-datos-de-la-demo.md)
+- **Estado:** Aceptado. En la demo, las ventanas las fija [ADR-0019](0019-datos-de-la-demo.md). Actualizado el 7 de octubre de 2026 (LF-114)
 - **Fecha:** 2026-10-03
 - **Responsable:** Andreu Mariner, Tech Lead
 - **Tarea:** LF-76
@@ -76,3 +76,23 @@ Las mediciones dejan dos conclusiones:
 - Necesidad de conservar el dato en bruto más de 30 días, por auditoría o por análisis.
 - El tamaño de la base de datos se acerca al límite de coste acordado en Railway.
 - Aparece una necesidad que PostgreSQL no cubre bien, como búsquedas de texto sobre eventos o esquemas muy variables por célula.
+
+## Actualización (7 de octubre de 2026): el mensaje y su marca, en la misma transacción
+
+La retrospectiva del Hito 4 señaló que la ingesta guardaba el mensaje y marcaba su hora como pendiente en dos operaciones (LF-114). Si la API caía o PostgreSQL fallaba entre las dos, el mensaje quedaba guardado y su hora no se volvía a agregar.
+
+**Alcance real del hueco.** Una hora no deja de estar pendiente hasta que termina, así que en una hora en curso la marca perdida la repone el siguiente mensaje. El hueco solo afecta a los mensajes que llegan tarde a una hora ya cerrada, como la reentrega de una célula que estuvo desconectada o un histórico cargado. En ese caso el agregado de esa hora no incluye el mensaje, sin ningún aviso más que el error en el registro.
+
+**Alternativas.**
+
+1. **Transacción** con el `insert` y la marca. Cuesta un `BEGIN` y un `COMMIT` más por mensaje, unos 9 000 al día por célula.
+2. **Una sola sentencia** con una CTE que inserta y marca. Ahorra esas idas y vueltas, pero exige SQL a mano para los tres tipos de mensaje.
+3. **Reconciliación periódica** que compare la hora de recepción del dato en bruto con la de cálculo del agregado. Necesita otro índice y otro proceso.
+
+**Decisión.**
+
+- **Transacción (opción 1).** Es el cambio más pequeño y su coste en la ingesta es despreciable con el volumen actual. Si la marca falla, el mensaje tampoco se guarda: el dato en bruto y el agregado no se contradicen nunca.
+- **Versión en cada hora pendiente.** Con la transacción, la marca lleva la hora de PostgreSQL de su sentencia, anterior al `COMMIT`. El agregador podía leer el dato en bruto antes de ese `COMMIT` y después quitar la hora, porque su marca parecía anterior al cálculo. Ahora cada marca sube la versión de la hora, y el agregador solo la quita si la versión es la que leyó. Ya no depende de los relojes.
+- Lo cubren dos pruebas de integración: un fallo al marcar no deja el mensaje guardado, y una hora que se vuelve a marcar mientras se calcula sigue pendiente.
+
+**Lo que no resuelve.** La API confirma cada mensaje al broker al recibirlo, antes de guardarlo. Si PostgreSQL no está disponible, el mensaje se pierde entero, no solo su marca. Se analiza aparte en LF-117.

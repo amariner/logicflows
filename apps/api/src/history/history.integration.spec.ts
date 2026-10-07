@@ -34,6 +34,7 @@ import {
 import type { TestBroker } from '../testing/broker.ts';
 import { startDatabase } from '../testing/database.ts';
 import { HistoryAggregator } from './history-aggregator.ts';
+import { HistoryRepository } from './history.repository.ts';
 import { HistoryService } from './history.service.ts';
 import { RetentionService } from './retention.service.ts';
 
@@ -261,6 +262,31 @@ describe('histórico agregado por hora (LF-79, LF-80)', () => {
     );
     await app.get(HistoryAggregator).runOnce();
     expect((await hourRow(at('09:00')))?.boxes).toBe(370);
+  });
+
+  it('una hora que se vuelve a marcar mientras se calcula sigue pendiente (LF-114)', async () => {
+    const repository = app.get(HistoryRepository);
+    const hour = { siteId: 'demo', cellId: 'cell-version', hour: new Date(at('07:00')) };
+    const pending = async () =>
+      (await repository.oldestPending(1000)).filter((row) => row.cellId === hour.cellId);
+
+    await repository.markPending([hour]);
+    const [read] = await pending();
+    expect(read?.version).toBe(1);
+    // Un mensaje de esa hora llega mientras el agregador la calcula. Su
+    // transacción puede confirmar después de que el agregador haya leído el
+    // dato en bruto, aunque la hora de su marca sea anterior.
+    await repository.markPending([hour]);
+    if (read !== undefined) {
+      await repository.clearPending(read);
+    }
+    const [again] = await pending();
+    expect(again?.version).toBe(2);
+
+    if (again !== undefined) {
+      await repository.clearPending(again);
+    }
+    expect(await pending()).toEqual([]);
   });
 
   it('la producción de un periodo coincide con la calculada en bruto', async () => {

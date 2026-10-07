@@ -24,6 +24,7 @@ export interface CellHour {
 
 export interface PendingHour extends CellHour {
   readonly markedAt: Date;
+  readonly version: number;
 }
 
 /** Clave del bloqueo consultivo que reparte la agregación entre réplicas. */
@@ -38,9 +39,9 @@ export class HistoryRepository {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
 
   /**
-   * Marca horas como pendientes de recalcular. Repetirlo no cambia nada. La
-   * marca usa el reloj de PostgreSQL, el mismo que `clock()`: con varias
-   * réplicas, sus relojes pueden no coincidir.
+   * Marca horas como pendientes de recalcular. Volver a marcar una hora ya
+   * pendiente sube su versión, para que el agregador sepa que cambió mientras
+   * la calculaba. La hora de la marca es la de PostgreSQL, como `clock()`.
    */
   async markPending(hours: readonly CellHour[]): Promise<void> {
     if (hours.length === 0) {
@@ -51,7 +52,10 @@ export class HistoryRepository {
       .values(hours.map((hour) => ({ ...hour, markedAt: sql`clock_timestamp()` })))
       .onConflictDoUpdate({
         target: [cellHourlyPending.siteId, cellHourlyPending.cellId, cellHourlyPending.hour],
-        set: { markedAt: sql`clock_timestamp()` },
+        set: {
+          markedAt: sql`clock_timestamp()`,
+          version: sql`${cellHourlyPending.version} + 1`,
+        },
       });
   }
 
@@ -191,20 +195,22 @@ export class HistoryRepository {
   }
 
   /**
-   * Quita la hora de las pendientes si nadie la volvió a marcar desde
-   * `computedFrom`: un mensaje que llega mientras se calcula la deja pendiente.
+   * Quita la hora de las pendientes si nadie la volvió a marcar desde que se
+   * leyó: un mensaje que llega mientras se calcula sube la versión y la deja
+   * pendiente. No depende de los relojes ni de cuándo confirma su transacción
+   * la ingesta (LF-114).
    */
-  async clearPending(hour: CellHour, computedFrom: Date): Promise<void> {
-    await this.db.delete(cellHourlyPending).where(
-      and(
-        eq(cellHourlyPending.siteId, hour.siteId),
-        eq(cellHourlyPending.cellId, hour.cellId),
-        eq(cellHourlyPending.hour, hour.hour),
-        // Estricto: las marcas se guardan en milisegundos. En el peor caso, la
-        // hora se recalcula una vez de más.
-        lt(cellHourlyPending.markedAt, computedFrom),
-      ),
-    );
+  async clearPending(pending: PendingHour): Promise<void> {
+    await this.db
+      .delete(cellHourlyPending)
+      .where(
+        and(
+          eq(cellHourlyPending.siteId, pending.siteId),
+          eq(cellHourlyPending.cellId, pending.cellId),
+          eq(cellHourlyPending.hour, pending.hour),
+          eq(cellHourlyPending.version, pending.version),
+        ),
+      );
   }
 
   /** Agregados de una célula entre dos instantes, ordenados por hora. */
