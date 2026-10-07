@@ -17,6 +17,7 @@ import { arrowBackSharp, downloadSharp } from 'ionicons/icons';
 import { EMPTY, Subject, catchError, forkJoin, map, of, startWith, switchMap } from 'rxjs';
 
 import { RealtimeService } from '../../core/realtime/realtime.service';
+import { IndicatorComponent } from '../../ui/indicator.component';
 import { PageHeaderComponent } from '../../ui/page-header.component';
 import { BarChartComponent } from './bar-chart/bar-chart.component';
 import { EventsLogComponent } from './events-log/events-log.component';
@@ -70,6 +71,7 @@ const PERIODS: readonly { readonly value: PeriodChoice; readonly label: string }
   imports: [
     BarChartComponent,
     EventsLogComponent,
+    IndicatorComponent,
     IonButton,
     IonContent,
     IonIcon,

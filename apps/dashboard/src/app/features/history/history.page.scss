@@ -3,63 +3,68 @@
   max-width: 60rem;
 
   &:focus-visible {
-    outline: 2px solid var(--ion-color-primary);
+    outline: 2px solid var(--lf-color-focus);
     outline-offset: 4px;
   }
 }
 
 .note,
 .cell span {
-  color: var(--lf-color-neutral-fg);
+  color: var(--lf-color-text-muted);
+}
+
+.note {
+  margin: var(--lf-space-3) 0 0;
+  font-size: var(--lf-font-size-sm);
 }
 
 .cell {
-  margin: 0 0 1rem;
-  font-size: 1.5rem;
+  margin: 0 0 var(--lf-space-3);
+  font-size: var(--lf-font-size-xl);
+  font-weight: var(--lf-font-weight-semibold);
+  color: var(--lf-color-text);
 
   span {
-    font-size: 1rem;
-    font-weight: 400;
+    font-size: var(--lf-font-size-md);
+    font-weight: var(--lf-font-weight-regular);
   }
 }
 
 .periods {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: var(--lf-space-2);
+  margin-bottom: var(--lf-space-4);
+}
+
+.panel {
+  margin-bottom: var(--lf-space-4);
+  padding: var(--lf-space-4);
+  border: 1px solid var(--lf-color-border);
+  border-radius: var(--lf-radius-lg);
+  background: var(--lf-color-surface-1);
+  box-shadow: var(--lf-shadow-1);
+  color: var(--lf-color-text);
 }
 
 h2 {
-  font-size: 1.25rem;
-  margin: 1.5rem 0 0.5rem;
+  margin: 0 0 var(--lf-space-3);
+  font-size: var(--lf-font-size-md);
+  font-weight: var(--lf-font-weight-semibold);
+  color: var(--lf-color-text-muted);
 }
 
 .message {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: var(--lf-space-2);
 }
 
 .kpis {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
-  gap: 0.5rem 1rem;
-  margin: 0;
-
-  dt {
-    font-size: 0.875rem;
-    color: var(--lf-color-neutral-fg);
-  }
-
-  dd {
-    margin: 0;
-    font-size: 1.5rem;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    color: var(--ion-text-color, #000);
-  }
+  gap: var(--lf-space-3) var(--lf-space-4);
 }
 
 .stops {
@@ -68,19 +73,19 @@ h2 {
   list-style: none;
 
   li {
-    margin-bottom: 0.75rem;
+    margin-bottom: var(--lf-space-3);
   }
 
   p {
-    margin: 0 0 0.25rem;
+    margin: 0 0 var(--lf-space-1);
   }
 }
 
 .stop-bar {
   display: block;
-  height: 0.5rem;
+  height: var(--lf-space-2);
   min-width: 2px;
-  border-radius: 0.25rem;
+  border-radius: var(--lf-radius-sm);
   background: var(--lf-color-warning-fg);
 }
 

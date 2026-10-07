@@ -114,8 +114,8 @@ describe('página del histórico', () => {
     flushEvents(http);
     await harness.fixture.whenStable();
     const page = root(harness);
-    expect(page.querySelector('[data-testid="availability"]')?.textContent).toBe('90 %');
-    expect(page.querySelector('[data-testid="performance"]')?.textContent).toBe('100 %');
+    expect(page.querySelector('[data-testid="availability"]')?.textContent.trim()).toBe('90 %');
+    expect(page.querySelector('[data-testid="performance"]')?.textContent.trim()).toBe('100 %');
     expect(page.querySelectorAll('rect')).toHaveLength(1);
     expect(page.querySelector('.plot')?.getAttribute('aria-label')).toContain('810 cajas en total');
     expect(page.querySelectorAll('tbody tr')).toHaveLength(1);

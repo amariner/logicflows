@@ -7,26 +7,43 @@ ul {
 
 ol > li {
   display: flex;
-  gap: 0.5rem;
-  padding: 0.5rem 0;
+  gap: var(--lf-space-3);
+  padding: var(--lf-space-2) 0;
   border-bottom: 1px solid var(--lf-color-border);
+
+  &:last-child {
+    border-bottom: 0;
+  }
 }
 
+// El icono, sobre el fondo suave de su tono, como las etiquetas de estado.
 ion-icon {
   flex-shrink: 0;
-  margin-top: 0.125rem;
-  font-size: 1.25rem;
+  padding: var(--lf-space-1);
+  border-radius: var(--lf-radius-full);
+  background: var(--tone-bg);
   color: var(--tone);
+  font-size: var(--lf-font-size-md);
 }
 
 p {
   margin: 0;
 }
 
+time {
+  font-family: var(--lf-font-mono);
+  font-size: var(--lf-font-size-sm);
+}
+
 time,
 .note {
-  color: var(--lf-color-neutral-fg);
+  color: var(--lf-color-text-muted);
   font-variant-numeric: tabular-nums;
+}
+
+ul {
+  margin-top: var(--lf-space-1);
+  font-size: var(--lf-font-size-sm);
 }
 
 ul strong,
@@ -36,20 +53,25 @@ ol > li > div > p > strong {
 
 .tone-ok {
   --tone: var(--lf-color-ok-fg);
+  --tone-bg: var(--lf-color-ok-bg);
 }
 
 .tone-info {
   --tone: var(--lf-color-info-fg);
+  --tone-bg: var(--lf-color-info-bg);
 }
 
 .tone-neutral {
   --tone: var(--lf-color-neutral-fg);
+  --tone-bg: var(--lf-color-neutral-bg);
 }
 
 .tone-warning {
   --tone: var(--lf-color-warning-fg);
+  --tone-bg: var(--lf-color-warning-bg);
 }
 
 .tone-danger {
   --tone: var(--lf-color-danger-fg);
+  --tone-bg: var(--lf-color-danger-bg);
 }
