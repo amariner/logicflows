@@ -194,26 +194,60 @@ describe('persistencia en PostgreSQL', () => {
     await restarted.close();
   });
 
-  it('si no se puede marcar su hora del histórico, el mensaje no se guarda (LF-114)', async () => {
-    // Guardar el mensaje y marcar su hora van en la misma transacción: no
-    // puede quedar un mensaje guardado cuya hora no se vuelva a agregar.
+  it('si no se puede marcar su hora, el mensaje no queda guardado a medias y se reintenta (LF-114, LF-117)', async () => {
+    // Guardar el mensaje y marcar su hora van en la misma transacción. Si el
+    // primer intento hubiera dejado el mensaje guardado, el reintento lo vería
+    // como duplicado y nunca marcaría su hora: la marca se llamaría dos veces.
     const markPending = vi
       .spyOn(HistoryRepository.prototype, 'markPending')
       .mockRejectedValueOnce(new Error('conexión perdida'));
     try {
       await publish('telemetry', telemetry(SESSION_B, 3, 12, 20));
       await publish('telemetry', telemetry(SESSION_B, 4, 14, 21));
-      // Se guardan de uno en uno: cuando aparece el segundo, el primero ya se trató.
       await eventually(async () => {
-        expect(await count('telemetry_samples')).toBe(7);
+        expect(await count('telemetry_samples')).toBe(8);
       });
       const seqs = await pool.query<{ seq: number }>(
         `select seq from telemetry_samples where session_id = '${SESSION_B}' order by seq`,
       );
-      expect(seqs.rows.map((row) => row.seq)).toEqual([0, 1, 2, 4]);
-      expect(markPending).toHaveBeenCalledTimes(2);
+      expect(seqs.rows.map((row) => row.seq)).toEqual([0, 1, 2, 3, 4]);
+      // El fallo, el reintento del mensaje 3 y el mensaje 4.
+      expect(markPending).toHaveBeenCalledTimes(3);
     } finally {
       markPending.mockRestore();
+    }
+  });
+
+  it('si PostgreSQL no puede guardar un cambio de estado, lo guarda al recuperarse (LF-117)', async () => {
+    // Sin la tabla, cada intento falla como si la base de datos no respondiera.
+    await pool.query('alter table cell_state_changes rename to cell_state_changes_fuera');
+    let restored = false;
+    try {
+      await publish(
+        'state',
+        buildStateMessage({
+          sessionId: SESSION_A,
+          seq: 1,
+          state: 'STOPPED',
+          event: 'reset',
+          previousState: 'FAULT',
+          activeAlarms: [],
+        }),
+      );
+      // Unos reintentos fallidos: el mensaje no se ha descartado ni guardado.
+      await new Promise((resolve) => setTimeout(resolve, 1_500));
+      await pool.query('alter table cell_state_changes_fuera rename to cell_state_changes');
+      restored = true;
+      await eventually(async () => {
+        const states = await pool.query<{ state: string }>(
+          'select state from cell_state_changes order by seq',
+        );
+        expect(states.rows.map((row) => row.state)).toEqual(['FAULT', 'STOPPED']);
+      }, 10_000);
+    } finally {
+      if (!restored) {
+        await pool.query('alter table cell_state_changes_fuera rename to cell_state_changes');
+      }
     }
   });
 });

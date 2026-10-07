@@ -1,6 +1,6 @@
 # ADR-0004: Mensajes de telemetría y topics MQTT
 
-- **Estado:** Aceptado
+- **Estado:** Aceptado. Actualizado el 7 de octubre de 2026 (LF-117)
 - **Fecha:** 2026-09-30
 - **Responsable:** Andreu Mariner, Tech Lead
 - **Tarea:** LF-20
@@ -252,6 +252,30 @@ Esta decisión se revisará mediante un nuevo ADR si se cumple alguna de estas c
 - El volumen supera los 1.000 mensajes por segundo o el tamaño de los mensajes afecta al ancho de banda disponible en planta.
 - Se necesita alta disponibilidad del broker o puentes entre plantas.
 - Hace falta registrar cada caja individualmente, por ejemplo por trazabilidad de producto.
+
+## Actualización (7 de octubre de 2026): confirmar al broker después de guardar
+
+Este ADR promete que un cambio de estado no se pierde: `state` y `status` van con QoS 1 y la API usa una sesión persistente. Al revisar la persistencia (LF-114) se vio un hueco. El cliente MQTT confirmaba cada mensaje (PUBACK) al recibirlo, antes de guardarlo. Si PostgreSQL no estaba disponible, el mensaje se registraba como error y se descartaba, y el broker ya no lo volvía a entregar.
+
+**Alternativas** (LF-117):
+
+1. **Confirmar después de guardar.** mqtt.js envía el PUBACK cuando termina `handleMessage`, y no lee el paquete siguiente hasta entonces. Si esa función espera a que el mensaje esté guardado, un fallo de PostgreSQL detiene la lectura, y el broker conserva los mensajes en la sesión.
+2. **Reintentar en memoria sin cambiar la confirmación.** Cubre un corte breve de PostgreSQL, pero no una caída de la API con mensajes aún sin guardar.
+3. **Guardar primero en disco** (un registro local) y después en PostgreSQL. Cubre todos los casos, pero es una pieza más que operar, y el broker ya cumple ese papel (ADR-0018).
+
+**Decisión: la opción 1, con reintentos.**
+
+- `TelemetryStream` encadena las escrituras de la persistencia, de una en una y en orden.
+- La ingesta sustituye `handleMessage`: un mensaje QoS 1 se confirma cuando han terminado las escrituras pendientes.
+- La persistencia no descarta un mensaje que no puede guardar. Lo reintenta con una espera que empieza en 0,5 s y se duplica hasta 30 s.
+- La telemetría (QoS 0) no se confirma y no espera.
+
+**Consecuencias.**
+
+- Mientras PostgreSQL no está disponible, la API deja de leer del broker y **el tiempo real se detiene**. Es preferible a perder cambios de estado sin aviso: el histórico y los indicadores se calculan a partir de ellos, y la caída ya se ve en `/health/ready` y en los registros.
+- El broker conserva los mensajes de la sesión durante una hora y hasta su límite de cola (LF-90). Una caída más larga perdería los más antiguos, igual que una caída de la API.
+- Si la API cae con un mensaje recibido y sin guardar, no lo ha confirmado: el broker lo vuelve a entregar al reconectar. La restricción única de la base de datos evita guardarlo dos veces (ADR-0007).
+- Una prueba de integración deja PostgreSQL sin poder guardar cambios de estado, publica uno y comprueba que se guarda al recuperarse.
 
 ## Referencias
 
