@@ -132,6 +132,17 @@ El visor se puede instalar en el escritorio o en el móvil (LF-55, [ADR-0002](..
 
 La prueba de extremo a extremo comprueba el manifiesto, el service worker y el comportamiento sin conexión.
 
+## Marca: icono y pantalla de arranque
+
+El pictograma de LogicFlows (cajas sobre un palé) está en `marca/pictograma.svg`, sin colores. `pnpm --filter @logicflows/dashboard marca` genera con él todos los iconos y la pantalla de arranque (LF-109):
+
+- **PWA:** `public/favicon.png` y `public/icons/`, incluido el icono *maskable*, con el dibujo dentro de la zona segura.
+- **Android:** iconos clásico y redondo, la capa delantera del icono adaptativo (dentro de los 66 dp centrales) y la pantalla de arranque vertical y apaisada, en todas las densidades.
+
+Los colores salen de los tokens de diseño: fondo de tinta (`#091426`), cajas en blanco y el palé en el primario del tema oscuro. El palé dejó de ser ámbar, porque en el visor el ámbar significa «en espera» (ISA-101). El mismo fondo está en el manifiesto, en `theme-color` y en el fondo del icono adaptativo y del arranque de Android 12 y posteriores.
+
+Dibuja con el Chromium de Playwright, ya instalado para las pruebas. Las imágenes generadas se guardan en el repositorio: solo hace falta volver a generarlas si cambia el pictograma o un color.
+
 ## App Android
 
 El proyecto Android está en `android/` y lo genera Capacitor 8 a partir de la build de producción del visor (LF-65, [ADR-0002](../../docs/adr/0002-visor-multiplataforma.md)):
