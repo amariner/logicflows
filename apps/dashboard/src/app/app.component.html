@@ -27,8 +27,18 @@
             }
           </ion-list>
         </ion-content>
-        @if (auth.enabled) {
-          <ion-footer class="session">
+        <ion-footer class="session">
+          <ion-segment
+            class="theme"
+            aria-label="Tema"
+            [value]="theme.preference()"
+            (ionChange)="chooseTheme($event)"
+          >
+            <ion-segment-button value="system">Sistema</ion-segment-button>
+            <ion-segment-button value="light">Claro</ion-segment-button>
+            <ion-segment-button value="dark">Oscuro</ion-segment-button>
+          </ion-segment>
+          @if (auth.enabled) {
             @if (auth.userName(); as name) {
               <ion-note>Sesión de {{ name }}</ion-note>
             }
@@ -46,8 +56,8 @@
               <ion-icon aria-hidden="true" slot="start" name="log-out-sharp" />
               Cerrar sesión
             </ion-button>
-          </ion-footer>
-        }
+          }
+        </ion-footer>
       </ion-menu>
       <ion-router-outlet id="main-content" />
     </ion-split-pane>

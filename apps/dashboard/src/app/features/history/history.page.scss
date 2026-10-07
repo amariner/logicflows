@@ -10,7 +10,7 @@
 
 .note,
 .cell span {
-  color: var(--lf-tone-neutral);
+  color: var(--lf-color-neutral-fg);
 }
 
 .cell {
@@ -50,7 +50,7 @@ h2 {
 
   dt {
     font-size: 0.875rem;
-    color: var(--lf-tone-neutral);
+    color: var(--lf-color-neutral-fg);
   }
 
   dd {
@@ -81,7 +81,7 @@ h2 {
   height: 0.5rem;
   min-width: 2px;
   border-radius: 0.25rem;
-  background: var(--lf-tone-warning);
+  background: var(--lf-color-warning-fg);
 }
 
 .download {

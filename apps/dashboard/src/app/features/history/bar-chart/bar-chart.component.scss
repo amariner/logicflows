@@ -10,7 +10,7 @@ figcaption {
 .axis {
   margin: 0.25rem 0;
   font-size: 0.875rem;
-  color: var(--lf-tone-neutral);
+  color: var(--lf-color-neutral-fg);
   font-variant-numeric: tabular-nums;
 }
 
@@ -21,7 +21,7 @@ figcaption {
 
 .plot {
   height: 10rem;
-  border-bottom: 1px solid var(--lf-tone-neutral);
+  border-bottom: 1px solid var(--lf-color-neutral-fg);
 }
 
 svg {
@@ -31,7 +31,7 @@ svg {
 }
 
 rect {
-  fill: var(--lf-tone-info);
+  fill: var(--lf-color-info-fg);
 }
 
 summary {

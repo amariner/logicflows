@@ -9,7 +9,7 @@ ol > li {
   display: flex;
   gap: 0.5rem;
   padding: 0.5rem 0;
-  border-bottom: 1px solid var(--ion-color-step-150, #d7d8da);
+  border-bottom: 1px solid var(--lf-color-border);
 }
 
 ion-icon {
@@ -25,7 +25,7 @@ p {
 
 time,
 .note {
-  color: var(--lf-tone-neutral);
+  color: var(--lf-color-neutral-fg);
   font-variant-numeric: tabular-nums;
 }
 
@@ -35,21 +35,21 @@ ol > li > div > p > strong {
 }
 
 .tone-ok {
-  --tone: var(--lf-tone-ok);
+  --tone: var(--lf-color-ok-fg);
 }
 
 .tone-info {
-  --tone: var(--lf-tone-info);
+  --tone: var(--lf-color-info-fg);
 }
 
 .tone-neutral {
-  --tone: var(--lf-tone-neutral);
+  --tone: var(--lf-color-neutral-fg);
 }
 
 .tone-warning {
-  --tone: var(--lf-tone-warning);
+  --tone: var(--lf-color-warning-fg);
 }
 
 .tone-danger {
-  --tone: var(--lf-tone-danger);
+  --tone: var(--lf-color-danger-fg);
 }

@@ -12,6 +12,9 @@
  *
  * Una prueba comprueba también el contraste WCAG 2.2 AA de cada par de texto y
  * fondo en los dos temas (src/tokens.spec.ts).
+ *
+ * Los colores con sufijo `-rgb` repiten un color como triplete para usarlo en
+ * `rgba()`, como hace Ionic; la prueba comprueba que coinciden.
  */
 
 :root {
@@ -70,6 +73,7 @@
 
   /* Marca y acciones. */
   --lf-color-primary: #006398;
+  --lf-color-primary-rgb: 0, 99, 152;
   --lf-color-on-primary: #ffffff;
   --lf-color-ink: #091426;
   --lf-color-on-ink: #ffffff;
@@ -104,6 +108,8 @@
     --lf-color-text-subtle: #8b9ab0;
 
     --lf-color-primary: #38bdf8;
+
+    --lf-color-primary-rgb: 56, 189, 248;
     --lf-color-on-primary: #0b1320;
     --lf-color-ink: #e2e8f0;
     --lf-color-on-ink: #0b1320;
@@ -140,6 +146,8 @@
   --lf-color-text-subtle: #8b9ab0;
 
   --lf-color-primary: #38bdf8;
+
+  --lf-color-primary-rgb: 56, 189, 248;
   --lf-color-on-primary: #0b1320;
   --lf-color-ink: #e2e8f0;
   --lf-color-on-ink: #0b1320;

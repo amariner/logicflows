@@ -16,6 +16,8 @@ describe('estructura del visor', () => {
     const element = fixture.nativeElement as HTMLElement;
     expect(element.querySelector('ion-list-header')?.textContent).toContain('LogicFlows');
     expect(element.querySelector('ion-item')?.getAttribute('href')).toBe('/cells');
+    // El tema se elige desde el menú, también sin sesión (LF-105).
+    expect(element.querySelector('ion-segment')?.getAttribute('aria-label')).toBe('Tema');
     // El canal de tiempo real se abre al arrancar la aplicación.
     expect(FakeWebSocket.latest().url).toBe('ws://api.test/realtime');
   });

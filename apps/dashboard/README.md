@@ -8,10 +8,18 @@ Esqueleto (LF-24), producción en tiempo real (LF-28) y panel de estado (LF-34):
 
 ## Panel de estado
 
-- **Estado** de ADR-0003 con icono, texto y un tono de color con contraste AA en tema claro y oscuro (tokens `--lf-tone-*` en `src/theme/variables.scss`). Solo los estados que requieren atención (espera, fallo y parada de emergencia) colorean el borde de la tarjeta.
+- **Estado** de ADR-0003 con icono, texto y un tono de color con contraste AA en tema claro y oscuro (tokens `--lf-color-<tono>-fg` de `@logicflows/design-tokens`). Solo los estados que requieren atención (espera, fallo y parada de emergencia) colorean el borde de la tarjeta.
 - **Alarmas activas** de más a menos grave, con la severidad escrita, el código, el mensaje y la hora de activación.
 - **Aviso global** en la parte superior cuando alguna célula está en parada de emergencia, anunciado a los lectores de pantalla (`role="alert"`).
 - Estado del robot y de la cinta en texto.
+
+## Tema y tipografía
+
+El aspecto sale del paquete [`@logicflows/design-tokens`](../../packages/design-tokens) (ADR-0020, LF-105):
+
+- `src/global.scss` carga las fuentes, incluidas en la aplicación (Inter y JetBrains Mono, unos 115 kB que solo se descargan la primera vez), y los tokens `--lf-…`.
+- `src/theme/variables.scss` traduce los tokens a las variables de Ionic: fondo, texto, bordes, superficies de tarjetas y barras, y el color primario. Los componentes usan los tokens directamente, nunca valores sueltos.
+- **Claro y oscuro:** el tema sigue al sistema hasta que el usuario elige «Claro» u «Oscuro» en el menú. La elección se guarda en el dispositivo. `ThemeService` pone en `<html>` la clase de los tokens (`lf-dark` o `lf-light`) y la de la paleta oscura de Ionic (`ion-palette-dark`), para que cambien a la vez. Antes de que arranque la aplicación, los tokens ya siguen al sistema.
 
 ## Indicadores de producción
 
@@ -27,7 +35,7 @@ Cada tarjeta enlaza con el histórico de su célula (`/cells/{siteId}/{cellId}/h
 - **Indicadores** de [indicadores de planta](../../docs/indicadores-de-planta.md): disponibilidad, rendimiento, cajas y palés, con el tiempo en producción, el planificado, el tiempo sin datos y el ritmo nominal. Si no están definidos, «—».
 - **Gráfico de cajas** por hora o por día. Es un SVG propio y no usa ninguna librería:
   - Solo hacen falta barras, y una librería de gráficos añadiría decenas de kilobytes.
-  - Los colores salen de los tokens `--lf-tone-*`, así que sirven para el tema claro y el oscuro sin más configuración.
+  - Los colores salen de los tokens de diseño, así que sirven para el tema claro y el oscuro sin más configuración.
   - El SVG se oculta a los lectores de pantalla, que leen un resumen («6000 cajas en total. La hora con más producción…»). Debajo, «Ver los datos en una tabla» abre la tabla equivalente para cualquiera (WCAG 1.1.1 y 1.3.1).
 - **Descargar en CSV** (LF-88): una fila por hora o por día del periodo, con cajas, palés, tiempos e indicadores, para una hoja de cálculo en español: `;` como separador, decimales con coma y UTF-8 con BOM. En el navegador se descarga; en la app Android se guarda en la caché y se abre el menú de compartir del sistema (`@capacitor/filesystem` y `@capacitor/share`).
 - **Registro de estados y alarmas** (LF-84), del más reciente al más antiguo:
@@ -97,6 +105,7 @@ El visor se puede instalar en el escritorio o en el móvil (LF-55, [ADR-0002](..
 - **Manifiesto.** `public/manifest.webmanifest`, con nombre, colores e iconos de LogicFlows, incluido uno *maskable* para Android. Se abre en `/cells` y sin la barra del navegador.
 - **Service worker de Angular** (`ngsw-config.json`), solo en la build de producción:
   - Guarda la aplicación para que arranque al instante.
+  - Guarda las fuentes (`/media/`) la primera vez que se usan, para que el visor se vea igual sin conexión.
   - De `config.json` guarda la última copia, para poder arrancar sin conexión.
   - **Nunca guarda datos de planta.**
 - **Sin conexión.** El visor no redirige al inicio de sesión ni muestra datos antiguos: indica que necesita conexión para mostrar datos en directo y vuelve a intentarlo al recuperarla.
@@ -170,7 +179,7 @@ Los tipos de estados y mensajes se importan de `@logicflows/contract`. El empaqu
 ## Accesibilidad (WCAG 2.2 AA)
 
 - **Comprobación automática** (`pnpm --filter @logicflows/dashboard test:a11y`): Playwright sirve la build de producción, simula la API con una célula en cada estado (incluida una desconectada) y pasa axe-core con las reglas WCAG 2.2 A y AA en tema claro y oscuro y en escritorio, tableta y móvil. Además comprueba el reajuste a 320 px sin desplazamiento horizontal (1.4.10), el idioma de la página y la navegación por teclado al menú en escritorio y en móvil. Se ejecuta en la CI en cada pull request.
-- **Contraste:** los tonos `--lf-tone-*` están calculados para 4,5:1 en ambos temas. Se verificó que la comprobación detecta un tono insuficiente.
+- **Contraste:** los tokens de color cumplen 4,5:1 para texto y 3:1 para bordes y foco en ambos temas, comprobado por las pruebas de `@logicflows/design-tokens`. Se verificó que axe-core detecta además un tono insuficiente en la página.
 - **Teclado:** la zona de contenido es una región enfocable y etiquetada, para poder desplazarla con el teclado; los controles tienen etiquetas en español.
 - ESLint incluye las reglas de accesibilidad de las plantillas de angular-eslint.
 - El viewport permite ampliar la página (1.4.4).
