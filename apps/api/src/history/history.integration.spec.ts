@@ -401,6 +401,12 @@ describe('histórico agregado por hora (LF-79, LF-80)', () => {
       config,
       logger as unknown as PinoLogger,
     );
+    // La ingesta guarda cada mensaje y después marca su hora: una marca que
+    // llegue tras la última agregación haría esperar a la retención (LF-113).
+    await eventually(async () => {
+      await app.get(HistoryAggregator).runOnce();
+      expect(await query('select 1 from cell_hourly_pending')).toEqual([]);
+    });
     const deleted = await retention.runOnce(new Date('2026-12-01T00:00:00Z'));
     expect(logged).toEqual([]);
     expect(deleted).toBe(4);
@@ -438,6 +444,12 @@ describe('histórico agregado por hora (LF-79, LF-80)', () => {
     );
     expect(hours).toBeGreaterThan(0);
     // 31 días antes del 1 de diciembre: se borran las horas de septiembre y el aviso de hace dos días.
+    // La ingesta guarda cada mensaje y después marca su hora: una marca que
+    // llegue tras la última agregación haría esperar a la retención (LF-113).
+    await eventually(async () => {
+      await app.get(HistoryAggregator).runOnce();
+      expect(await query('select 1 from cell_hourly_pending')).toEqual([]);
+    });
     const deleted = await retention.runOnce(new Date('2026-12-01T00:00:00Z'));
     expect(deleted).toBe(hours + 1);
     expect(await hourRow(at('09:00'))).toBeUndefined();

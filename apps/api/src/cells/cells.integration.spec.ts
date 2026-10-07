@@ -6,9 +6,12 @@ import type { DecodedMessage } from '@logicflows/contract';
 import { buildStateMessage, buildTelemetryMessage, testUuid } from '@logicflows/contract/testing';
 import mqtt from 'mqtt';
 import type { MqttClient } from 'mqtt';
+import type { Pool } from 'pg';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { POOL } from '../database/database.module.ts';
+import { HistoryAggregator } from '../history/history-aggregator.ts';
 import { MqttIngestionService } from '../ingestion/mqtt-ingestion.service.ts';
 import { TelemetryRepository } from '../persistence/telemetry.repository.ts';
 import { createApp } from '../testing/app.ts';
@@ -47,6 +50,8 @@ describe('API REST de células', () => {
       DATABASE_URL: database.getConnectionUri(),
       MQTT_URL: broker.url,
       MQTT_API_PASSWORD: API_PASSWORD,
+      // La agregación se lanza a mano: el temporizador no interviene.
+      HISTORY_AGGREGATION_INTERVAL_MS: '3600000',
     });
     await waitFor(() => app.get(MqttIngestionService).connected);
     publisher = await mqtt.connectAsync(broker.url, {
@@ -54,12 +59,10 @@ describe('API REST de células', () => {
       username: 'simulator',
       password: SIMULATOR_PASSWORD,
     });
-    await publisher.publishAsync(
-      'logicflows/v1/demo/cell-01/state',
-      JSON.stringify(buildStateMessage({ seq: 1, state: 'RUNNING' })),
-      { qos: 1 },
-    );
     // Producción de 1 caja a las 08:00 y 7 más a las 08:30 en una misma sesión.
+    // Se guarda directamente, sin pasar por la ingesta, así que no marca su
+    // hora como pendiente: la marca el mensaje de estado, que se publica
+    // después para que la agregación ya vea toda la telemetría (LF-113).
     const repository = app.get(TelemetryRepository);
     for (const [seq, [boxes, minute]] of [
       [1, 0],
@@ -80,6 +83,23 @@ describe('API REST de células', () => {
         new Date().toISOString(),
       );
     }
+    await publisher.publishAsync(
+      'logicflows/v1/demo/cell-01/state',
+      JSON.stringify(buildStateMessage({ seq: 1, state: 'RUNNING' })),
+      { qos: 1 },
+    );
+    // Las horas completas salen de los agregados (ADR-0016): se espera a que
+    // la hora del estado esté marcada y agregada, sin depender del temporizador.
+    const pool = app.get<Pool>(POOL);
+    await eventually(async () => {
+      await app.get(HistoryAggregator).runOnce();
+      const [hour] = (
+        await pool.query<{ boxes: number }>(
+          `select boxes from cell_hourly where cell_id = 'cell-01' and hour = '2026-10-05T08:00:00Z'`,
+        )
+      ).rows;
+      expect(hour?.boxes).toBe(9);
+    });
   });
 
   afterAll(async () => {
