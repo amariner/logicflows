@@ -1,6 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512"><rect width="512" height="512" rx="96" fill="#091426"/>
-<svg x="38.400000000000006" y="38.400000000000006" width="435.2" height="435.2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <g fill="#ffffff">
+<!--
+  Pictograma de LogicFlows: cajas apiladas sobre un palé. Sin fondo; los
+  colores los pone marca/generar.ts. Lienzo de 512 × 512 con el dibujo
+  centrado.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <g fill="var(--cajas)">
     <rect x="96" y="290" width="96" height="80" rx="8"/>
     <rect x="208" y="290" width="96" height="80" rx="8"/>
     <rect x="320" y="290" width="96" height="80" rx="8"/>
@@ -8,11 +12,10 @@
     <rect x="264" y="194" width="96" height="80" rx="8"/>
     <rect x="208" y="98" width="96" height="80" rx="8"/>
   </g>
-  <g fill="#38bdf8">
+  <g fill="var(--pale)">
     <rect x="80" y="386" width="352" height="20" rx="6"/>
     <rect x="104" y="406" width="28" height="22"/>
     <rect x="242" y="406" width="28" height="22"/>
     <rect x="380" y="406" width="28" height="22"/>
   </g>
-</svg>
 </svg>
