@@ -121,9 +121,23 @@ jobs:
         run: pnpm --filter @logicflows/dashboard exec playwright install --with-deps chromium
 
       # axe-core comprueba WCAG 2.2 AA en tema claro y oscuro y en escritorio,
-      # tableta y móvil, con la build de producción del visor.
-      - name: Comprobar la accesibilidad del visor
+      # tableta y móvil, con la build de producción del visor. También compara
+      # las pantallas clave con sus capturas de referencia (LF-110).
+      - name: Comprobar la accesibilidad y el aspecto del visor
         run: pnpm --filter @logicflows/dashboard test:a11y
+
+      # Si una captura cambia o falta, se publican la nueva y la diferencia
+      # para revisarlas y, si el cambio es el buscado, guardarlas en el
+      # repositorio (README del visor).
+      - name: Capturas si cambian
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: capturas-del-visor
+          path: |
+            apps/dashboard/e2e/capturas/
+            apps/dashboard/test-results/
+          retention-days: 7
 
   android:
     name: Android

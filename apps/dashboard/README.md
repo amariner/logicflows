@@ -201,6 +201,18 @@ Los tipos de estados y mensajes se importan de `@logicflows/contract`. El empaqu
 - ESLint incluye las reglas de accesibilidad de las plantillas de angular-eslint.
 - El viewport permite ampliar la página (1.4.4).
 
+## Capturas de referencia
+
+`e2e/capturas.spec.ts` compara el panel, el detalle de una célula y el histórico, en tema claro y oscuro y en escritorio y móvil, con sus capturas de `e2e/capturas/` (LF-110). Usa la build de producción y la API simulada de las pruebas de accesibilidad, sin animaciones.
+
+- **Solo en la CI.** Las capturas son de Linux, y cada sistema dibuja el texto de forma algo distinta. En local se omiten (`ignoreSnapshots`), así que `test:a11y` pasa igual en un Mac.
+- **Si cambian:** el trabajo «Accesibilidad» falla y publica el artefacto `capturas-del-visor`, con la captura nueva y la diferencia (`test-results/`).
+- **Si el cambio es el buscado:** se descarga el artefacto, se copian las capturas nuevas a `e2e/capturas/` y se suben en la misma pull request.
+
+```bash
+gh run download <id> -n capturas-del-visor -D /tmp/capturas
+```
+
 ## Calidad
 - Presupuesto de tamaño: aviso a partir de 1 MB de carga inicial y error a partir de 2 MB.
 
