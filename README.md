@@ -93,6 +93,7 @@ Las decisiones relevantes se registran como ADR en [`docs/adr`](docs/adr/README.
 | [0017](docs/adr/0017-copias-de-seguridad.md) | Volcado diario en un bucket de Railway, restauración de prueba diaria y copias del volumen; preparadas, sin activar en la demo |
 | [0018](docs/adr/0018-mensajeria-sin-kafka.md) | Sin Kafka: el volumen está unas 3 000 veces por debajo del umbral y el broker hace de cola |
 | [0019](docs/adr/0019-datos-de-la-demo.md) | Datos de la demo: un guion diario de incidencias que se repite y una ventana fija de datos (2 días en bruto, 31 de estados y agregados) |
+| [0020](docs/adr/0020-tokens-de-diseno.md) | Tokens de diseño: un `tokens.css` compartido por el visor y el inicio de sesión, con fuentes incluidas en la aplicación |
 
 ## Estructura
 
