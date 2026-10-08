@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 
 import { AuthModule } from './auth/auth.module.ts';
+import { CalendarModule } from './calendar/calendar.module.ts';
 import { CellsModule } from './cells/cells.module.ts';
 import { validateConfig } from './config/config.ts';
 import { DatabaseModule } from './database/database.module.ts';
@@ -38,6 +39,7 @@ import { SecurityModule } from './security/security.module.ts';
     // El límite de peticiones se evalúa antes que la autenticación.
     SecurityModule,
     AuthModule,
+    CalendarModule,
     CellsModule,
     DatabaseModule,
     HealthModule,

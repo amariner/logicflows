@@ -134,6 +134,13 @@ Producción tiene un calendario para la planta `demo`, cargado por una migració
 - Hacen falta paradas planificadas dentro del turno para un OEE completo.
 - Más de unas 50 células por planta, o la consulta del histórico supera los 300 ms de LF-80 por mirar el calendario.
 
+## Notas de implementación
+
+**8 de octubre de 2026, LF-124.**
+
+- **El calendario de la demo se carga con un script, no con una migración** (`infra/postgres/calendario-demo.sql`). Una migración lo crearía en todos los entornos, también en las pruebas de integración, que usan la planta `demo` con fechas relativas a hoy: a partir de su entrada en vigor, cambiaría los indicadores que comprueban. El script escribe directamente en la base de datos porque la demo no tiene un usuario `admin`, y respeta la regla: entra en vigor en una fecha futura, el lunes 12 de octubre de 2026.
+- **El nombre de usuario** viene de `preferred_username` del token; si el proveedor no lo envía, se guarda el sujeto.
+
 ## Referencias
 
 - [Indicadores de planta](../indicadores-de-planta.md)

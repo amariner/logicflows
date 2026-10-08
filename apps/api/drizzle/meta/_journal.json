@@ -29,6 +29,13 @@
       "when": 1791400737118,
       "tag": "0003_version-de-horas-pendientes",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791448073072,
+      "tag": "0004_calendario-de-turnos",
+      "breakpoints": true
     }
   ]
 }

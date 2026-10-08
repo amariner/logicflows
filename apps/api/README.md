@@ -21,6 +21,9 @@ Esqueleto operativo (LF-23), ingesta de telemetría (LF-26), canal de tiempo rea
 | `POST /api/v1/realtime/tickets` | Tique de un solo uso para abrir el canal de tiempo real. |
 | `POST /api/v1/push/devices` | Registra el token de FCM del dispositivo para recibir avisos de alarmas ([ADR-0015](../../docs/adr/0015-avisos-de-alarmas-en-el-movil.md)). |
 | `DELETE /api/v1/push/devices` | Da de baja un dispositivo del usuario. |
+| `GET /api/v1/sites/{siteId}/calendar` | Calendario de turnos de una planta: versión vigente, futuras y excepciones ([ADR-0021](../../docs/adr/0021-calendario-de-turnos.md)). |
+| `PUT`, `DELETE /api/v1/sites/{siteId}/calendar/versions/{effectiveFrom}` | Crea, sustituye o borra una versión futura del calendario. Rol `admin`. |
+| `PUT`, `DELETE /api/v1/sites/{siteId}/calendar/exceptions/{date}` | Marca o desmarca un día futuro sin turnos. Rol `admin`. |
 | `GET /docs` | Documentación OpenAPI interactiva. |
 | `GET /docs/openapi.json` | Documento OpenAPI. |
 | `WS /realtime?ticket=…` | Canal de tiempo real hacia el visor ([ADR-0006](../../docs/adr/0006-canal-de-tiempo-real.md)). |
@@ -218,6 +221,17 @@ La API avisa en el móvil de las alarmas graves con Firebase Cloud Messaging ([A
 - **Métrica:** `logicflows_push_notifications_total{result}` cuenta los envíos por resultado.
 
 Sin `FCM_SERVICE_ACCOUNT`, el registro de dispositivos funciona, pero no se envía ningún aviso.
+
+## Calendario de turnos
+
+El tiempo planificado de los indicadores sale del calendario de turnos de cada planta ([ADR-0021](../../docs/adr/0021-calendario-de-turnos.md)):
+
+- **Versiones con fecha de entrada en vigor**, con su zona horaria y sus turnos semanales en horas en punto. Un turno que termina antes de empezar cruza la medianoche. La API rechaza los solapes (400).
+- **Excepciones:** días sin turnos de una planta (festivos, vacaciones, mantenimiento).
+- **El pasado no se reescribe:** versiones y excepciones solo se crean, cambian o borran a partir de mañana, en la hora local de la planta (409 si no).
+- **Quién y cuándo:** cada versión y excepción guarda el sujeto y el nombre de usuario de quien la creó. Cada cambio se escribe además en el log como evento de auditoría (`audit: true`, `event: calendar.…`), con el antes y el después.
+- **Hora de turno** (`src/calendar/calendar.ts`): una hora es de turno según la versión y las excepciones del día en que empezó el turno, en la hora local de la planta, con el cambio de hora incluido.
+- **La demo** carga su calendario con `infra/postgres/calendario-demo.sql`: mañana y tarde de lunes a viernes.
 
 ## Estructura
 

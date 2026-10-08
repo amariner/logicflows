@@ -3,13 +3,16 @@ import type { Alarm, AlarmSeverity } from '@logicflows/contract';
 import {
   bigserial,
   boolean,
+  date,
   doublePrecision,
+  foreignKey,
   index,
   integer,
   jsonb,
   pgEnum,
   pgTable,
   primaryKey,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
@@ -194,4 +197,68 @@ export const cellHourlyPending = pgTable(
     version: integer('version').notNull().default(1),
   },
   (table) => [primaryKey({ columns: [table.siteId, table.cellId, table.hour] })],
+);
+
+/** Quién creó una fila de configuración y cuándo (ADR-0021). */
+const authorship = () => ({
+  /** Sujeto (`sub`) del usuario en el proveedor de identidad. */
+  createdBy: text('created_by').notNull(),
+  /** Nombre de usuario en ese momento, para mostrarlo. */
+  createdByName: text('created_by_name').notNull(),
+  createdAt: instant('created_at').notNull(),
+});
+
+/**
+ * Versiones del calendario de turnos de cada planta (ADR-0021). Cada una está
+ * vigente desde su fecha local hasta la siguiente. Las vigentes y pasadas no
+ * se modifican: la tabla es su propio registro de cambios.
+ */
+export const shiftCalendarVersions = pgTable(
+  'shift_calendar_versions',
+  {
+    siteId: text('site_id').notNull(),
+    effectiveFrom: date('effective_from', { mode: 'string' }).notNull(),
+    timeZone: text('time_zone').notNull(),
+    ...authorship(),
+  },
+  (table) => [primaryKey({ columns: [table.siteId, table.effectiveFrom] })],
+);
+
+/** Turnos semanales de una versión del calendario, en horas en punto. */
+export const shiftCalendarShifts = pgTable(
+  'shift_calendar_shifts',
+  {
+    siteId: text('site_id').notNull(),
+    effectiveFrom: date('effective_from', { mode: 'string' }).notNull(),
+    /** Día de la semana ISO 8601: 1 es lunes y 7 es domingo. */
+    weekday: smallint('weekday').notNull(),
+    startHour: smallint('start_hour').notNull(),
+    /** Si es menor o igual que la de inicio, el turno termina el día siguiente. */
+    endHour: smallint('end_hour').notNull(),
+    name: text('name').notNull(),
+  },
+  (table) => [
+    primaryKey({
+      name: 'shift_calendar_shifts_pk',
+      columns: [table.siteId, table.effectiveFrom, table.weekday, table.startHour],
+    }),
+    // Borrar una versión futura borra sus turnos.
+    foreignKey({
+      name: 'shift_calendar_shifts_version_fk',
+      columns: [table.siteId, table.effectiveFrom],
+      foreignColumns: [shiftCalendarVersions.siteId, shiftCalendarVersions.effectiveFrom],
+    }).onDelete('cascade'),
+  ],
+);
+
+/** Días sin turnos de una planta: festivos, vacaciones o paradas (ADR-0021). */
+export const shiftCalendarExceptions = pgTable(
+  'shift_calendar_exceptions',
+  {
+    siteId: text('site_id').notNull(),
+    date: date('date', { mode: 'string' }).notNull(),
+    name: text('name').notNull(),
+    ...authorship(),
+  },
+  (table) => [primaryKey({ columns: [table.siteId, table.date] })],
 );

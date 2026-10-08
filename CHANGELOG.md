@@ -6,6 +6,7 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ### Añadido
 
+- **Calendario de turnos** por planta (ADR-0021, LF-124): versiones con fecha de entrada en vigor y excepciones por día, consultables con `viewer` y editables con `admin`, solo a futuro. La planta de la demo tiene turnos de mañana y tarde de lunes a viernes.
 - **Varias células en el mismo simulador** (`SIMULATOR_CELLS`, LF-123): cada una con su conexión, su sesión y un perfil propio (guion desfasado, esperas más o menos largas y ritmo), para comparar células en la demo sin servicios nuevos.
 - **Dosier de diseño** (`docs/diseno/dosier.md`): antes y después, pantallas en claro y oscuro y una lámina del sistema de diseño dibujada con los tokens reales, comprobada en la CI como captura de referencia (LF-104).
 
