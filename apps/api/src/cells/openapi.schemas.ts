@@ -38,6 +38,20 @@ export const cellSnapshotSchema: SchemaObject = {
     status: nullable(fromContract(statusMessageSchema)),
     state: nullable(fromContract(stateMessageSchema)),
     telemetry: nullable(fromContract(telemetryMessageSchema)),
+    acknowledgements: {
+      type: 'array',
+      description: 'Reconocimientos de las alarmas activas (ADR-0022). Solo aparece si hay alguno.',
+      items: {
+        type: 'object',
+        required: ['code', 'raisedAt', 'acknowledgedBy', 'acknowledgedAt'],
+        properties: {
+          code: { type: 'string', example: 'ROB-001' },
+          raisedAt: { type: 'string', format: 'date-time' },
+          acknowledgedBy: { type: 'string', description: 'Nombre de usuario' },
+          acknowledgedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+    },
   },
 };
 
@@ -182,7 +196,8 @@ export const historySchema: SchemaObject = {
 
 const eventSchema: SchemaObject = {
   type: 'object',
-  description: 'Cambio de estado (kind = state) o de conexión (kind = connection).',
+  description:
+    'Cambio de estado (kind = state), de conexión (kind = connection) o reconocimiento de una alarma (kind = acknowledgement, ADR-0022).',
   required: [
     'kind',
     'at',
@@ -193,9 +208,10 @@ const eventSchema: SchemaObject = {
     'alarms',
     'online',
     'durationSeconds',
+    'acknowledgement',
   ],
   properties: {
-    kind: { type: 'string', enum: ['state', 'connection'] },
+    kind: { type: 'string', enum: ['state', 'connection', 'acknowledgement'] },
     at: { type: 'string', format: 'date-time', description: 'Cuándo ocurrió, según la célula' },
     state: { type: 'string', enum: [...CELL_STATES], nullable: true },
     previousState: { type: 'string', enum: [...CELL_STATES], nullable: true },
@@ -212,6 +228,17 @@ const eventSchema: SchemaObject = {
       minimum: 0,
       nullable: true,
       description: 'Hasta el estado siguiente; null si es el estado actual o en la conexión',
+    },
+    acknowledgement: {
+      type: 'object',
+      nullable: true,
+      description: 'Solo en los reconocimientos: la activación y quién la reconoció',
+      required: ['code', 'raisedAt', 'acknowledgedBy'],
+      properties: {
+        code: { type: 'string', example: 'ROB-001' },
+        raisedAt: { type: 'string', format: 'date-time' },
+        acknowledgedBy: { type: 'string', description: 'Nombre de usuario' },
+      },
     },
   },
 };

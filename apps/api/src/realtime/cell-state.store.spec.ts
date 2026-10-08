@@ -8,6 +8,10 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import { TelemetryStream } from '../ingestion/telemetry-stream.ts';
+import type {
+  AcknowledgementRepository,
+  StoredAcknowledgement,
+} from '../persistence/acknowledgement.repository.ts';
 import type { TelemetryRepository } from '../persistence/telemetry.repository.ts';
 import { CellStateStore } from './cell-state.store.ts';
 
@@ -22,10 +26,15 @@ const decode = (kind: string, message: { cellId?: string }): DecodedMessage => {
   return result;
 };
 
-const setup = async (saved: CellSnapshot[] = []) => {
+const setup = async (saved: CellSnapshot[] = [], stored: StoredAcknowledgement[] = []) => {
   const stream = new TelemetryStream();
   const repository = { latestSnapshots: () => Promise.resolve(saved) };
-  const store = new CellStateStore(stream, repository as unknown as TelemetryRepository);
+  const acknowledgements = { forActivations: () => Promise.resolve(stored) };
+  const store = new CellStateStore(
+    stream,
+    repository as unknown as TelemetryRepository,
+    acknowledgements as unknown as AcknowledgementRepository,
+  );
   await store.onModuleInit();
   const updates: CellSnapshot[] = [];
   store.updates$.subscribe((cell) => updates.push(cell));
@@ -97,10 +106,69 @@ describe('información de las células', () => {
 
   it('no sobrescribe con datos guardados la información más reciente de la ingesta', () => {
     const stream = new TelemetryStream();
-    const store = new CellStateStore(stream, {} as TelemetryRepository);
+    const store = new CellStateStore(
+      stream,
+      {} as TelemetryRepository,
+      {} as AcknowledgementRepository,
+    );
     store.apply(decode('state', buildStateMessage({ state: 'RUNNING' })));
     store.seed([{ ...empty(), state: buildStateMessage({ state: 'STOPPED' }) }]);
     expect(store.snapshot()[0]?.state?.state).toBe('RUNNING');
+  });
+});
+
+describe('reconocimientos de alarmas (ADR-0022)', () => {
+  const raisedAt = '2026-10-05T08:00:00.000Z';
+  const alarm = { code: 'ROB-001', severity: 'HIGH' as const, message: 'Colisión', raisedAt };
+  const acknowledgement = {
+    code: 'ROB-001',
+    raisedAt,
+    acknowledgedBy: 'jefa.planta',
+    acknowledgedAt: '2026-10-05T08:02:00.000Z',
+  };
+  const faulted = () =>
+    decode('state', buildStateMessage({ state: 'FAULT', activeAlarms: [alarm] }));
+
+  it('añade el reconocimiento a la célula y lo emite a los visores', async () => {
+    const { store, updates, ingest } = await setup();
+    ingest(faulted());
+    store.acknowledge('demo', 'cell-01', acknowledgement);
+    expect(updates.at(-1)?.acknowledgements).toEqual([acknowledgement]);
+    expect(store.snapshot()[0]?.acknowledgements).toEqual([acknowledgement]);
+    // El mismo otra vez no emite nada.
+    const emitted = updates.length;
+    store.acknowledge('demo', 'cell-01', acknowledgement);
+    expect(updates).toHaveLength(emitted);
+  });
+
+  it('al resolverse la alarma, su reconocimiento deja de estar', async () => {
+    const { store, ingest } = await setup();
+    ingest(faulted());
+    store.acknowledge('demo', 'cell-01', acknowledgement);
+    ingest(decode('state', buildStateMessage({ state: 'STOPPED', seq: 2, activeAlarms: [] })));
+    expect(store.snapshot()[0]?.acknowledgements).toBeUndefined();
+  });
+
+  it('al arrancar, recupera los reconocimientos de las alarmas activas guardadas', async () => {
+    const saved: CellSnapshot = {
+      ...empty(),
+      state: buildStateMessage({ state: 'FAULT', activeAlarms: [alarm] }),
+    };
+    const { store } = await setup(
+      [saved],
+      [
+        {
+          siteId: 'demo',
+          cellId: 'cell-01',
+          code: 'ROB-001',
+          raisedAt: new Date(raisedAt),
+          acknowledgedAt: new Date('2026-10-05T08:02:00.000Z'),
+          acknowledgedBy: 'u-1',
+          acknowledgedByName: 'jefa.planta',
+        },
+      ],
+    );
+    expect(store.snapshot()[0]?.acknowledgements).toEqual([acknowledgement]);
   });
 });
 

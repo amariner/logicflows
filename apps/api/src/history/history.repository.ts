@@ -4,6 +4,7 @@ import { and, asc, count, desc, eq, gte, lt, sql } from 'drizzle-orm';
 import { DATABASE } from '../database/database.module.ts';
 import type { Database } from '../database/database.module.ts';
 import {
+  alarmAcknowledgements,
   cellHourly,
   cellHourlyPending,
   cellStateChanges,
@@ -304,7 +305,7 @@ export class HistoryRepository {
     limit: number,
   ): Promise<CellEvent[]> {
     const result = await this.db.execute<{
-      kind: 'state' | 'connection';
+      kind: 'state' | 'connection' | 'acknowledgement';
       at: Date | string;
       state: string | null;
       previous_state: string | null;
@@ -313,12 +314,16 @@ export class HistoryRepository {
       active_alarms: CellEvent['alarms'] | null;
       online: boolean | null;
       next_at: Date | string | null;
+      ack_code: string | null;
+      ack_raised_at: Date | string | null;
+      ack_by: string | null;
     }>(sql`
       select * from (
         select 'state' as kind, s.source_timestamp as at, s.seq,
                s.state::text as state, s.previous_state::text as previous_state,
                s.event::text as event, s.waiting_reason::text as waiting_reason,
                s.active_alarms, null::boolean as online,
+               null as ack_code, null::timestamptz as ack_raised_at, null as ack_by,
                (select n.source_timestamp from ${cellStateChanges} n
                 where n.site_id = s.site_id and n.cell_id = s.cell_id
                   and (n.source_timestamp, n.seq) > (s.source_timestamp, s.seq)
@@ -328,10 +333,17 @@ export class HistoryRepository {
         where s.site_id = ${siteId} and s.cell_id = ${cellId}
           and s.source_timestamp >= ${from} and s.source_timestamp < ${to}
         union all
-        select 'connection', e.source_timestamp, 0, null, null, null, null, null, e.online, null
+        select 'connection', e.source_timestamp, 0, null, null, null, null, null, e.online,
+               null, null, null, null
         from ${cellStatusEvents} e
         where e.site_id = ${siteId} and e.cell_id = ${cellId}
           and e.source_timestamp >= ${from} and e.source_timestamp < ${to}
+        union all
+        select 'acknowledgement', a.acknowledged_at, 0, null, null, null, null, null, null,
+               a.code, a.raised_at, a.acknowledged_by_name, null
+        from ${alarmAcknowledgements} a
+        where a.site_id = ${siteId} and a.cell_id = ${cellId}
+          and a.acknowledged_at >= ${from} and a.acknowledged_at < ${to}
       ) as events
       order by at desc, seq desc, kind desc
       limit ${limit}
@@ -347,6 +359,14 @@ export class HistoryRepository {
       alarms: row.active_alarms ?? [],
       online: row.online,
       endedAt: row.next_at === null ? null : date(row.next_at),
+      acknowledgement:
+        row.ack_code === null || row.ack_raised_at === null || row.ack_by === null
+          ? null
+          : {
+              code: row.ack_code,
+              raisedAt: date(row.ack_raised_at).toISOString(),
+              acknowledgedBy: row.ack_by,
+            },
     }));
   }
 }

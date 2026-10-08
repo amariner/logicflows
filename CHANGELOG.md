@@ -6,6 +6,7 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ### Añadido
 
+- **Reconocer alarmas en la API** (ADR-0022, LF-126): `POST …/alarms/{code}/acknowledgements` con el rol nuevo `operator`, una vez por activación. Llega a los visores en tiempo real y queda en el registro de eventos y en el log de auditoría.
 - **Indicadores con el calendario de turnos** (ADR-0021, LF-125): una célula detenida (`STOPPED`) dentro de un turno es la parada «Detenida en turno» y resta disponibilidad; fuera de turno, todo sigue igual. El histórico y el CSV incluyen el tiempo de turno.
 - **Calendario de turnos** por planta (ADR-0021, LF-124): versiones con fecha de entrada en vigor y excepciones por día, consultables con `viewer` y editables con `admin`, solo a futuro. La planta de la demo tiene turnos de mañana y tarde de lunes a viernes.
 - **Varias células en el mismo simulador** (`SIMULATOR_CELLS`, LF-123): cada una con su conexión, su sesión y un perfil propio (guion desfasado, esperas más o menos largas y ritmo), para comparar células en la demo sin servicios nuevos.

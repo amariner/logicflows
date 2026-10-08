@@ -24,6 +24,7 @@ Esqueleto operativo (LF-23), ingesta de telemetría (LF-26), canal de tiempo rea
 | `GET /api/v1/sites/{siteId}/calendar` | Calendario de turnos de una planta: versión vigente, futuras y excepciones ([ADR-0021](../../docs/adr/0021-calendario-de-turnos.md)). |
 | `PUT`, `DELETE /api/v1/sites/{siteId}/calendar/versions/{effectiveFrom}` | Crea, sustituye o borra una versión futura del calendario. Rol `admin`. |
 | `PUT`, `DELETE /api/v1/sites/{siteId}/calendar/exceptions/{date}` | Marca o desmarca un día futuro sin turnos. Rol `admin`. |
+| `POST /api/v1/sites/{siteId}/cells/{cellId}/alarms/{code}/acknowledgements` | Reconoce una alarma activa ([ADR-0022](../../docs/adr/0022-reconocimiento-de-alarmas.md)). Rol `operator`. |
 | `GET /docs` | Documentación OpenAPI interactiva. |
 | `GET /docs/openapi.json` | Documento OpenAPI. |
 | `WS /realtime?ticket=…` | Canal de tiempo real hacia el visor ([ADR-0006](../../docs/adr/0006-canal-de-tiempo-real.md)). |
@@ -35,7 +36,7 @@ Todas las rutas de `/api/v1` y el canal de tiempo real exigen autenticación; la
 La API es un *resource server* de OpenID Connect ([ADR-0009](../../docs/adr/0009-autenticacion-y-autorizacion.md)):
 
 - **Tokens.** Valida el token de acceso de la cabecera `Authorization: Bearer` con las claves públicas del emisor (`AUTH_ISSUER`), que obtiene por descubrimiento o de `AUTH_JWKS_URL`. Comprueba la firma, la caducidad, el emisor y la audiencia (`AUTH_AUDIENCE`). No depende de qué proveedor emite el token: en local es Keycloak (`infra/keycloak`).
-- **Roles.** Se leen de `AUTH_ROLES_CLAIM` (por defecto `realm_access.roles`, el formato de Keycloak). Basta `viewer` para consultar; `admin` incluye `viewer`.
+- **Roles.** Se leen de `AUTH_ROLES_CLAIM` (por defecto `realm_access.roles`, el formato de Keycloak). Basta `viewer` para consultar; `operator` reconoce alarmas (ADR-0022), y `admin` administra. Cada rol incluye los anteriores, también en la API.
 - **Errores.** Sin token o con uno no válido, `401` con `WWW-Authenticate: Bearer`. Sin el rol necesario, `403`. Si no se pueden obtener las claves del emisor, `503`. Todos en formato RFC 9457.
 - **Rutas públicas.** Se marcan con `@Public()`; hoy solo las de salud.
 - **Tiempo real.** El navegador no puede enviar cabeceras al abrir un WebSocket, así que el visor pide un tique con `POST /api/v1/realtime/tickets` y conecta a `/realtime?ticket=…`:
@@ -221,6 +222,17 @@ La API avisa en el móvil de las alarmas graves con Firebase Cloud Messaging ([A
 - **Métrica:** `logicflows_push_notifications_total{result}` cuenta los envíos por resultado.
 
 Sin `FCM_SERVICE_ACCOUNT`, el registro de dispositivos funciona, pero no se envía ningún aviso.
+
+## Reconocimiento de alarmas
+
+Una persona con `operator` dice «la he visto y me ocupo» ([ADR-0022](../../docs/adr/0022-reconocimiento-de-alarmas.md)). No resuelve la alarma ni llega a la célula: la API sigue sin publicar en MQTT.
+
+- **Activación:** se reconoce el `code` y el `raisedAt` de una alarma activa en el último estado conocido de la célula. Si no está activa, 409.
+- **Una vez por activación:** la clave primaria de `alarm_acknowledgements` decide quién llegó antes. El segundo recibe 200 con el reconocimiento existente.
+- **Quién y cuándo:** el sujeto y el nombre del token, y la hora del servidor. El evento `alarm.acknowledged` va al log con `audit: true`, el usuario y la IP.
+- **Tiempo real:** la célula lleva `acknowledgements` con los reconocimientos de sus alarmas activas, solo si hay alguno. Al resolverse la alarma, desaparece de la célula, pero no del registro.
+- **Registro de eventos:** cada reconocimiento es un evento `acknowledgement`. Se conserva como los cambios de estado.
+- **Varias réplicas:** cada réplica conoce los reconocimientos que hizo ella y los de las alarmas activas al arrancar. Un visor conectado a otra réplica lo verá al reconectar. Producción tiene una réplica.
 
 ## Calendario de turnos
 
