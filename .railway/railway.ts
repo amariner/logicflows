@@ -162,6 +162,9 @@ export default defineRailway((ctx) => {
       MQTT_SIMULATOR_PASSWORD: secret('mqtt-simulator'),
       MQTT_URL: config(mqttUrl),
       SIMULATOR_CELL_ID: config('cell-01'),
+      // Producción simula cuatro células en este mismo servicio, sin coste
+      // añadido (LF-123). Las previsualizaciones, una: sus pruebas usan cell-01.
+      SIMULATOR_CELLS: config('cell-01'),
       // En producción, el guion diario de la demo con semilla fija (ADR-0019).
       // Las previsualizaciones siguen en «normal»: sus pruebas no esperan paradas.
       SIMULATOR_SCENARIO: config('normal'),

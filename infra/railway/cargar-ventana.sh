@@ -49,6 +49,7 @@ run_temporary() {
     --variables 'MQTT_SIMULATOR_PASSWORD=${{simulator.MQTT_SIMULATOR_PASSWORD}}'
     --variables 'SIMULATOR_SITE_ID=${{simulator.SIMULATOR_SITE_ID}}'
     --variables 'SIMULATOR_CELL_ID=${{simulator.SIMULATOR_CELL_ID}}'
+    --variables 'SIMULATOR_CELLS=${{simulator.SIMULATOR_CELLS}}'
   )
   for variable in "$@"; do
     variables+=(--variables "$variable")
@@ -61,7 +62,8 @@ run_temporary() {
     --var s="$service_id" --var e="$environment_id" --var i="$image" --var c="$command" --var r="$region" > /dev/null
   railway service redeploy --service "$service" --environment "$environment" --from-source --yes > /dev/null
   # Como en ejecutar-sql.sh: se leen los registros enteros antes de buscar.
-  for _ in $(seq 1 90); do
+  # Hasta una hora: la carga de varias células va una detrás de otra (LF-123).
+  for _ in $(seq 1 360); do
     sleep 10
     logs="$(railway logs --service "$service" --deployment 2> /dev/null || true)"
     if grep -qE "$marker|\[(ERRO|FATAL)\]|Error:" <<< "$logs"; then
@@ -86,7 +88,7 @@ railway down --service simulator --environment "$environment" --yes > /dev/null 
 echo "2/6 Borrando sus mensajes retenidos…"
 # Un mensaje retenido vacío borra el anterior.
 run_temporary retenidos eclipse-mosquitto:2.1.2-alpine \
-  "sh -c 'a=\${MQTT_URL#*://}; for k in status state telemetry; do mosquitto_pub -h \${a%:*} -p \${a##*:} -u simulator -P \"\$MQTT_SIMULATOR_PASSWORD\" -q 1 -r -n -t logicflows/v1/\$SIMULATOR_SITE_ID/\$SIMULATOR_CELL_ID/\$k || exit 1; done; echo RETENIDOS-BORRADOS'" \
+  "sh -c 'a=\${MQTT_URL#*://}; for c in \$(echo \${SIMULATOR_CELLS:-\$SIMULATOR_CELL_ID} | tr , \" \"); do for k in status state telemetry; do mosquitto_pub -h \${a%:*} -p \${a##*:} -u simulator -P \"\$MQTT_SIMULATOR_PASSWORD\" -q 1 -r -n -t logicflows/v1/\$SIMULATOR_SITE_ID/\$c/\$k || exit 1; done; done; echo RETENIDOS-BORRADOS'" \
   RETENIDOS-BORRADOS
 
 echo "3/6 Vaciando el histórico…"
@@ -101,9 +103,11 @@ run_temporary ventana "ghcr.io/amariner/logicflows-simulator:$version" \
   "sh -c 'node dist/backfill-main.js && echo CARGA-COMPLETADA'" CARGA-COMPLETADA \
   'SIMULATOR_SEED=${{simulator.SIMULATOR_SEED}}' SIMULATOR_SCENARIO=guion "SIMULATOR_BACKFILL_DAYS=$days"
 
-# En Railway, la API guarda unos 300 mensajes por segundo: 31 días, unos
-# 270 000, tardan un cuarto de hora. El simulador puede arrancar antes: sus
-# mensajes llegan a la API detrás del histórico, en orden.
+# En Railway, la API guarda unos 300 mensajes por segundo: 31 días de una
+# célula, unos 270 000, tardan un cuarto de hora. El simulador puede arrancar
+# antes: sus mensajes llegan a la API detrás del histórico, en orden. Con
+# varias células (LF-123), la carga las genera una detrás de otra y el paso 5
+# tarda proporcionalmente más; aquí solo se espera por la última.
 wait_s=$((days * 9000 / 300 / 4 + 60))
 echo "6/6 Esperando ${wait_s} s a que la API lo guarde y arrancando el simulador…"
 sleep "$wait_s"
