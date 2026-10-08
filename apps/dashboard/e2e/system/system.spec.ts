@@ -14,7 +14,17 @@ async function boxesShown(card: Locator): Promise<number | null> {
   return digits === '' ? null : Number(digits);
 }
 
-test('una caja publicada por el simulador aparece en el visor', async ({ page }) => {
+/** Si una trama del canal en tiempo real es una actualización de la célula. */
+function isCellUpdate(payload: string | Buffer): boolean {
+  try {
+    const message = JSON.parse(payload.toString()) as { type?: string; cell?: { cellId?: string } };
+    return message.type === 'cell' && message.cell?.cellId === CELL_ID;
+  } catch {
+    return false;
+  }
+}
+
+test('los datos de la célula llegan al visor en tiempo real', async ({ page }) => {
   // La política de seguridad de contenidos no debe bloquear nada del visor (LF-52).
   const violations: string[] = [];
   page.on('console', (message) => {
@@ -29,14 +39,31 @@ test('una caja publicada por el simulador aparece en el visor', async ({ page })
   await page.locator('#password').fill(PASSWORD);
   await page.locator('#kc-login').click();
 
+  // Actualizaciones de la célula que llegan por el canal en tiempo real.
+  let updates = 0;
+  page.on('websocket', (socket) => {
+    socket.on('framereceived', ({ payload }) => {
+      if (isCellUpdate(payload)) updates += 1;
+    });
+  });
+
   await expect(page.getByRole('status')).toHaveText('En directo');
   const card = page.locator('ion-card').filter({ hasText: CELL_ID });
   await expect(card).toBeVisible();
-  await expect(card.getByTestId('state')).toHaveText('Produciendo');
+  await expect(card.getByTestId('state')).not.toBeEmpty();
 
-  // Sin recargar la página: la caja siguiente llega por el canal en tiempo real.
-  const before = (await boxesShown(card)) ?? 0;
-  await expect.poll(() => boxesShown(card)).toBeGreaterThan(before);
+  // En producción, el guion diario (ADR-0019) detiene la célula a horas fijas:
+  // no se exige un estado concreto. Lo que demuestra el sistema de extremo a
+  // extremo es que llegan datos nuevos sin recargar; parada, la célula sigue
+  // enviando su telemetría de latido.
+  const seen = updates;
+  await expect.poll(() => updates).toBeGreaterThan(seen);
+
+  // Si produce, la caja siguiente aparece en la tarjeta.
+  if ((await card.getByTestId('state').textContent())?.trim() === 'Produciendo') {
+    const before = (await boxesShown(card)) ?? 0;
+    await expect.poll(() => boxesShown(card)).toBeGreaterThan(before);
+  }
   expect(violations).toEqual([]);
 });
 
