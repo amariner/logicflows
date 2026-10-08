@@ -1,0 +1,240 @@
+<app-page-header title="Turnos" [connection]="connection()">
+  <ion-button
+    headerStart
+    routerLink="/cells"
+    routerDirection="back"
+    aria-label="Volver a las células"
+  >
+    <ion-icon slot="icon-only" aria-hidden="true" name="arrow-back-sharp" />
+  </ion-button>
+</app-page-header>
+
+<ion-content class="ion-padding">
+  <!-- Región enfocable: permite desplazar el contenido con el teclado (WCAG 2.1.1). -->
+  <section class="calendar" tabindex="0" aria-label="Calendario de turnos">
+    <h1 class="site">
+      Calendario de turnos
+      @if (siteId(); as site) {
+        <span>· Planta {{ site }}</span>
+      }
+    </h1>
+    <p class="note">
+      La disponibilidad se calcula sobre el tiempo de turno: una célula detenida dentro de un turno
+      cuenta como parada; fuera de turno, no (ADR-0021).
+    </p>
+
+    @if (status(); as message) {
+      <p class="status" role="status">{{ message }}</p>
+    }
+    @if (error(); as message) {
+      <p class="error" role="alert">{{ message }}</p>
+    }
+
+    @let current = state();
+    @if (current.kind === 'loading') {
+      <p class="message" role="status">Cargando el calendario…</p>
+    } @else if (current.kind === 'error') {
+      <div class="message" role="alert">
+        <p>{{ current.message }}</p>
+        <ion-button fill="outline" (click)="reload()">Reintentar</ion-button>
+      </div>
+    } @else {
+      @let view = current.view;
+      @if (view.empty) {
+        <p class="message">
+          Esta planta no tiene calendario: los indicadores tratan todas las horas como fuera de
+          turno.
+        </p>
+      }
+
+      @for (version of view.versions; track version.effectiveFrom) {
+        <section class="panel" [attr.aria-labelledby]="'version-' + version.effectiveFrom">
+          <h2 [id]="'version-' + version.effectiveFrom">{{ version.title }}</h2>
+          <p class="meta">{{ version.timeZone }} · {{ version.author }}</p>
+          <dl class="week">
+            @for (day of version.days; track day.weekday) {
+              <div>
+                <dt>{{ day.weekday }}</dt>
+                <dd>
+                  @if (day.shifts.length === 0) {
+                    <span class="off">Sin turnos</span>
+                  } @else {
+                    @for (shift of day.shifts; track shift) {
+                      <span class="shift">{{ shift }}</span>
+                    }
+                  }
+                </dd>
+              </div>
+            }
+          </dl>
+          @if (canEdit() && version.removable) {
+            <ion-button
+              fill="outline"
+              size="small"
+              color="danger"
+              [disabled]="saving()"
+              (click)="deleteVersion(version.effectiveFrom)"
+            >
+              <ion-icon slot="start" aria-hidden="true" name="trash-sharp" />
+              Borrar esta versión
+            </ion-button>
+          }
+        </section>
+      }
+
+      <section class="panel" aria-labelledby="exceptions-title">
+        <h2 id="exceptions-title">Días sin turnos</h2>
+        @if (view.exceptions.length === 0) {
+          <p class="message">Ningún festivo ni parada programada.</p>
+        } @else {
+          <ul class="exceptions">
+            @for (exception of view.exceptions; track exception.date) {
+              <li [class.past]="exception.past">
+                <span
+                  ><strong>{{ exception.label }}</strong> · {{ exception.name }}</span
+                >
+                @if (canEdit() && exception.removable) {
+                  <ion-button
+                    fill="clear"
+                    size="small"
+                    [disabled]="saving()"
+                    [attr.aria-label]="'Quitar ' + exception.label"
+                    (click)="deleteException(exception.date)"
+                  >
+                    <ion-icon slot="icon-only" aria-hidden="true" name="trash-sharp" />
+                  </ion-button>
+                }
+              </li>
+            }
+          </ul>
+        }
+        @if (canEdit() && !view.empty) {
+          <form
+            class="inline"
+            (submit)="$event.preventDefault(); saveException(date.value, reason.value)"
+          >
+            <label>
+              Fecha
+              <input #date type="date" required [min]="view.tomorrow" [value]="view.tomorrow" />
+            </label>
+            <label>
+              Motivo
+              <input #reason type="text" required maxlength="80" value="Festivo" />
+            </label>
+            <ion-button type="submit" size="small" [disabled]="saving()"
+              >Marcar sin turnos</ion-button
+            >
+          </form>
+        }
+      </section>
+
+      @if (canEdit()) {
+        <section class="panel" aria-labelledby="new-version-title">
+          <h2 id="new-version-title">Nueva versión</h2>
+          <p class="note">
+            Entra en vigor como pronto mañana: las versiones vigentes y pasadas no cambian, para que
+            los indicadores ya enseñados sigan siendo los mismos. Los turnos empiezan y terminan en
+            horas en punto; si un turno termina antes de empezar, acaba el día siguiente.
+          </p>
+          <form (submit)="$event.preventDefault(); saveVersion(effective.value, view.timeZone)">
+            <label>
+              En vigor desde
+              <input
+                #effective
+                type="date"
+                required
+                [min]="view.tomorrow"
+                [value]="view.tomorrow"
+              />
+            </label>
+            <table class="draft">
+              <caption class="visually-hidden">
+                Turnos de la nueva versión
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Día</th>
+                  <th scope="col">Inicio</th>
+                  <th scope="col">Fin</th>
+                  <th scope="col">Nombre</th>
+                  <th scope="col"><span class="visually-hidden">Quitar</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (shift of draft(); track shift.id; let index = $index) {
+                  <tr>
+                    <td>
+                      <select
+                        [attr.aria-label]="'Día del turno ' + (index + 1)"
+                        (change)="updateShift(shift.id, 'weekday', $any($event.target).value)"
+                      >
+                        @for (weekday of weekdays; track weekday; let day = $index) {
+                          <option [value]="day + 1" [selected]="shift.weekday === day + 1">
+                            {{ weekday }}
+                          </option>
+                        }
+                      </select>
+                    </td>
+                    <td>
+                      <select
+                        [attr.aria-label]="'Hora de inicio del turno ' + (index + 1)"
+                        (change)="updateShift(shift.id, 'start', $any($event.target).value)"
+                      >
+                        @for (hour of hours; track hour) {
+                          <option [value]="hour" [selected]="shift.start === hour">
+                            {{ hour < 10 ? '0' + hour : hour }}:00
+                          </option>
+                        }
+                      </select>
+                    </td>
+                    <td>
+                      <select
+                        [attr.aria-label]="'Hora de fin del turno ' + (index + 1)"
+                        (change)="updateShift(shift.id, 'end', $any($event.target).value)"
+                      >
+                        @for (hour of hours; track hour) {
+                          <option [value]="hour" [selected]="shift.end === hour">
+                            {{ hour < 10 ? '0' + hour : hour }}:00
+                          </option>
+                        }
+                      </select>
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        required
+                        maxlength="40"
+                        [attr.aria-label]="'Nombre del turno ' + (index + 1)"
+                        [value]="shift.name"
+                        (input)="updateShift(shift.id, 'name', $any($event.target).value)"
+                      />
+                    </td>
+                    <td>
+                      <ion-button
+                        fill="clear"
+                        size="small"
+                        [attr.aria-label]="'Quitar el turno ' + (index + 1)"
+                        (click)="removeShift(shift.id)"
+                      >
+                        <ion-icon slot="icon-only" aria-hidden="true" name="trash-sharp" />
+                      </ion-button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+            <div class="actions">
+              <ion-button fill="outline" size="small" (click)="addShift()">
+                <ion-icon slot="start" aria-hidden="true" name="add-sharp" />
+                Añadir turno
+              </ion-button>
+              <ion-button type="submit" size="small" [disabled]="saving()"
+                >Guardar versión</ion-button
+              >
+            </div>
+          </form>
+        </section>
+      }
+    }
+  </section>
+</ion-content>

@@ -95,6 +95,7 @@ describe('sesión del visor', () => {
     expect(oidc.authorize).not.toHaveBeenCalled();
     // Con operator en el token, se ofrece reconocer alarmas (ADR-0022).
     expect(auth.canAcknowledge()).toBe(true);
+    expect(auth.canAdminister()).toBe(false);
   });
 
   it('lee los roles del realm del token de acceso', () => {

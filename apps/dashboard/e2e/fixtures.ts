@@ -244,6 +244,28 @@ export const COMPARISON = {
   ],
 };
 
+/** Calendario de la planta (LF-124): mañana y tarde de lunes a viernes y un festivo. */
+export const CALENDAR = {
+  siteId: 'demo',
+  today: '2026-10-05',
+  current: '2026-10-05',
+  versions: [
+    {
+      effectiveFrom: '2026-10-05',
+      timeZone: 'Europe/Madrid',
+      shifts: [1, 2, 3, 4, 5].flatMap((weekday) => [
+        { weekday, start: 6, end: 14, name: 'Mañana' },
+        { weekday, start: 14, end: 22, name: 'Tarde' },
+      ]),
+      createdBy: 'logicflows',
+      createdAt: '2026-10-01T08:00:00.000Z',
+    },
+  ],
+  exceptions: [
+    { date: '2026-10-12', name: 'Fiesta Nacional', createdBy: 'logicflows', createdAt: at },
+  ],
+};
+
 export async function mockApi(page: Page): Promise<void> {
   await page.route('**/config.json', (route) => route.fulfill({ json: { apiUrl: API } }));
   await page.route(`${API}/api/v1/cells`, (route) =>
@@ -251,6 +273,9 @@ export async function mockApi(page: Page): Promise<void> {
   );
   await page.route(/\/api\/v1\/sites\/[^/]+\/cells\/[^/]+\/history\?/, (route) =>
     route.fulfill({ json: HISTORY, headers: { 'access-control-allow-origin': '*' } }),
+  );
+  await page.route(/\/api\/v1\/sites\/[^/]+\/calendar$/, (route) =>
+    route.fulfill({ json: CALENDAR, headers: { 'access-control-allow-origin': '*' } }),
   );
   await page.route(/\/api\/v1\/sites\/[^/]+\/comparison\?/, (route) =>
     route.fulfill({ json: COMPARISON, headers: { 'access-control-allow-origin': '*' } }),

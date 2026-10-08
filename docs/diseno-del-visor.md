@@ -64,6 +64,14 @@ Las alarmas activas aparecen **justo debajo del estado**, de más a menos grave,
 
 Cada indicador es un `app-indicator`: nombre en el texto secundario, cifra en monoespaciada y unidad aparte, siempre escrita. Cuando falta un dato se muestra «—», nunca un cero que pueda confundirse con un valor real.
 
+## Turnos
+
+`/calendar` (LF-127), en el menú como «Turnos»: el calendario de la planta ([ADR-0021](adr/0021-calendario-de-turnos.md)).
+
+- **Para todos:** los turnos de la versión vigente y de las futuras, día a día, y los días sin turnos. Un turno que cruza la medianoche dice «del día siguiente».
+- **Con `admin`:** marcar o quitar días sin turnos y crear o borrar versiones futuras. El editor parte de los turnos de la última versión, y la fecha más temprana es mañana: el pasado no se reescribe. Si la API rechaza un cambio, por ejemplo por un solape, el motivo aparece arriba.
+- **El histórico** dice de dónde sale el tiempo planificado: las horas de turno del calendario, o la regla sin calendario.
+
 ## Comparar células
 
 `/comparison` (LF-130), en el menú como «Comparar»: los indicadores de cada célula de la planta en el mismo periodo (hoy, 7 o 30 días).

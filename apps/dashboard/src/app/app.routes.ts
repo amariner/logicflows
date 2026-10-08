@@ -18,6 +18,12 @@ export const routes: Routes = [
       import('./features/cells/cell-detail/cell-detail.page').then((m) => m.CellDetailPage),
   },
   {
+    path: 'calendar',
+    title: 'Turnos · LogicFlows',
+    canActivate: [sessionGuard],
+    loadComponent: () => import('./features/calendar/calendar.page').then((m) => m.CalendarPage),
+  },
+  {
     path: 'comparison',
     title: 'Comparar células · LogicFlows',
     canActivate: [sessionGuard],

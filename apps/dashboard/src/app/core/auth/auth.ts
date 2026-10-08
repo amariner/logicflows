@@ -179,6 +179,9 @@ export class AuthService {
     this.#roles().some((role) => role === 'operator' || role === 'admin'),
   );
 
+  /** Si el usuario administra la planta, como el calendario de turnos (ADR-0021). */
+  readonly canAdminister = computed(() => this.#roles().includes('admin'));
+
   /**
    * Por qué no se puede comprobar la sesión: sin conexión o sin respuesta del
    * proveedor. Mientras tanto no se redirige a ninguna parte.
