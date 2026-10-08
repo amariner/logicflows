@@ -68,11 +68,7 @@
       "compositePrimaryKeys": {
         "cell_hourly_site_id_cell_id_hour_pk": {
           "name": "cell_hourly_site_id_cell_id_hour_pk",
-          "columns": [
-            "site_id",
-            "cell_id",
-            "hour"
-          ]
+          "columns": ["site_id", "cell_id", "hour"]
         }
       },
       "uniqueConstraints": {},
@@ -121,11 +117,7 @@
       "compositePrimaryKeys": {
         "cell_hourly_pending_site_id_cell_id_hour_pk": {
           "name": "cell_hourly_pending_site_id_cell_id_hour_pk",
-          "columns": [
-            "site_id",
-            "cell_id",
-            "hour"
-          ]
+          "columns": ["site_id", "cell_id", "hour"]
         }
       },
       "uniqueConstraints": {},
@@ -611,10 +603,7 @@
       "compositePrimaryKeys": {
         "shift_calendar_exceptions_site_id_date_pk": {
           "name": "shift_calendar_exceptions_site_id_date_pk",
-          "columns": [
-            "site_id",
-            "date"
-          ]
+          "columns": ["site_id", "date"]
         }
       },
       "uniqueConstraints": {},
@@ -669,14 +658,8 @@
           "name": "shift_calendar_shifts_version_fk",
           "tableFrom": "shift_calendar_shifts",
           "tableTo": "shift_calendar_versions",
-          "columnsFrom": [
-            "site_id",
-            "effective_from"
-          ],
-          "columnsTo": [
-            "site_id",
-            "effective_from"
-          ],
+          "columnsFrom": ["site_id", "effective_from"],
+          "columnsTo": ["site_id", "effective_from"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -684,12 +667,7 @@
       "compositePrimaryKeys": {
         "shift_calendar_shifts_pk": {
           "name": "shift_calendar_shifts_pk",
-          "columns": [
-            "site_id",
-            "effective_from",
-            "weekday",
-            "start_hour"
-          ]
+          "columns": ["site_id", "effective_from", "weekday", "start_hour"]
         }
       },
       "uniqueConstraints": {},
@@ -743,10 +721,7 @@
       "compositePrimaryKeys": {
         "shift_calendar_versions_site_id_effective_from_pk": {
           "name": "shift_calendar_versions_site_id_effective_from_pk",
-          "columns": [
-            "site_id",
-            "effective_from"
-          ]
+          "columns": ["site_id", "effective_from"]
         }
       },
       "uniqueConstraints": {},
@@ -966,41 +941,22 @@
     "public.cell_state": {
       "name": "cell_state",
       "schema": "public",
-      "values": [
-        "STOPPED",
-        "STARTING",
-        "RUNNING",
-        "WAITING",
-        "PAUSED",
-        "FAULT",
-        "EMERGENCY_STOP"
-      ]
+      "values": ["STOPPED", "STARTING", "RUNNING", "WAITING", "PAUSED", "FAULT", "EMERGENCY_STOP"]
     },
     "public.conveyor_state": {
       "name": "conveyor_state",
       "schema": "public",
-      "values": [
-        "STOPPED",
-        "RUNNING",
-        "FAULT"
-      ]
+      "values": ["STOPPED", "RUNNING", "FAULT"]
     },
     "public.robot_state": {
       "name": "robot_state",
       "schema": "public",
-      "values": [
-        "IDLE",
-        "MOVING",
-        "FAULT"
-      ]
+      "values": ["IDLE", "MOVING", "FAULT"]
     },
     "public.waiting_reason": {
       "name": "waiting_reason",
       "schema": "public",
-      "values": [
-        "STARVED",
-        "BLOCKED"
-      ]
+      "values": ["STARVED", "BLOCKED"]
     }
   },
   "schemas": {},
