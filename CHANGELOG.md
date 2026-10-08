@@ -4,6 +4,10 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ## [Sin publicar]
 
+### Corregido
+
+- La prueba de producción ya no falla si coincide con una parada del guion diario de la demo: comprueba que llegan datos en tiempo real, no que la célula esté produciendo (LF-119).
+
 ## [0.5.0] - 2026-10-08
 
 **Hito 5 · Rediseño visual.** El visor, el inicio de sesión y la app Android con un sistema de diseño propio en claro y oscuro, más visual para las demos y fiel a ISA-101: interfaz neutra y color intenso solo para lo anómalo. Incluye las acciones de la retrospectiva del Hito 4.

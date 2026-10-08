@@ -64,7 +64,7 @@ La API aplica las migraciones pendientes antes de empezar a escuchar ([ADR-0007]
 **Prueba tras el despliegue (LF-57).** Cuando `Railway apply` termina bien, el flujo `Prueba de producción` ejecuta la prueba de extremo a extremo contra el visor de producción:
 
 - inicia sesión con el usuario de solo lectura;
-- espera a que llegue una caja nueva de la célula de demostración;
+- espera a que lleguen datos nuevos de la célula de demostración por el canal en tiempo real y, si está produciendo, una caja nueva. No exige un estado concreto: el guion diario de la demo ([ADR-0019](adr/0019-datos-de-la-demo.md)) detiene la célula a horas fijas, y la célula parada sigue enviando su telemetría de latido cada 10 segundos (LF-119);
 - comprueba que el visor es instalable y que el usuario no tiene el rol `admin`.
 
 Si falla, abre una incidencia en GitHub (o comenta en la que siga abierta) con las trazas y los pasos para volver atrás. También se puede lanzar a mano: `gh workflow run prueba-produccion.yml`. Necesita los secretos `E2E_USERNAME` y `E2E_PASSWORD` ([alta del usuario](../infra/keycloak/README.md#usuario-de-la-prueba-de-producción-lf-57)).
