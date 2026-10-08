@@ -1,5 +1,5 @@
-/** Roles de la plataforma (ADR-0009). */
-export const ROLES = ['viewer', 'admin'] as const;
+/** Roles de la plataforma (ADR-0009, ADR-0022), de menos a más permisos. */
+export const ROLES = ['viewer', 'operator', 'admin'] as const;
 export type Role = (typeof ROLES)[number];
 
 /** Quien hace la petición, según su token de acceso. */
@@ -15,9 +15,14 @@ export interface Principal {
   readonly expiresAt: number;
 }
 
-/** `admin` incluye todo lo que puede hacer `viewer`. */
+/**
+ * Cada rol incluye los anteriores: `operator` puede todo lo de `viewer`, y
+ * `admin`, todo lo de `operator`. Keycloak ya los declara compuestos, pero la
+ * API no depende de ello.
+ */
 export function hasRole(principal: Principal, required: Role): boolean {
-  return principal.roles.includes(required) || principal.roles.includes('admin');
+  const level = ROLES.indexOf(required);
+  return principal.roles.some((role) => ROLES.indexOf(role) >= level);
 }
 
 /** Lee los roles conocidos de una ruta del token como `realm_access.roles`. */

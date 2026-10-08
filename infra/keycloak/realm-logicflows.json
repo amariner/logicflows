@@ -21,10 +21,16 @@
         "description": "Consulta el estado, la producción y las alarmas"
       },
       {
-        "name": "admin",
-        "description": "Administra la plataforma; incluye todo lo de viewer",
+        "name": "operator",
+        "description": "Reconoce alarmas; incluye todo lo de viewer (ADR-0022)",
         "composite": true,
         "composites": { "realm": ["viewer"] }
+      },
+      {
+        "name": "admin",
+        "description": "Administra la plataforma; incluye todo lo de operator y viewer",
+        "composite": true,
+        "composites": { "realm": ["operator", "viewer"] }
       }
     ]
   },
@@ -68,7 +74,7 @@
       "emailVerified": true,
       "enabled": true,
       "credentials": [{ "type": "password", "value": "operario-local", "temporary": false }],
-      "realmRoles": ["viewer"]
+      "realmRoles": ["operator"]
     },
     {
       "username": "administrador",

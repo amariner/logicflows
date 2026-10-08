@@ -102,6 +102,11 @@ test('el usuario de la prueba solo tiene permisos de lectura (LF-57)', async ({ 
   const roles = claims.realm_access?.roles ?? [];
   expect(roles).toContain('viewer');
   expect(roles).not.toContain('admin');
+  // El usuario técnico de producción y de las previsualizaciones solo consulta:
+  // tampoco reconoce alarmas (ADR-0022). El operario local sí.
+  if (process.env['E2E_USERNAME'] !== undefined) {
+    expect(roles).not.toContain('operator');
+  }
 });
 
 test('el visor es instalable: manifiesto y service worker (LF-55)', async ({ page, context }) => {
