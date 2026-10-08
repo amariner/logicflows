@@ -97,6 +97,7 @@ Las decisiones relevantes se registran como ADR en [`docs/adr`](docs/adr/README.
 | [0019](docs/adr/0019-datos-de-la-demo.md) | Datos de la demo: un guion diario de incidencias que se repite y una ventana fija de datos (2 días en bruto, 31 de estados y agregados) |
 | [0020](docs/adr/0020-tokens-de-diseno.md) | Tokens de diseño: un `tokens.css` compartido por el visor y el inicio de sesión, con fuentes incluidas en la aplicación |
 | [0021](docs/adr/0021-calendario-de-turnos.md) | Calendario de turnos por planta en PostgreSQL, con versiones que no reescriben el pasado; `STOPPED` dentro de un turno es una parada |
+| [0022](docs/adr/0022-reconocimiento-de-alarmas.md) | Reconocer una alarma es «la he visto y me ocupo»: rol `operator`, registro inmutable y nada se envía a la célula |
 
 ## Estructura
 

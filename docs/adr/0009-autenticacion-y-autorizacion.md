@@ -1,6 +1,6 @@
 # ADR-0009: Autenticación y autorización
 
-- **Estado:** Aceptado
+- **Estado:** Aceptado. Roles ampliados por [ADR-0022](0022-reconocimiento-de-alarmas.md)
 - **Fecha:** 2026-10-01
 - **Responsable:** Andreu Mariner, Tech Lead
 - **Tarea:** LF-46
@@ -96,6 +96,10 @@ Requisitos:
   - El token de acceso dura 5 minutos y el de refresco es de un solo uso.
   - La defensa frente a XSS sigue siendo no ejecutar código ajeno: la política de seguridad de contenidos llega con el endurecimiento (LF-52).
 - **Tiques de un solo uso con varias instancias.** Cada instancia recuerda los tiques que ya aceptó. Con varias instancias, un mismo tique podría usarse una vez en cada una durante sus 30 segundos de vida. Se acepta porque el tique solo abre un canal de lectura para quien ya tenía un token válido. Un registro compartido de tiques usados se valorará si aparecen acciones sobre la planta.
+
+## Actualización (8 de octubre de 2026): rol `operator`
+
+[ADR-0022](0022-reconocimiento-de-alarmas.md) añade el rol `operator` entre los dos anteriores, como preveía el criterio de revisión sobre acciones en la planta. Puede reconocer alarmas e incluye `viewer`; `admin` pasa a incluir `operator`. `viewer` sigue siendo de solo lectura.
 
 ## Referencias
 
