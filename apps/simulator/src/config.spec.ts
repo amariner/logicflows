@@ -7,7 +7,7 @@ describe('configuración', () => {
     expect(loadConfig({ MQTT_SIMULATOR_PASSWORD: 'secreto' })).toEqual({
       mqtt: { url: 'mqtt://127.0.0.1:1883', username: 'simulator', password: 'secreto' },
       siteId: 'demo',
-      cellId: 'cell-01',
+      cells: ['cell-01'],
       boxIntervalMs: 4_000,
       startupDurationMs: 3_000,
       cycleVariation: 0.1,
@@ -31,6 +31,25 @@ describe('configuración', () => {
   it('admite MQTT sobre WebSocket con TLS (ADR-0008)', () => {
     const url = 'wss://mqtt.logicflows.example/mqtt';
     expect(loadConfig({ MQTT_SIMULATOR_PASSWORD: 'x', MQTT_URL: url }).mqtt.url).toBe(url);
+  });
+
+  it('admite varias células en el mismo proceso (LF-123)', () => {
+    const config = loadConfig({
+      MQTT_SIMULATOR_PASSWORD: 'x',
+      SIMULATOR_CELL_ID: 'cell-09',
+      SIMULATOR_CELLS: 'cell-01, cell-02,cell-03',
+    });
+    expect(config.cells).toEqual(['cell-01', 'cell-02', 'cell-03']);
+  });
+
+  it.each([
+    ['repetidas', 'cell-01,cell-01'],
+    ['con un identificador no válido', 'cell-01,Célula 2'],
+    ['vacías', ' '],
+  ])('rechaza células %s', (_, cells) => {
+    expect(() => loadConfig({ MQTT_SIMULATOR_PASSWORD: 'x', SIMULATOR_CELLS: cells })).toThrow(
+      /Configuración no válida/,
+    );
   });
 
   it('trata las variables vacías como no definidas', () => {

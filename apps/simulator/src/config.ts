@@ -6,6 +6,9 @@ import type { ScenarioName } from './scenarios.ts';
 
 const positiveInt = z.coerce.number().int().positive();
 
+/** Células de un mismo proceso: cada una abre su conexión con el broker. */
+export const MAX_CELLS = 20;
+
 const configSchema = z.object({
   // mqtt:// o mqtts:// por TCP; ws:// o wss:// por WebSocket (ADR-0008).
   MQTT_URL: z.url({ protocol: /^(mqtts?|wss?)$/ }).default('mqtt://127.0.0.1:1883'),
@@ -13,6 +16,19 @@ const configSchema = z.object({
   MQTT_SIMULATOR_PASSWORD: z.string().min(1),
   SIMULATOR_SITE_ID: siteIdSchema.default('demo'),
   SIMULATOR_CELL_ID: cellIdSchema.default('cell-01'),
+  // Varias células en el mismo proceso, separadas por comas (LF-123). Si se
+  // define, sustituye a SIMULATOR_CELL_ID.
+  SIMULATOR_CELLS: z
+    .string()
+    .transform((value) => value.split(',').map((cell) => cell.trim()))
+    .pipe(
+      z
+        .array(cellIdSchema)
+        .min(1)
+        .max(MAX_CELLS)
+        .refine((cells) => new Set(cells).size === cells.length, 'Hay células repetidas'),
+    )
+    .optional(),
   SIMULATOR_BOX_INTERVAL_MS: positiveInt.default(4_000),
   SIMULATOR_STARTUP_DURATION_MS: positiveInt.default(3_000),
   SIMULATOR_CYCLE_VARIATION: z.coerce.number().min(0).max(0.5).default(0.1),
@@ -30,7 +46,8 @@ const configSchema = z.object({
 export interface SimulatorConfig {
   readonly mqtt: { readonly url: string; readonly username: string; readonly password: string };
   readonly siteId: string;
-  readonly cellId: string;
+  /** Células que simula el proceso, en orden: la posición elige su perfil. */
+  readonly cells: readonly string[];
   readonly boxIntervalMs: number;
   readonly startupDurationMs: number;
   readonly cycleVariation: number;
@@ -62,7 +79,7 @@ export function loadConfig(env: Record<string, string | undefined>): SimulatorCo
       password: c.MQTT_SIMULATOR_PASSWORD,
     },
     siteId: c.SIMULATOR_SITE_ID,
-    cellId: c.SIMULATOR_CELL_ID,
+    cells: c.SIMULATOR_CELLS ?? [c.SIMULATOR_CELL_ID],
     boxIntervalMs: c.SIMULATOR_BOX_INTERVAL_MS,
     startupDurationMs: c.SIMULATOR_STARTUP_DURATION_MS,
     cycleVariation: c.SIMULATOR_CYCLE_VARIATION,

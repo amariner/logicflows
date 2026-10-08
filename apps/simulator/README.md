@@ -65,6 +65,29 @@ SIMULATOR_SCENARIO=demo SIMULATOR_BOX_INTERVAL_MS=1000 SIMULATOR_FAULT_RECOVERY_
 
 Con `red-inestable` o `demo`, los descartes aparecen en el log de la API con los motivos `DUPLICATE` y `OUT_OF_ORDER`.
 
+## Varias células
+
+Un mismo proceso puede simular varias células (LF-123), con `SIMULATOR_CELLS` separadas por comas. Si se define, sustituye a `SIMULATOR_CELL_ID`:
+
+```sh
+SIMULATOR_CELLS=cell-01,cell-02,cell-03,cell-04 pnpm simulator
+```
+
+- **Cada célula es independiente:** su conexión con el broker (identificador `simulator-<planta>-<célula>`), su testamento, su sesión y su secuencia, como si fueran máquinas distintas (ADR-0004).
+- **Cada célula tiene un perfil** (`src/cells.ts`), fijo según su posición, para que no se paren todas a la vez y la comparación tenga sentido:
+
+  | Posición | Guion | Esperas y pausas | Ritmo |
+  |---|---|---|---|
+  | 1.ª | El de siempre | Igual | Nominal (4 s por caja) |
+  | 2.ª | 23 min más tarde | La mitad | 4 % más lenta |
+  | 3.ª | 41 min más tarde | 1,6 veces más largas | 10 % más lenta |
+  | 4.ª | 67 min más tarde | 2,2 veces más largas | 20 % más lenta |
+
+  A partir de la quinta se repiten con otro desfase. Ninguna va más rápida que el ritmo nominal, así que el rendimiento nunca pasa del 100 %.
+- **La semilla** de cada célula es la del proceso más su posición: la simulación se repite igual.
+- **El histórico simulado** (`pnpm simulator:historico`) genera las células una detrás de otra, con su perfil.
+- Hasta 20 células por proceso; cada una abre una conexión con el broker.
+
 ## Uso
 
 Con el entorno local levantado (`pnpm infra:up`) y el fichero `.env` creado:
