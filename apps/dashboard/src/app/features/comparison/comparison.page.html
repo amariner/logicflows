@@ -1,0 +1,151 @@
+<app-page-header title="Comparar células" [connection]="connection()">
+  <ion-button
+    headerStart
+    routerLink="/cells"
+    routerDirection="back"
+    aria-label="Volver a las células"
+  >
+    <ion-icon slot="icon-only" aria-hidden="true" name="arrow-back-sharp" />
+  </ion-button>
+</app-page-header>
+
+<ion-content class="ion-padding">
+  <!-- Región enfocable: permite desplazar el contenido con el teclado (WCAG 2.1.1). -->
+  <section class="comparison" tabindex="0" aria-label="Comparación de células">
+    <h1 class="site">
+      Comparar células
+      @if (siteId(); as site) {
+        <span>· Planta {{ site }}</span>
+      }
+    </h1>
+    <div class="periods" role="group" aria-label="Periodo">
+      @for (period of periods; track period.value) {
+        <ion-button
+          size="small"
+          [fill]="period.value === choice() ? 'solid' : 'outline'"
+          [attr.aria-pressed]="period.value === choice()"
+          (click)="select(period.value)"
+        >
+          {{ period.label }}
+        </ion-button>
+      }
+    </div>
+
+    @let current = state();
+    @if (current.kind === 'loading') {
+      <p class="message" role="status">Cargando la comparación…</p>
+    } @else if (current.kind === 'error') {
+      <div class="message" role="alert">
+        <p>{{ current.message }}</p>
+        <ion-button fill="outline" (click)="reload()">Reintentar</ion-button>
+      </div>
+    } @else if (view(); as view) {
+      <section class="panel" aria-labelledby="comparison-title">
+        <div class="panel-header">
+          <h2 id="comparison-title">Indicadores por célula</h2>
+          <ion-button
+            class="download"
+            fill="outline"
+            size="small"
+            data-testid="download"
+            (click)="download()"
+          >
+            <ion-icon slot="start" aria-hidden="true" name="download-sharp" />
+            Descargar en CSV
+          </ion-button>
+        </div>
+        @if (view.worstNote; as note) {
+          <p class="worst-note" data-testid="worst-note">
+            <ion-icon aria-hidden="true" name="warning-sharp" />
+            {{ note }}
+          </p>
+        }
+        @if (view.empty) {
+          <p class="message">No hay datos de las células en este periodo.</p>
+        }
+
+        <table class="wide" aria-describedby="comparison-title">
+          <thead>
+            <tr>
+              @for (column of columns; track column.key) {
+                <th scope="col" [attr.aria-sort]="ariaSort(column.key)">
+                  <button type="button" class="sort" (click)="sortBy(column.key)">
+                    {{ column.label }}
+                    @if (ariaSort(column.key) !== 'none') {
+                      <ion-icon
+                        aria-hidden="true"
+                        [name]="
+                          ariaSort(column.key) === 'descending'
+                            ? 'arrow-down-sharp'
+                            : 'arrow-up-sharp'
+                        "
+                      />
+                    }
+                  </button>
+                </th>
+              }
+              <th scope="col">Parada principal</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of view.rows; track row.cellId) {
+              <tr [class.worst]="row.worst" data-testid="comparison-row">
+                <th scope="row">
+                  <a [routerLink]="['/cells', siteId(), row.cellId, 'history']">{{ row.cellId }}</a>
+                  @if (row.worst) {
+                    <span class="badge">
+                      <ion-icon aria-hidden="true" name="warning-sharp" />
+                      Menor disponibilidad
+                    </span>
+                  }
+                </th>
+                <td class="number">{{ row.boxes }}</td>
+                <td class="number">{{ row.availability }}</td>
+                <td class="number">{{ row.performance }}</td>
+                <td>{{ row.mainStop }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <ul class="narrow" aria-label="Indicadores por célula">
+          @for (row of view.rows; track row.cellId) {
+            <li [class.worst]="row.worst">
+              <p class="name">
+                <a [routerLink]="['/cells', siteId(), row.cellId, 'history']">{{ row.cellId }}</a>
+                @if (row.worst) {
+                  <span class="badge">
+                    <ion-icon aria-hidden="true" name="warning-sharp" />
+                    Menor disponibilidad
+                  </span>
+                }
+              </p>
+              <dl>
+                <div>
+                  <dt>Disponibilidad</dt>
+                  <dd class="number">{{ row.availability }}</dd>
+                </div>
+                <div>
+                  <dt>Rendimiento</dt>
+                  <dd class="number">{{ row.performance }}</dd>
+                </div>
+                <div>
+                  <dt>Cajas</dt>
+                  <dd class="number">{{ row.boxes }}</dd>
+                </div>
+                <div>
+                  <dt>Parada principal</dt>
+                  <dd>{{ row.mainStop }}</dd>
+                </div>
+              </dl>
+            </li>
+          }
+        </ul>
+      </section>
+      <p class="note">
+        Disponibilidad sobre el tiempo planificado del calendario de turnos de la planta
+        (docs/indicadores-de-planta.md). Cada célula enlaza con su histórico.
+      </p>
+    }
+  </section>
+</ion-content>

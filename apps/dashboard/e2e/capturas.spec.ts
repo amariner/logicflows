@@ -29,6 +29,11 @@ const SCREENS = [
     ready: (page: Page) => expect(page.getByText('Robot averiado')).toBeVisible(),
   },
   {
+    name: 'comparacion',
+    path: '/comparison',
+    ready: (page: Page) => expect(page.getByTestId('worst-note')).toBeVisible(),
+  },
+  {
     name: 'historico',
     path: '/cells/demo/cell-01/history',
     ready: (page: Page) => expect(page.getByTestId('event')).toHaveCount(5),

@@ -211,6 +211,39 @@ export const EVENTS = {
 };
 
 /** Simula la API: configuración, estado por REST y canal de tiempo real. */
+/** Comparación de las células de la planta (LF-129): una mejor, una peor y una sin datos. */
+export const COMPARISON = {
+  siteId: 'demo',
+  from: HISTORY.from,
+  to: HISTORY.to,
+  timeZone: 'Europe/Madrid',
+  cells: [
+    { cellId: 'cell-01', nominalBoxesPerHour: 900, summary: HISTORY.summary },
+    {
+      cellId: 'cell-02',
+      nominalBoxesPerHour: 900,
+      summary: { ...HISTORY.summary, boxes: 3980, availability: 0.82, performance: 0.93 },
+    },
+    {
+      cellId: 'cell-03',
+      nominalBoxesPerHour: 900,
+      summary: { ...HISTORY.summary, boxes: 2950, availability: 0.61, performance: 0.8 },
+    },
+    {
+      cellId: 'cell-05',
+      nominalBoxesPerHour: 900,
+      summary: {
+        ...HISTORY.summary,
+        boxes: 0,
+        availability: null,
+        performance: null,
+        stops: [],
+        seconds: { ...HISTORY.summary.seconds, noData: HISTORY.summary.seconds.total },
+      },
+    },
+  ],
+};
+
 export async function mockApi(page: Page): Promise<void> {
   await page.route('**/config.json', (route) => route.fulfill({ json: { apiUrl: API } }));
   await page.route(`${API}/api/v1/cells`, (route) =>
@@ -218,6 +251,9 @@ export async function mockApi(page: Page): Promise<void> {
   );
   await page.route(/\/api\/v1\/sites\/[^/]+\/cells\/[^/]+\/history\?/, (route) =>
     route.fulfill({ json: HISTORY, headers: { 'access-control-allow-origin': '*' } }),
+  );
+  await page.route(/\/api\/v1\/sites\/[^/]+\/comparison\?/, (route) =>
+    route.fulfill({ json: COMPARISON, headers: { 'access-control-allow-origin': '*' } }),
   );
   await page.route(/\/api\/v1\/sites\/[^/]+\/cells\/[^/]+\/events\?/, (route) =>
     route.fulfill({ json: EVENTS, headers: { 'access-control-allow-origin': '*' } }),
