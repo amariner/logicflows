@@ -230,6 +230,17 @@ export class HistoryRepository {
       .orderBy(asc(cellHourly.hour));
   }
 
+  /** Agregados de todas las células de una planta entre dos instantes (LF-129). */
+  async siteHours(siteId: string, from: Date, to: Date) {
+    return this.db
+      .select()
+      .from(cellHourly)
+      .where(
+        and(eq(cellHourly.siteId, siteId), gte(cellHourly.hour, from), lt(cellHourly.hour, to)),
+      )
+      .orderBy(asc(cellHourly.cellId), asc(cellHourly.hour));
+  }
+
   /** Horas pendientes de recalcular de una célula entre dos instantes. */
   async pendingHours(siteId: string, cellId: string, from: Date, to: Date): Promise<Date[]> {
     const rows = await this.db

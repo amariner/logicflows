@@ -17,7 +17,8 @@ Esqueleto operativo (LF-23), ingesta de telemetría (LF-26), canal de tiempo rea
 | `GET /api/v1/sites/{siteId}/cells/{cellId}` | Estado actual de una célula. |
 | `GET /api/v1/sites/{siteId}/cells/{cellId}/production?from&to` | Cajas y palés producidos en un periodo. |
 | `GET /api/v1/sites/{siteId}/cells/{cellId}/history?from&to&resolution&timeZone` | Histórico e indicadores de planta, en total y por horas o por días. |
-| `GET /api/v1/sites/{siteId}/cells/{cellId}/events?from&to&limit` | Registro de cambios de estado, con sus alarmas y su duración, y de conexión. |
+| `GET /api/v1/sites/{siteId}/cells/{cellId}/events?from&to&limit` | Registro de cambios de estado, con sus alarmas y su duración, de conexión y de reconocimientos. |
+| `GET /api/v1/sites/{siteId}/comparison?from&to&resolution&timeZone` | Indicadores de todas las células de una planta en el mismo periodo, para compararlas (LF-129). |
 | `POST /api/v1/realtime/tickets` | Tique de un solo uso para abrir el canal de tiempo real. |
 | `POST /api/v1/push/devices` | Registra el token de FCM del dispositivo para recibir avisos de alarmas ([ADR-0015](../../docs/adr/0015-avisos-de-alarmas-en-el-movil.md)). |
 | `DELETE /api/v1/push/devices` | Da de baja un dispositivo del usuario. |

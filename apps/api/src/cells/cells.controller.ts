@@ -16,20 +16,29 @@ import {
 import { ZodValidationPipe } from '../common/zod-validation.pipe.ts';
 import { HistoryService } from '../history/history.service.ts';
 import type { CellEventView } from '../history/events.ts';
+import type { CellComparison } from '../history/history.service.ts';
 import type { Indicators } from '../history/indicators.ts';
 import { CellStateStore } from '../realtime/cell-state.store.ts';
 import {
   cellParamsSchema,
   eventsQuerySchema,
+  siteParamsSchema,
   historyQuerySchema,
   MAX_EVENTS,
   MAX_HISTORY_DAYS,
   MAX_RANGE_DAYS,
   productionQuerySchema,
 } from './cells.schemas.ts';
-import type { CellParams, EventsQuery, HistoryQuery, ProductionQuery } from './cells.schemas.ts';
+import type {
+  CellParams,
+  EventsQuery,
+  HistoryQuery,
+  ProductionQuery,
+  SiteParams,
+} from './cells.schemas.ts';
 import {
   cellSnapshotSchema,
+  comparisonSchema,
   eventsSchema,
   historySchema,
   problemSchema,
@@ -55,6 +64,15 @@ export interface HistoryResponse {
   readonly nominalBoxesPerHour: number;
   readonly summary: Indicators;
   readonly periods: readonly Indicators[];
+}
+
+export interface ComparisonResponse {
+  readonly siteId: string;
+  readonly from: string;
+  readonly to: string;
+  readonly timeZone: string;
+  /** Una entrada por célula, ordenadas por su identificador. */
+  readonly cells: readonly CellComparison[];
 }
 
 export interface EventsResponse {
@@ -234,5 +252,50 @@ export class CellController {
       throw new NotFoundException(`No hay datos de la célula ${siteId}/${cellId}`);
     }
     return cell;
+  }
+}
+
+@ApiTags('Células')
+@ApiBearerAuth()
+@ApiUnauthorizedResponse({ description: 'Falta el token o no es válido', schema: problemSchema })
+@ApiForbiddenResponse({
+  description: 'El usuario no tiene el rol necesario',
+  schema: problemSchema,
+})
+@ApiBadRequestResponse({ description: 'Parámetros no válidos', schema: problemSchema })
+@Controller('sites/:siteId')
+export class SiteController {
+  constructor(
+    private readonly store: CellStateStore,
+    private readonly history: HistoryService,
+  ) {}
+
+  @Get('comparison')
+  @ApiOperation({
+    summary: 'Comparar las células de una planta',
+    description: `Indicadores de planta de cada célula en el mismo periodo [from, to), con el calendario de turnos (docs/indicadores-de-planta.md, LF-129). Las fechas, como en el histórico: horas en punto y, con resolution=day, medianoches de timeZone. Sin fechas, las últimas 24 horas. Rango máximo: ${String(MAX_HISTORY_DAYS.day)} días.`,
+  })
+  @ApiParam({ name: 'siteId', example: 'demo', description: 'Planta' })
+  @ApiQuery({ name: 'from', required: false, example: '2026-10-04T22:00:00.000Z' })
+  @ApiQuery({ name: 'to', required: false, example: '2026-10-05T22:00:00.000Z' })
+  @ApiQuery({ name: 'resolution', required: false, enum: ['hour', 'day'], example: 'day' })
+  @ApiQuery({ name: 'timeZone', required: false, example: 'Europe/Madrid' })
+  @ApiOkResponse({ schema: comparisonSchema })
+  async compare(
+    @Param(new ZodValidationPipe(siteParamsSchema)) params: SiteParams,
+    @Query(new ZodValidationPipe(historyQuerySchema())) query: HistoryQuery,
+  ): Promise<ComparisonResponse> {
+    const known = this.store
+      .snapshot()
+      .filter((cell) => cell.siteId === params.siteId)
+      .map((cell) => cell.cellId);
+    const cells = await this.history.compare(params.siteId, known, query);
+    return {
+      siteId: params.siteId,
+      from: query.from.toISOString(),
+      to: query.to.toISOString(),
+      timeZone: query.timeZone,
+      cells,
+    };
   }
 }

@@ -19,6 +19,13 @@ export interface HistoryPeriod {
   readonly timeZone: string;
 }
 
+/** Indicadores de una célula en la comparación de una planta (LF-129). */
+export interface CellComparison {
+  readonly cellId: string;
+  readonly nominalBoxesPerHour: number;
+  readonly summary: Indicators;
+}
+
 export interface CellHistory {
   readonly nominalBoxesPerHour: number;
   /** Indicadores de todo el periodo. */
@@ -109,6 +116,53 @@ export class HistoryService {
     );
   }
 
+  /** Las horas de turno de [from, to) según el calendario de la planta (ADR-0021). */
+  async #shiftHours(siteId: string, from: Date, to: Date): Promise<(hour: Date) => boolean> {
+    const calendar = await this.calendars.calendar(siteId);
+    const hours = new Set<number>();
+    if (!calendar.empty) {
+      for (let hour = from.getTime(); hour < to.getTime(); hour += HOUR_MS) {
+        if (calendar.isShiftHour(new Date(hour))) {
+          hours.add(hour);
+        }
+      }
+    }
+    return (hour: Date) => hours.has(hour.getTime());
+  }
+
+  /**
+   * Indicadores de todas las células de una planta en el mismo periodo, para
+   * compararlas (LF-129). Incluye las células conocidas aunque no tengan
+   * agregados en el periodo: salen sin datos.
+   */
+  async compare(
+    siteId: string,
+    knownCells: readonly string[],
+    { from, to }: Pick<HistoryPeriod, 'from' | 'to'>,
+    now: Date = new Date(),
+  ): Promise<CellComparison[]> {
+    const [rows, isShiftHour] = await Promise.all([
+      this.repository.siteHours(siteId, from, to),
+      this.#shiftHours(siteId, from, to),
+    ]);
+    const byCell = new Map<string, HourRow[]>(knownCells.map((cellId) => [cellId, []]));
+    for (const { cellId, ...row } of rows) {
+      const list = byCell.get(cellId) ?? [];
+      list.push(row);
+      byCell.set(cellId, list);
+    }
+    return [...byCell.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([cellId, cellRows]) => {
+        const nominal = this.nominalBoxesPerHour(siteId, cellId);
+        return {
+          cellId,
+          nominalBoxesPerHour: nominal,
+          summary: computeIndicators(cellRows, from, to, now, nominal, isShiftHour),
+        };
+      });
+  }
+
   /** Histórico de una célula con sus indicadores, por horas o por días. */
   async history(
     siteId: string,
@@ -117,20 +171,11 @@ export class HistoryService {
     now: Date = new Date(),
   ): Promise<CellHistory> {
     const nominal = this.nominalBoxesPerHour(siteId, cellId);
-    const [rows, calendar] = await Promise.all([
-      this.repository.hours(siteId, cellId, from, to),
-      this.calendars.calendar(siteId),
-    ]);
     // Las horas de turno del periodo se deciden una vez (ADR-0021).
-    const shiftHours = new Set<number>();
-    if (!calendar.empty) {
-      for (let hour = from.getTime(); hour < to.getTime(); hour += HOUR_MS) {
-        if (calendar.isShiftHour(new Date(hour))) {
-          shiftHours.add(hour);
-        }
-      }
-    }
-    const isShiftHour = (hour: Date) => shiftHours.has(hour.getTime());
+    const [rows, isShiftHour] = await Promise.all([
+      this.repository.hours(siteId, cellId, from, to),
+      this.#shiftHours(siteId, from, to),
+    ]);
     const bounds: number[] = [];
     let previousDay: string | undefined;
     for (let hour = from.getTime(); hour < to.getTime(); hour += HOUR_MS) {
