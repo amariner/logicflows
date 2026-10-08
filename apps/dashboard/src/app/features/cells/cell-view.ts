@@ -21,12 +21,16 @@ const formatTime: TimeFormatter = (iso) => defaultTimeFormat.format(new Date(iso
 
 export interface AlarmView {
   readonly code: string;
+  /** Cuándo se activó: identifica la activación al reconocerla (ADR-0022). */
+  readonly raisedAt: string;
   readonly message: string;
   readonly severityLabel: string;
   readonly icon: string;
   readonly tone: Tone;
   /** «desde las 08:30». */
   readonly sinceLabel: string;
+  /** «Reconocida por operaria a las 08:32», o `null` si nadie la ha reconocido. */
+  readonly acknowledgedLabel: string | null;
 }
 
 /** Datos de una célula preparados para la interfaz. */
@@ -53,6 +57,7 @@ export interface CellView {
 
 export function toCellView(snapshot: CellSnapshot, time: TimeFormatter = formatTime): CellView {
   const { siteId, cellId, status, state, telemetry } = snapshot;
+  const acknowledgements = snapshot.acknowledgements ?? [];
 
   let stateLabel = 'Sin datos';
   let stateIcon = 'help-circle-sharp';
@@ -76,13 +81,23 @@ export function toCellView(snapshot: CellSnapshot, time: TimeFormatter = formatT
     )
     .map((alarm) => {
       const severity = SEVERITY_PRESENTATION[alarm.severity];
+      const acknowledgement = acknowledgements.find(
+        (candidate) =>
+          candidate.code === alarm.code &&
+          Date.parse(candidate.raisedAt) === Date.parse(alarm.raisedAt),
+      );
       return {
         code: alarm.code,
+        raisedAt: alarm.raisedAt,
         message: alarm.message,
         severityLabel: severity.label,
         icon: severity.icon,
         tone: severity.tone,
         sinceLabel: `desde las ${time(alarm.raisedAt)}`,
+        acknowledgedLabel:
+          acknowledgement === undefined
+            ? null
+            : `Reconocida por ${acknowledgement.acknowledgedBy} a las ${time(acknowledgement.acknowledgedAt)}`,
       };
     });
 

@@ -18,6 +18,7 @@ import {
 
 import { RealtimeService } from '../../../core/realtime/realtime.service';
 import { AlarmItemComponent } from '../../../ui/alarm-item.component';
+import { AcknowledgeButtonComponent } from '../acknowledge-button/acknowledge-button.component';
 import { PageHeaderComponent } from '../../../ui/page-header.component';
 import { StateBadgeComponent } from '../../../ui/state-badge.component';
 import { TODAY_REFRESH_MS } from '../cells.page';
@@ -38,6 +39,7 @@ import { NO_SUMMARY, TodaySummaries } from '../today-summary';
   styleUrl: './cell-detail.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AcknowledgeButtonComponent,
     AlarmItemComponent,
     CellSchematicComponent,
     EmergencyBannerComponent,

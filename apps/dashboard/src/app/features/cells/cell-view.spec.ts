@@ -81,14 +81,47 @@ describe('vista de una célula', () => {
     expect(alarms).toEqual([
       {
         code: 'SAF-001',
+        raisedAt: '2026-10-05T08:12:00.000Z',
         message: 'Parada',
         severityLabel: 'Crítica',
         icon: 'hand-left-sharp',
         tone: 'danger',
         sinceLabel: 'desde las 08:12',
+        acknowledgedLabel: null,
       },
       expect.objectContaining({ code: 'CONV-002', severityLabel: 'Media', tone: 'warning' }),
     ]);
+  });
+
+  it('dice quién reconoció una alarma y cuándo (ADR-0022)', () => {
+    const raisedAt = '2026-10-05T08:12:00.000Z';
+    const state = buildStateMessage({
+      state: 'FAULT',
+      activeAlarms: [{ code: 'ROB-001', severity: 'HIGH', message: 'Colisión', raisedAt }],
+    });
+    const { alarms } = toCellView(
+      {
+        ...empty,
+        state,
+        acknowledgements: [
+          {
+            code: 'ROB-001',
+            raisedAt,
+            acknowledgedBy: 'operaria',
+            acknowledgedAt: '2026-10-05T08:14:00.000Z',
+          },
+          // De otra activación: no cuenta.
+          {
+            code: 'ROB-001',
+            raisedAt: '2026-10-05T07:00:00.000Z',
+            acknowledgedBy: 'otro',
+            acknowledgedAt: '2026-10-05T07:01:00.000Z',
+          },
+        ],
+      },
+      time,
+    );
+    expect(alarms[0]?.acknowledgedLabel).toBe('Reconocida por operaria a las 08:14');
   });
 
   it('muestra la producción y el estado del robot y de la cinta', () => {

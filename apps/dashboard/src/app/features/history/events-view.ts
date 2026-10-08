@@ -55,6 +55,20 @@ export function toEventsView(events: CellEvents, timeZone: string): EventsView {
       time: format.format(new Date(event.at)),
       datetime: event.at,
     };
+    if (event.kind === 'acknowledgement') {
+      const acknowledgement = event.acknowledgement;
+      return {
+        ...common,
+        label:
+          acknowledgement === null || acknowledgement === undefined
+            ? 'Alarma reconocida'
+            : `${acknowledgement.code} reconocida por ${acknowledgement.acknowledgedBy}`,
+        icon: 'checkmark-done-sharp',
+        tone: 'info',
+        duration: null,
+        alarms: [],
+      };
+    }
     if (event.kind === 'connection') {
       const presentation = event.online === true ? CONNECTION.online : CONNECTION.offline;
       return { ...common, ...presentation, duration: null, alarms: [] };

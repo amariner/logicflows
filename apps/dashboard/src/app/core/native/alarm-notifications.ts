@@ -22,8 +22,24 @@ export interface NativePush {
   register(): Promise<void>;
   unregister(): Promise<void>;
   onRegistration(handler: (token: string) => void): void;
-  /** La persona tocó un aviso. */
-  onNotificationOpened(handler: () => void): void;
+  /** La persona tocó un aviso; recibe sus datos (la planta y la célula). */
+  onNotificationOpened(handler: (data: unknown) => void): void;
+}
+
+const IDENTIFIER = /^[a-z0-9-]{1,32}$/;
+
+/**
+ * Adónde lleva un aviso al tocarlo: al detalle de su célula, donde se ve la
+ * alarma y se puede reconocer (ADR-0022). Si sus datos no son válidos, al panel.
+ */
+export function notificationTarget(data: unknown): string {
+  const { siteId, cellId } = (data ?? {}) as { siteId?: unknown; cellId?: unknown };
+  return typeof siteId === 'string' &&
+    typeof cellId === 'string' &&
+    IDENTIFIER.test(siteId) &&
+    IDENTIFIER.test(cellId)
+    ? `/cells/${siteId}/${cellId}`
+    : '/cells';
 }
 
 export const NATIVE_PUSH = new InjectionToken<NativePush>('NATIVE_PUSH', {
@@ -54,7 +70,9 @@ export const NATIVE_PUSH = new InjectionToken<NativePush>('NATIVE_PUSH', {
       });
     },
     onNotificationOpened: (handler) => {
-      void PushNotifications.addListener('pushNotificationActionPerformed', handler);
+      void PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+        handler(action.notification.data);
+      });
     },
   }),
 });
@@ -127,8 +145,8 @@ export class AlarmNotificationsService {
       // Si falla, se reintenta la próxima vez que arranque la app.
       this.#http.post(this.#devicesUrl(), { token }).subscribe({ error: () => undefined });
     });
-    this.#push.onNotificationOpened(() => {
-      void this.#router.navigateByUrl('/cells');
+    this.#push.onNotificationOpened((data) => {
+      void this.#router.navigateByUrl(notificationTarget(data));
     });
   }
 

@@ -63,12 +63,23 @@ export const CELLS: CellSnapshot[] = [
     reason: 'STARVED',
     alarms: [alarm('CONV-001', 'LOW', 'Sin cajas en la entrada')],
   }),
-  cell('cell-03', 'FAULT', {
-    alarms: [
-      alarm('ROB-001', 'HIGH', 'Colisión del robot detectada'),
-      alarm('CONV-002', 'MEDIUM', 'Atasco en la cinta de entrada'),
+  {
+    ...cell('cell-03', 'FAULT', {
+      alarms: [
+        alarm('ROB-001', 'HIGH', 'Colisión del robot detectada'),
+        alarm('CONV-002', 'MEDIUM', 'Atasco en la cinta de entrada'),
+      ],
+    }),
+    // Una alarma reconocida y otra sin reconocer (ADR-0022).
+    acknowledgements: [
+      {
+        code: 'ROB-001',
+        raisedAt: at,
+        acknowledgedBy: 'operaria',
+        acknowledgedAt: '2026-10-05T08:32:00.000Z',
+      },
     ],
-  }),
+  },
   cell('cell-04', 'EMERGENCY_STOP', {
     alarms: [alarm('SAF-001', 'CRITICAL', 'Parada de emergencia activada')],
   }),

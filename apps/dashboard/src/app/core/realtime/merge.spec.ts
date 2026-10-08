@@ -55,4 +55,35 @@ describe('fusión de la información de una célula', () => {
     const current = cell({ state: buildStateMessage({ seq: 1 }) });
     expect(mergeCell(current, cell({})).state).toEqual(current.state);
   });
+
+  describe('reconocimientos de alarmas (ADR-0022)', () => {
+    const raisedAt = '2026-10-05T08:00:00.000Z';
+    const alarm = { code: 'ROB-001', severity: 'HIGH' as const, message: 'Colisión', raisedAt };
+    const acknowledgement = {
+      code: 'ROB-001',
+      raisedAt,
+      acknowledgedBy: 'operaria',
+      acknowledgedAt: '2026-10-05T08:02:00.000Z',
+    };
+    const faulted = buildStateMessage({ seq: 4, state: 'FAULT', activeAlarms: [alarm] });
+
+    it('conserva el reconocimiento aunque llegue en un mensaje anterior', () => {
+      const current = cell({ state: faulted, acknowledgements: [acknowledgement] });
+      const merged = mergeCell(current, cell({ state: faulted }));
+      expect(merged.acknowledgements).toEqual([acknowledgement]);
+    });
+
+    it('añade el que llega y lo quita cuando la alarma se resuelve', () => {
+      const merged = mergeCell(
+        cell({ state: faulted }),
+        cell({ state: faulted, acknowledgements: [acknowledgement] }),
+      );
+      expect(merged.acknowledgements).toEqual([acknowledgement]);
+      const resolved = mergeCell(
+        merged,
+        cell({ state: buildStateMessage({ seq: 5, state: 'STOPPED', activeAlarms: [] }) }),
+      );
+      expect(resolved.acknowledgements).toBeUndefined();
+    });
+  });
 });

@@ -1,4 +1,4 @@
-import type { CellSnapshot } from '@logicflows/contract';
+import type { AlarmAcknowledgement, CellSnapshot } from '@logicflows/contract';
 
 interface Ordered {
   readonly sessionId: string;
@@ -37,10 +37,35 @@ export function mergeCell(current: CellSnapshot | undefined, incoming: CellSnaps
   if (current === undefined) {
     return incoming;
   }
+  const state = newest(current.state, incoming.state);
+  const { acknowledgements: previous = [], ...rest } = current;
   return {
-    ...current,
+    ...rest,
     status: newest(current.status, incoming.status),
-    state: newest(current.state, incoming.state),
+    state,
     telemetry: newest(current.telemetry, incoming.telemetry),
+    ...acknowledgementsFor(state, [...previous, ...(incoming.acknowledgements ?? [])]),
   };
+}
+
+/**
+ * Los reconocimientos de las alarmas activas en el estado que queda (ADR-0022):
+ * un reconocimiento no se pierde por llegar en un mensaje anterior, y el de
+ * una alarma resuelta desaparece. Sin ninguno, el campo no está.
+ */
+function acknowledgementsFor(
+  state: CellSnapshot['state'],
+  candidates: readonly AlarmAcknowledgement[],
+): Pick<CellSnapshot, 'acknowledgements'> {
+  const active = new Set(
+    (state?.activeAlarms ?? []).map((alarm) => `${alarm.code}@${Date.parse(alarm.raisedAt)}`),
+  );
+  const kept = new Map<string, AlarmAcknowledgement>();
+  for (const acknowledgement of candidates) {
+    const key = `${acknowledgement.code}@${Date.parse(acknowledgement.raisedAt)}`;
+    if (active.has(key) && !kept.has(key)) {
+      kept.set(key, acknowledgement);
+    }
+  }
+  return kept.size === 0 ? {} : { acknowledgements: [...kept.values()] };
 }

@@ -44,6 +44,13 @@ El estado se muestra con `app-state-badge`: icono y texto en el color del tono s
 
 Las alarmas activas aparecen **justo debajo del estado**, de más a menos grave, con `app-alarm-item`: severidad escrita en su color, código en monoespaciada, desde cuándo, y el mensaje en el color del texto. Van sobre el fondo suave de su severidad y con un borde izquierdo de su color. Sin alarmas, la sección no ocupa espacio.
 
+**Reconocer** ([ADR-0022](adr/0022-reconocimiento-de-alarmas.md)):
+
+- Con el rol `operator` o `admin`, cada alarma sin reconocer lleva el botón **Reconocer**, en la tarjeta y en el detalle. Tocar el aviso de una alarma en el móvil abre el detalle de su célula.
+- Una alarma reconocida **sigue en pantalla**, porque sigue activa. Pierde el fondo de color, conserva el borde y la severidad, y dice quién la atiende («Reconocida por operaria a las 08:32»). Así, lo que nadie atiende destaca sobre lo que ya se atiende (ISA-101).
+- Si no se puede reconocer, el motivo aparece debajo del botón («La alarma ya no está activa»).
+- En el registro del histórico, cada reconocimiento es una entrada («ROB-001 reconocida por operaria»).
+
 ## Indicadores de producción
 
 | Indicador | Formato | Ejemplo |
