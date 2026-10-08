@@ -276,3 +276,27 @@ export const problemSchema: SchemaObject = {
     },
   },
 };
+
+export const comparisonSchema: SchemaObject = {
+  type: 'object',
+  required: ['siteId', 'from', 'to', 'timeZone', 'cells'],
+  properties: {
+    siteId: identifier('Planta'),
+    from: { type: 'string', format: 'date-time', description: 'Inicio del periodo (incluido)' },
+    to: { type: 'string', format: 'date-time', description: 'Fin del periodo (excluido)' },
+    timeZone: { type: 'string', example: 'Europe/Madrid' },
+    cells: {
+      type: 'array',
+      description: 'Cada célula de la planta, ordenadas por su identificador',
+      items: {
+        type: 'object',
+        required: ['cellId', 'nominalBoxesPerHour', 'summary'],
+        properties: {
+          cellId: identifier('Célula'),
+          nominalBoxesPerHour: { type: 'number', example: 900 },
+          summary: indicatorsSchema,
+        },
+      },
+    },
+  },
+};

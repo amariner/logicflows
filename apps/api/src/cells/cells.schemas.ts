@@ -6,6 +6,9 @@ import { isLocalMidnight } from '../history/time-zone.ts';
 const DAY_MS = 86_400_000;
 export const MAX_RANGE_DAYS = 31;
 
+export const siteParamsSchema = z.object({ siteId: siteIdSchema });
+export type SiteParams = z.infer<typeof siteParamsSchema>;
+
 export const cellParamsSchema = z.object({
   siteId: siteIdSchema,
   cellId: cellIdSchema,

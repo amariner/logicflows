@@ -393,6 +393,44 @@ describe('histórico agregado por hora (LF-79, LF-80)', () => {
     }
   });
 
+  it('compara las células de una planta: 4 células y 30 días en menos de 200 ms (LF-129)', async () => {
+    // Cuatro células con 30 días de agregados; cell-04 produce menos y falla más.
+    await pool.query(`
+      insert into cell_hourly
+      select 'comp', cell, hour,
+             case when cell = 'cell-04' then 600 else 800 end, 20,
+             case when cell = 'cell-04'
+               then '{"RUNNING": 2700, "FAULT": 900}'::jsonb
+               else '{"RUNNING": 3300, "FAULT": 300}'::jsonb end,
+             '{"FAULT:ROB-001": {"seconds": 300, "count": 1}}', '{"HIGH": 1}',
+             hour + interval '1 hour'
+      from unnest(array['cell-01', 'cell-02', 'cell-03', 'cell-04']) as cell,
+           generate_series('2026-07-01T00:00:00Z'::timestamptz, '2026-07-30T23:00:00Z', '1 hour') as hour
+    `);
+    const compare = () =>
+      request(app.getHttpServer() as Server)
+        .get('/api/v1/sites/comp/comparison')
+        .set('Authorization', `Bearer ${token}`)
+        .query({ from: '2026-07-01T00:00:00Z', to: '2026-07-31T00:00:00Z' })
+        .expect(200);
+    await compare();
+    const started = performance.now();
+    const response = await compare();
+    expect(performance.now() - started).toBeLessThan(200);
+
+    const body = response.body as {
+      cells: { cellId: string; summary: { boxes: number; availability: number } }[];
+    };
+    expect(body.cells.map((cell) => cell.cellId)).toEqual([
+      'cell-01',
+      'cell-02',
+      'cell-03',
+      'cell-04',
+    ]);
+    expect(body.cells[0]?.summary).toMatchObject({ boxes: 800 * 720, availability: 3300 / 3600 });
+    expect(body.cells[3]?.summary).toMatchObject({ boxes: 600 * 720, availability: 2700 / 3600 });
+  });
+
   it('con 90 días de agregados, el histórico de 30 días responde en menos de 300 ms', async () => {
     await pool.query(`
       insert into cell_hourly

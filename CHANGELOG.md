@@ -6,6 +6,7 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ### Añadido
 
+- **Comparar las células de una planta** en la API (LF-129): `GET /api/v1/sites/{siteId}/comparison` devuelve los indicadores de cada célula en el mismo periodo, con el calendario de turnos. Con 4 células y 30 días responde en menos de 200 ms.
 - **Reconocer alarmas desde el visor y la app** (ADR-0022, LF-128): botón «Reconocer» para `operator` y `admin` en la tarjeta y el detalle. La alarma reconocida sigue visible, sin fondo de color y con quién la atiende, y llega a los demás visores sin recargar. Los reconocimientos aparecen en el registro, y tocar el aviso en el móvil abre el detalle de la célula.
 - **Reconocer alarmas en la API** (ADR-0022, LF-126): `POST …/alarms/{code}/acknowledgements` con el rol nuevo `operator`, una vez por activación. Llega a los visores en tiempo real y queda en el registro de eventos y en el log de auditoría.
 - **Indicadores con el calendario de turnos** (ADR-0021, LF-125): una célula detenida (`STOPPED`) dentro de un turno es la parada «Detenida en turno» y resta disponibilidad; fuera de turno, todo sigue igual. El histórico y el CSV incluyen el tiempo de turno.
