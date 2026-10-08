@@ -86,6 +86,7 @@ const hourly = (hour: number, boxes: number) => ({
   pallets: Math.floor(boxes / 40),
   seconds: {
     total: 3600,
+    shift: 0,
     noData: 0,
     outOfProduction: 0,
     planned: 3600,
@@ -115,6 +116,7 @@ export const HISTORY = {
     to: '2026-10-05T14:00:00.000Z',
     seconds: {
       total: 28_800,
+      shift: 0,
       noData: 0,
       outOfProduction: 0,
       planned: 28_800,

@@ -69,20 +69,32 @@ export function shiftProblems(shifts: readonly Shift[]): string[] {
   return [...new Set(problems)];
 }
 
+// Crear un formateador cuesta mucho más que usarlo, y el histórico de un año
+// pregunta por unas 9 000 horas.
+const formatters = new Map<string, Intl.DateTimeFormat>();
+function formatter(timeZone: string): Intl.DateTimeFormat {
+  let found = formatters.get(timeZone);
+  if (found === undefined) {
+    found = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      hourCycle: 'h23',
+      weekday: 'short',
+    });
+    formatters.set(timeZone, found);
+  }
+  return found;
+}
+
 /** Fecha, hora y día de la semana locales de un instante en una zona horaria. */
 export function localTime(
   instant: Date,
   timeZone: string,
 ): { date: string; hour: number; weekday: Weekday } {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    hourCycle: 'h23',
-    weekday: 'short',
-  }).formatToParts(instant);
+  const parts = formatter(timeZone).formatToParts(instant);
   const part = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((candidate) => candidate.type === type)?.value ?? '';
   const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];

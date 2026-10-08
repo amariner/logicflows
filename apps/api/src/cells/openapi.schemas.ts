@@ -87,14 +87,17 @@ const indicatorsSchema: SchemaObject = {
     pallets: { type: 'integer', minimum: 0, description: 'Palés completados' },
     seconds: {
       type: 'object',
-      required: ['total', 'noData', 'outOfProduction', 'planned', 'running', 'stopped'],
+      required: ['total', 'shift', 'noData', 'outOfProduction', 'planned', 'running', 'stopped'],
       properties: {
         total: seconds('Tiempo transcurrido del periodo; lo que aún no ha ocurrido no cuenta'),
+        shift: seconds('Tiempo de turno según el calendario de la planta (ADR-0021)'),
         noData: seconds('Célula desconectada o sin datos'),
-        outOfProduction: seconds('STOPPED: no se pretendía producir'),
+        outOfProduction: seconds('STOPPED fuera de turno: no se pretendía producir'),
         planned: seconds('Total − sin datos − fuera de producción'),
         running: seconds('En producción (RUNNING)'),
-        stopped: seconds('Paradas: STARTING, PAUSED, WAITING, FAULT y EMERGENCY_STOP'),
+        stopped: seconds(
+          'Paradas: STARTING, PAUSED, WAITING, FAULT, EMERGENCY_STOP y STOPPED en turno',
+        ),
       },
     },
     availability: ratio('En producción ÷ planificado; null sin tiempo planificado'),
@@ -108,7 +111,15 @@ const indicatorsSchema: SchemaObject = {
         properties: {
           cause: {
             type: 'string',
-            enum: ['STARTING', 'PAUSED', 'STARVED', 'BLOCKED', 'FAULT', 'EMERGENCY_STOP'],
+            enum: [
+              'STARTING',
+              'PAUSED',
+              'STARVED',
+              'BLOCKED',
+              'FAULT',
+              'EMERGENCY_STOP',
+              'STOPPED',
+            ],
           },
           alarmCode: {
             type: 'string',

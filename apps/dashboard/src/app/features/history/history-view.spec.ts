@@ -11,6 +11,7 @@ const period = (from: string, to: string, values: Partial<PeriodIndicators> = {}
     pallets: 0,
     seconds: {
       total: 3600,
+      shift: 0,
       noData: 0,
       outOfProduction: 0,
       planned: 3600,
@@ -37,6 +38,7 @@ const history = (values: Partial<CellHistory> = {}): CellHistory => ({
     pallets: 128,
     seconds: {
       total: 28_800,
+      shift: 0,
       noData: 0,
       outOfProduction: 3600,
       planned: 25_200,
@@ -123,10 +125,25 @@ describe('presentación del histórico', () => {
     ]);
   });
 
+  it('una parada en turno se llama «Detenida en turno» (ADR-0021)', () => {
+    const base = history();
+    const view = toHistoryView({
+      ...base,
+      summary: {
+        ...base.summary,
+        stops: [{ cause: 'STOPPED', alarmCode: null, seconds: 7200, count: 1 }],
+      },
+    });
+    expect(view.stops).toEqual([
+      { label: 'Detenida en turno', duration: '2 h', count: '1 vez', ratio: 1 },
+    ]);
+  });
+
   it('sin ningún dato, lo indica', () => {
     const empty = period('2026-10-05T06:00:00.000Z', '2026-10-05T07:00:00.000Z', {
       seconds: {
         total: 3600,
+        shift: 0,
         noData: 3600,
         outOfProduction: 0,
         planned: 0,

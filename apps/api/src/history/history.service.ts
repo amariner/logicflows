@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import { CalendarService } from '../calendar/calendar.service.ts';
 import type { AppConfig } from '../config/config.ts';
 import { HistoryRepository } from './history.repository.ts';
 import { HOUR_MS } from './hour-summary.ts';
@@ -35,6 +36,7 @@ export class HistoryService {
   constructor(
     private readonly repository: HistoryRepository,
     private readonly config: ConfigService<AppConfig, true>,
+    private readonly calendars: CalendarService,
   ) {}
 
   /** Si hay datos guardados de la célula. */
@@ -115,7 +117,20 @@ export class HistoryService {
     now: Date = new Date(),
   ): Promise<CellHistory> {
     const nominal = this.nominalBoxesPerHour(siteId, cellId);
-    const rows = await this.repository.hours(siteId, cellId, from, to);
+    const [rows, calendar] = await Promise.all([
+      this.repository.hours(siteId, cellId, from, to),
+      this.calendars.calendar(siteId),
+    ]);
+    // Las horas de turno del periodo se deciden una vez (ADR-0021).
+    const shiftHours = new Set<number>();
+    if (!calendar.empty) {
+      for (let hour = from.getTime(); hour < to.getTime(); hour += HOUR_MS) {
+        if (calendar.isShiftHour(new Date(hour))) {
+          shiftHours.add(hour);
+        }
+      }
+    }
+    const isShiftHour = (hour: Date) => shiftHours.has(hour.getTime());
     const bounds: number[] = [];
     let previousDay: string | undefined;
     for (let hour = from.getTime(); hour < to.getTime(); hour += HOUR_MS) {
@@ -137,11 +152,11 @@ export class HistoryService {
       ) {
         inPeriod.push(row);
       }
-      return computeIndicators(inPeriod, new Date(start), new Date(end), now, nominal);
+      return computeIndicators(inPeriod, new Date(start), new Date(end), now, nominal, isShiftHour);
     });
     return {
       nominalBoxesPerHour: nominal,
-      summary: computeIndicators(rows, from, to, now, nominal),
+      summary: computeIndicators(rows, from, to, now, nominal, isShiftHour),
       periods,
     };
   }
