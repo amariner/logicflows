@@ -83,17 +83,15 @@ El orden importa por lo mismo que al cargar la ventana: si el simulador en direc
 
 La retención borra filas, pero PostgreSQL no devuelve ese espacio al disco: el autovacuum solo lo marca para reutilizarlo. Tras cargar la ventana, la telemetría de 31 días deja el fichero en unos 80 MB aunque solo se conserven dos días. Como la ventana no crece, ese hueco nunca se llegaría a llenar.
 
-Se compacta **una vez**, cuando la retención ya ha borrado lo antiguo:
+Se compacta **una vez** tras cada carga, cuando la retención (cada hora en la API) ya ha borrado lo antiguo. `cargar-ventana.sh` lo recuerda al terminar:
 
-```sql
-\connect logicflows
-set lock_timeout = '10s';
-vacuum (full, analyze) telemetry_samples;
-vacuum (full, analyze) cell_state_changes;
-vacuum (full, analyze) cell_hourly;
+```bash
+infra/railway/ejecutar-sql.sh production infra/postgres/compactar.sql
 ```
 
-`VACUUM FULL` reescribe la tabla y la bloquea mientras tanto. Con unas 20 000 filas, el bloqueo dura unos 130 ms y la ingesta solo espera. `lock_timeout` evita que se quede esperando si alguien tiene la tabla ocupada. A partir de ahí, el autovacuum basta: lo que borra cada hora se reutiliza con lo que entra.
+El script ejecuta `VACUUM (FULL, ANALYZE)` sobre `telemetry_samples`, `cell_state_changes` y `cell_hourly`, e imprime el tamaño antes y después. `VACUUM FULL` reescribe la tabla y la bloquea mientras tanto. Con unas 20 000 filas, el bloqueo dura unos 130 ms; con 69 000 filas de cuatro células, 566 ms. La ingesta solo espera. `lock_timeout` evita que se quede esperando si alguien tiene la tabla ocupada. A partir de ahí, el autovacuum basta: lo que borra cada hora se reutiliza con lo que entra.
+
+Después se **reinicia PostgreSQL** (`railway restart --service Postgres --environment production --yes`). Railway mide la memoria del contenedor, y esa medida incluye la caché de ficheros del sistema operativo: los datos y el WAL que escribió la carga. El kernel solo la libera si le falta memoria, y en una máquina de 8 GB nunca le falta. Railway la cobra igual. El 8 de octubre, tras recargar cuatro células, PostgreSQL marcaba 1,03 GB con `shared_buffers` en 128 MB. Al compactar bajó a 711 MB, porque se borraron los ficheros viejos. Un `CHECKPOINT` apenas cambió nada: PostgreSQL conserva el WAL reciclado (272 MB) y lo va soltando poco a poco. Tras reiniciar, **87 MB**. El corte dura unos segundos: la API reintenta y el broker guarda los mensajes. La CLI de Railway (5.63) se quedó esperando tras reiniciar; el reinicio se comprueba con `select pg_postmaster_start_time()`.
 
 ## Consumo
 
@@ -109,7 +107,7 @@ Railway cobra la memoria y la CPU por minuto: 10 USD por GB y mes, y 20 USD por 
 | `broker` | 9 MB | 5 MB | 9 MB |
 | **Total** | **unos 1 070 MB, ~10,7 USD al mes** | **unos 1 100 MB, ~11 USD al mes** | **unos 940 MB, ~9,4 USD al mes** |
 
-En Railway, la API queda por debajo de lo medido en local (140 MB de memoria residente): Railway no mide exactamente lo mismo que `VmRSS`, así que se compara siempre con la misma herramienta. PostgreSQL no volvió a sus 150 MB tras la carga del 4 de octubre; si sigue así, es lo siguiente que conviene mirar.
+En Railway, la API queda por debajo de lo medido en local (140 MB de memoria residente): Railway no mide exactamente lo mismo que `VmRSS`, así que se compara siempre con la misma herramienta. PostgreSQL no volvió a sus 150 MB tras la carga del 4 de octubre: era la caché de ficheros de la carga, que se libera reiniciándolo (LF-133, en [Compactar tras la primera retención](#compactar-tras-la-primera-retención)).
 
 **Lo que se ha ajustado (LF-96):**
 
@@ -136,6 +134,9 @@ El ritmo con el ajuste sigue siendo cuatro veces el que admite Railway (unos 300
 | 5 oct 2026, 06:47 UTC | Producción, tras `VACUUM FULL` | **15 MB** (telemetría, 5,9 MB) |
 | 6 oct 2026, 09:42 UTC | Producción, un día después | **19 MB** (telemetría, 10 MB): 33 918 muestras desde el 4 oct a las 08:54. La retención funciona y no hay espacio sin devolver; el aumento se debe a que la telemetría en vivo (unas 830 muestras por hora desde el 4 oct a las 22:00) sustituye a la cargada (362 por hora). Con la ventana entera en vivo, desde el 6 oct a las 22:00 UTC, debe quedar en unos 21 MB |
 | 7 oct 2026, 05:47 UTC | Producción, con la ventana entera en vivo | **22 MB** (telemetría, 13 MB): 40 350 muestras desde el 5 oct a las 04:53. Coincide con lo previsto (unas 830 por hora durante dos días) |
+| 8 oct 2026, 12:58 UTC | Producción, tras recargar 31 días con cuatro células (LF-123) y aplicar la retención | **300 MB** (telemetría, 289 MB con 69 196 filas vivas); volumen de 913 MB; PostgreSQL en 1,03 GB de memoria |
+| 8 oct 2026, 13:00 UTC | Producción, tras `compactar.sql` (LF-133) | **30 MB**; PostgreSQL en 711 MB de memoria a los 20 minutos |
+| 8 oct 2026, 13:40 UTC | Producción, 18 minutos después de reiniciar PostgreSQL | PostgreSQL en **87 MB** de memoria; volumen de 536 MB (el WAL reciclado se suelta poco a poco) |
 
 ## Lo que enseñó la carga en producción
 
