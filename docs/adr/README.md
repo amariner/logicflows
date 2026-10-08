@@ -28,6 +28,7 @@ Un ADR aceptado no se reescribe. Si la decisión cambia, se crea un ADR nuevo qu
 | [0018](0018-mensajeria-sin-kafka.md) | Mensajería sin Kafka por ahora | Aceptado |
 | [0019](0019-datos-de-la-demo.md) | Datos de la demo: guion diario y ventana fija | Aceptado |
 | [0020](0020-tokens-de-diseno.md) | Tokens de diseño compartidos en código | Aceptado |
+| [0021](0021-calendario-de-turnos.md) | Calendario de turnos y tiempo planificado | Aceptado |
 
 ## Estados
 
