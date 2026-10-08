@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { hasRole, rolesFromClaims } from './roles.ts';
 import type { Principal, Role } from './roles.ts';
 
-const principal = (roles: Role[]): Principal => ({ subject: 'u', roles, expiresAt: 0 });
+const principal = (roles: Role[]): Principal => ({ subject: 'u', name: 'u', roles, expiresAt: 0 });
 
 describe('roles', () => {
   it('lee los roles conocidos de la ruta del token e ignora los demás', () => {

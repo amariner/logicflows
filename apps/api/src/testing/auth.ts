@@ -11,6 +11,8 @@ export const TEST_TICKET_SECRET = 'secreto-de-tiques-solo-para-pruebas-012345678
 
 export interface TokenOptions {
   readonly subject?: string;
+  /** `preferred_username`; sin él, el token no lo trae. */
+  readonly name?: string;
   readonly roles?: readonly Role[];
   readonly audience?: string;
   /** Segundos hasta la caducidad; negativo para un token ya caducado. */
@@ -68,7 +70,10 @@ async function startIssuer(): Promise<TestIssuer> {
 
   const sign = (key: CryptoKey, options: TokenOptions) => {
     const now = Math.floor(Date.now() / 1000);
-    return new SignJWT({ realm_access: { roles: options.roles ?? ['viewer'] } })
+    return new SignJWT({
+      realm_access: { roles: options.roles ?? ['viewer'] },
+      ...(options.name === undefined ? {} : { preferred_username: options.name }),
+    })
       .setProtectedHeader({ alg: 'RS256', kid: 'clave-de-prueba' })
       .setIssuer(url)
       .setAudience(options.audience ?? TEST_AUDIENCE)

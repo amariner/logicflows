@@ -51,6 +51,10 @@ export class TokenVerifier {
     }
     return {
       subject: payload.sub,
+      name:
+        typeof payload['preferred_username'] === 'string' && payload['preferred_username'] !== ''
+          ? payload['preferred_username']
+          : payload.sub,
       roles: rolesFromClaims(payload, this.#rolesClaim),
       expiresAt: payload.exp * 1000,
     };
