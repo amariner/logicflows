@@ -80,7 +80,7 @@ Para la causa «Detenida en turno» hace falta saber cuántas veces empezó, ade
 - `GET /api/v1/sites/{siteId}/calendar`: versión vigente, versiones futuras y excepciones. Rol `viewer`.
 - `PUT /api/v1/sites/{siteId}/calendar/versions/{effectiveFrom}`: crea o sustituye una versión futura. `DELETE` la borra si aún es futura. Rol `admin`.
 - `PUT` y `DELETE /api/v1/sites/{siteId}/calendar/exceptions/{date}`: excepciones de días futuros. Rol `admin`.
-- Cada cambio queda en el log de auditoría con el usuario y el antes y después.
+- **Quién y cuándo:** cada versión y cada excepción guardan el usuario (`sub` y nombre del token) y la hora en que se crearon. Las versiones vigentes y pasadas no se modifican, así que la tabla es el propio registro de cambios. Además, cada cambio se escribe en el log estructurado como evento de auditoría (ver [ADR-0022](0022-reconocimiento-de-alarmas.md)).
 - Los indicadores de `GET …/history` y el CSV añaden el tiempo de turno del periodo (`shiftSeconds`), y la causa nueva aparece en las paradas.
 
 ### 6. La demo
@@ -124,7 +124,7 @@ Producción tiene un calendario para la planta `demo`, cargado por una migració
 - **Tres tablas nuevas** (versiones, turnos y excepciones) con migración aditiva, y pantallas para verlas y editarlas (LF-124, LF-127).
 - **El agregador cambia** para contar las paradas `STOPPED`. Es aditivo: una causa más en el mismo campo.
 - **Los turnos solo empiezan en horas en punto.** Una planta con turnos a las 06:30 tendría que redondear, con un error de hasta media hora por turno.
-- **Corregir un error del calendario de hoy no es posible.** Si se olvidó un festivo, ese día cuenta como turno. Se asume para no reescribir el histórico. Si se vuelve un problema, se permitirá corregir el día en curso dejando constancia en la auditoría.
+- **Corregir un error del calendario de hoy no es posible.** Si se olvidó un festivo, ese día cuenta como turno. Se asume para no reescribir el histórico. Si se vuelve un problema, se permitirá corregir el día en curso dejando constancia de quién lo corrigió.
 - **Las zonas horarias con desfase de media hora** (India, partes de Australia) no encajan con horas en punto. Ya era una limitación del histórico por días (`time-zone.ts`).
 
 ## Criterios de revisión
