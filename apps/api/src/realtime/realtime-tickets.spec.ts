@@ -8,7 +8,12 @@ const tickets = (secret = 'secreto-de-tiques-de-al-menos-32-caracteres') =>
   new RealtimeTickets(new ConfigService({ REALTIME_TICKET_SECRET: secret }));
 
 const NOW = Date.parse('2026-10-05T08:00:00.000Z');
-const principal: Principal = { subject: 'operario', roles: ['viewer'], expiresAt: NOW + 300_000 };
+const principal: Principal = {
+  subject: 'operario',
+  name: 'operario',
+  roles: ['viewer'],
+  expiresAt: NOW + 300_000,
+};
 
 describe('tiques del canal de tiempo real', () => {
   it('un tique devuelve quién lo pidió y cuándo caduca su token', async () => {

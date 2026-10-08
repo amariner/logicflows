@@ -41,7 +41,11 @@ export class RealtimeTickets {
 
   async issue(principal: Principal, now = Date.now()): Promise<IssuedTicket> {
     const expiresAt = now + TICKET_TTL_MS;
-    const ticket = await new SignJWT({ roles: principal.roles, tokenExp: principal.expiresAt })
+    const ticket = await new SignJWT({
+      roles: principal.roles,
+      name: principal.name,
+      tokenExp: principal.expiresAt,
+    })
       .setProtectedHeader({ alg: 'HS256' })
       .setSubject(principal.subject)
       .setAudience(AUDIENCE)
@@ -64,7 +68,7 @@ export class RealtimeTickets {
       throw new InvalidTicketError(error instanceof Error ? error.message : String(error));
     }
     this.#forgetExpired(now);
-    const { jti, sub, exp, roles, tokenExp } = payload;
+    const { jti, sub, exp, roles, name, tokenExp } = payload;
     if (jti === undefined || sub === undefined || exp === undefined) {
       throw new InvalidTicketError('Tique incompleto');
     }
@@ -74,6 +78,7 @@ export class RealtimeTickets {
     this.#used.set(jti, exp * 1000);
     return {
       subject: sub,
+      name: typeof name === 'string' ? name : sub,
       roles: Array.isArray(roles) ? (roles as Role[]) : [],
       expiresAt: typeof tokenExp === 'number' ? tokenExp : now,
     };

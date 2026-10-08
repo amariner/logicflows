@@ -5,6 +5,11 @@ export type Role = (typeof ROLES)[number];
 /** Quien hace la petición, según su token de acceso. */
 export interface Principal {
   readonly subject: string;
+  /**
+   * Nombre de usuario para mostrar y auditar (`preferred_username`), o el
+   * sujeto si el token no lo trae.
+   */
+  readonly name: string;
   readonly roles: readonly Role[];
   /** Caducidad del token de acceso, en milisegundos desde la época. */
   readonly expiresAt: number;
