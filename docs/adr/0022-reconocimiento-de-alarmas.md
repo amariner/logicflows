@@ -167,6 +167,14 @@ Cada reconocimiento se escribe también en el log estructurado de la API con `au
 - Hacen falta permisos por planta o por célula, por ejemplo un operario que solo atiende sus células.
 - Se pide un comentario o una causa al reconocer.
 
+## Notas de implementación
+
+**8 de octubre de 2026, LF-126.**
+
+- **`acknowledgements` es opcional en la instantánea** de cada célula y solo aparece si hay alguno: así, las respuestas sin reconocimientos no cambian y un visor anterior sigue funcionando. Ausente equivale a ninguno.
+- **Con varias réplicas,** cada una conoce los reconocimientos que hace y los de las alarmas activas al arrancar, pero no los que hace otra mientras funciona. Producción tiene una réplica. Si se escala, se propagarán por la base de datos o por el broker.
+- **`admin` incluye `operator` en la API,** además de en Keycloak: la API no depende de que el proveedor declare los roles compuestos.
+
 ## Referencias
 
 - ANSI/ISA-18.2: Management of Alarm Systems for the Process Industries

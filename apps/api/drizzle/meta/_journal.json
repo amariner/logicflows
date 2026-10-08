@@ -36,6 +36,13 @@
       "when": 1791448073072,
       "tag": "0004_calendario-de-turnos",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791450512835,
+      "tag": "0005_reconocimiento-de-alarmas",
+      "breakpoints": true
     }
   ]
 }

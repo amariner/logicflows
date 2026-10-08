@@ -262,3 +262,32 @@ export const shiftCalendarExceptions = pgTable(
   },
   (table) => [primaryKey({ columns: [table.siteId, table.date] })],
 );
+
+/**
+ * Reconocimientos de alarmas (ADR-0022): una persona dice «la he visto y me
+ * ocupo». La clave es la activación, así que cada una se reconoce una sola
+ * vez, también con varias réplicas. No se modifican ni se borran salvo por
+ * la retención, como los cambios de estado.
+ */
+export const alarmAcknowledgements = pgTable(
+  'alarm_acknowledgements',
+  {
+    siteId: text('site_id').notNull(),
+    cellId: text('cell_id').notNull(),
+    code: text('code').notNull(),
+    raisedAt: instant('raised_at').notNull(),
+    /** Hora del servidor, nunca del navegador. */
+    acknowledgedAt: instant('acknowledged_at').notNull(),
+    /** Sujeto (`sub`) del usuario en el proveedor de identidad. */
+    acknowledgedBy: text('acknowledged_by').notNull(),
+    /** Nombre de usuario en ese momento, para mostrarlo. */
+    acknowledgedByName: text('acknowledged_by_name').notNull(),
+  },
+  (table) => [
+    primaryKey({
+      name: 'alarm_acknowledgements_pk',
+      columns: [table.siteId, table.cellId, table.code, table.raisedAt],
+    }),
+    index('alarm_acknowledgements_time_idx').on(table.siteId, table.cellId, table.acknowledgedAt),
+  ],
+);

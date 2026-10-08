@@ -8,6 +8,7 @@ import type { AppConfig } from '../config/config.ts';
 import { DATABASE } from '../database/database.module.ts';
 import type { Database } from '../database/database.module.ts';
 import {
+  alarmAcknowledgements,
   cellHourly,
   cellHourlyPending,
   cellStateChanges,
@@ -77,6 +78,11 @@ export class RetentionService implements OnModuleInit, OnModuleDestroy {
         const cutoff = this.#cutoff(now, this.#eventsDays);
         deleted += await this.#purge(cellStateChanges, cutoff);
         deleted += await this.#purge(cellStatusEvents, cutoff);
+        // Los reconocimientos se conservan como los cambios de estado (ADR-0022).
+        const acknowledged = await this.db.execute(
+          sql`delete from ${alarmAcknowledgements} where acknowledged_at < ${cutoff}`,
+        );
+        deleted += acknowledged.rowCount ?? 0;
       }
       if (this.#aggregatesDays > 0) {
         const cutoff = this.#cutoff(now, this.#aggregatesDays);
