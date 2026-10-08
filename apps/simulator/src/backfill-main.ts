@@ -27,6 +27,13 @@ const HEARTBEAT_MS = 10_000;
 const DAY_MS = 86_400_000;
 
 const days = Number(process.env['SIMULATOR_BACKFILL_DAYS'] ?? '7');
+// Por debajo de los unos 300 mensajes por segundo que guarda la API en
+// Railway: más deprisa, el broker llena la cola de la API y descarta (LF-123).
+const rate = Number(process.env['SIMULATOR_BACKFILL_RATE'] ?? '200');
+if (!Number.isFinite(rate) || rate <= 0) {
+  console.error('SIMULATOR_BACKFILL_RATE debe ser un número positivo de mensajes por segundo');
+  process.exit(2);
+}
 if (!Number.isInteger(days) || days < 1 || days > 120) {
   console.error('SIMULATOR_BACKFILL_DAYS debe ser un entero entre 1 y 120');
   process.exit(2);
@@ -90,6 +97,7 @@ async function backfillCell(cellId: string, index: number): Promise<void> {
       messages,
       random: createRandom(seed),
       logger: cellLogger,
+      maxMessagesPerSecond: rate,
     });
     cellLogger.info(
       { published, seconds: Math.round((Date.now() - started) / 1000) },

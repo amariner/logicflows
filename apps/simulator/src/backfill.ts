@@ -25,7 +25,24 @@ export interface BackfillOptions {
   readonly messages: MessageFactory;
   readonly random: Random;
   readonly logger: Logger;
+  /**
+   * Mensajes por segundo, como mucho. El broker guarda para la API un número
+   * limitado de mensajes y descarta el resto si ella no da abasto (LF-90):
+   * la carga debe ir más despacio de lo que la API guarda. Sin límite, va
+   * tan rápido como el broker confirma.
+   */
+  readonly maxMessagesPerSecond?: number;
+  /** Reloj real para el límite; en las pruebas, uno falso. */
+  readonly pace?: { now(): number; sleep(ms: number): Promise<void> };
 }
+
+const realPace = {
+  now: () => Date.now(),
+  sleep: (ms: number) =>
+    new Promise<void>((resolve) => {
+      setTimeout(resolve, ms);
+    }),
+};
 
 /**
  * Genera el histórico de una célula entre dos instantes (LF-77): ejecuta el
@@ -93,11 +110,19 @@ export async function backfill(options: BackfillOptions): Promise<number> {
   incidents.start();
   scripted?.start();
 
+  const pace = options.pace ?? realPace;
+  const started = pace.now();
   let nextReport = options.fromMs + DAY_MS;
   for (let t = options.fromMs; t < options.toMs; t = Math.min(t + STEP_MS, options.toMs)) {
     clock.runUntil(Math.min(t + STEP_MS, options.toMs));
     await Promise.all(pending);
     pending = [];
+    if (options.maxMessagesPerSecond !== undefined) {
+      const ahead = (published / options.maxMessagesPerSecond) * 1000 - (pace.now() - started);
+      if (ahead > 0) {
+        await pace.sleep(ahead);
+      }
+    }
     if (clock.now() >= nextReport) {
       options.logger.info(
         { day: new Date(clock.now()).toISOString().slice(0, 10), published },

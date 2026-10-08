@@ -41,8 +41,9 @@ run_temporary() {
     --var s="$service_id" --var e="$environment_id" --var i="$image" --var c="$command" --var r="$region" > /dev/null
   railway service redeploy --service "$service" --environment "$environment" --from-source --yes > /dev/null
   # Como en ejecutar-sql.sh: se leen los registros enteros antes de buscar.
-  # Hasta una hora: la carga de varias células va una detrás de otra (LF-123).
-  for _ in $(seq 1 360); do
+  # Hasta dos horas y media: la carga va a 200 mensajes por segundo, unos 25
+  # minutos por célula y mes, y las células van una detrás de otra (LF-123).
+  for _ in $(seq 1 900); do
     sleep 10
     logs="$(railway logs --service "$service" --deployment 2> /dev/null || true)"
     if grep -qE "$marker|\[(ERRO|FATAL)\]|Error:" <<< "$logs"; then

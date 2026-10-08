@@ -32,7 +32,12 @@ const recordingConnection = () => {
   return { published, connection };
 };
 
-const run = async (hours: number, seed: number, scenario: Scenario = SCENARIOS.averias) => {
+const run = async (
+  hours: number,
+  seed: number,
+  scenario: Scenario = SCENARIOS.averias,
+  limits: Pick<Parameters<typeof backfill>[0], 'maxMessagesPerSecond' | 'pace'> = {},
+) => {
   const { published, connection } = recordingConnection();
   let id = 0;
   await backfill({
@@ -60,6 +65,7 @@ const run = async (hours: number, seed: number, scenario: Scenario = SCENARIOS.a
     }),
     random: createRandom(seed),
     logger: silentLogger,
+    ...limits,
   });
   return published;
 };
@@ -104,6 +110,25 @@ describe('histórico simulado (LF-77)', () => {
     const states = decoded.filter((d) => d.kind === 'state').length;
     // 2 horas a una cada 10 s son 720, más una por cada cambio de estado.
     expect(telemetry).toBeLessThanOrEqual(720 + states + 5);
+  });
+
+  it('no publica más deprisa que el límite: el broker no descarta mensajes (LF-123)', async () => {
+    let now = 0;
+    const sleeps: number[] = [];
+    const pace = {
+      now: () => now,
+      sleep: (ms: number) => {
+        sleeps.push(ms);
+        now += ms;
+        return Promise.resolve();
+      },
+    };
+    const published = await run(2, 7, SCENARIOS.normal, { maxMessagesPerSecond: 100, pace });
+    // Sin tiempo real transcurrido, la carga espera lo que corresponde al ritmo.
+    // Los últimos mensajes, al detenerse la célula, ya no esperan.
+    expect(now).toBeLessThanOrEqual((published.length / 100) * 1000);
+    expect(now).toBeGreaterThan(((published.length - 10) / 100) * 1000);
+    expect(sleeps.length).toBeGreaterThan(1);
   });
 
   it('con la misma semilla genera el mismo histórico', async () => {

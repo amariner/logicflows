@@ -104,7 +104,7 @@ docker compose exec mosquitto mosquitto_sub -u api -P api-local -t 'logicflows/v
 
 ## Histórico simulado
 
-`pnpm simulator:historico` genera N días de producción de la célula, hasta el momento actual, y los publica por MQTT en unos segundos (LF-77):
+`pnpm simulator:historico` genera N días de producción de las células, hasta el momento actual, y los publica por MQTT (LF-77):
 
 ```sh
 SIMULATOR_BACKFILL_DAYS=90 SIMULATOR_SCENARIO=turno pnpm simulator:historico
@@ -113,7 +113,7 @@ SIMULATOR_BACKFILL_DAYS=90 SIMULATOR_SCENARIO=turno pnpm simulator:historico
 - **Reloj virtual.** El mismo simulador se ejecuta con un reloj virtual (`src/virtual-clock.ts`), que mueve los temporizadores sin esperar. Las marcas de tiempo son las simuladas, y la configuración (célula, formato, tiempos, escenario y `SIMULATOR_SEED`) es la del simulador. Con la misma semilla, el histórico se repite.
 - **Telemetría espaciada.** Se publica una cada 10 s como mucho, más una por cambio de estado. Los contadores son acumulados, así que la producción por periodo no cambia.
 - **Mensajes no retenidos y sin *Last Will*.** El histórico no pasa por estado actual de la célula.
-- **Rendimiento:** en local, 7 días son unos 63 000 mensajes, publicados en 17 s. La API tarda unos 40 s más en guardarlos, sin pérdidas.
+- **Ritmo limitado** (`SIMULATOR_BACKFILL_RATE`, 200 mensajes por segundo por defecto). Tiene que ir más despacio de lo que la API guarda: si no, el broker llena la cola de la API (50 000 mensajes) y descarta el resto sin avisar a quien publica (LF-123). 7 días de una célula, unos 63 000 mensajes, tardan unos 5 minutos.
 
 **Cuándo se puede cargar.** La API descarta una sesión anterior a la que ya conoce (ADR-0004). El histórico se carga, por tanto, en una célula sin datos más recientes:
 

@@ -44,7 +44,7 @@ infra/railway/cargar-ventana.sh production 31
 
 Los pasos 2 y 5 corren en servicios temporales con las credenciales del simulador por referencia, que se borran al terminar. Se crean con una imagen que termina al instante (busybox) y después se cambian de una vez, con un solo despliegue: con la imagen del simulador, Railway arrancaría el simulador en directo en cuanto se crea el servicio.
 
-Tarda unos 10 minutos. Después, la API sigue guardando el histórico durante otro cuarto de hora, a unos 300 mensajes por segundo en Railway.
+Tarda unos 25 minutos por célula: la carga publica a 200 mensajes por segundo (`SIMULATOR_BACKFILL_RATE`), por debajo de los unos 300 que guarda la API en Railway. Más deprisa, el broker llena la cola de la API (50 000 mensajes, LF-90) y **descarta el resto sin que la carga se entere**: el 8 de octubre de 2026, al añadir tres células sin límite, se perdió más de la mitad de su histórico, y el log del broker decía «Outgoing messages are being dropped for client logicflows-api-…» (LF-123).
 
 **Después de cargar:**
 

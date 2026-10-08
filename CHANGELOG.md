@@ -12,6 +12,7 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ### Corregido
 
+- La carga del histórico simulado va a 200 mensajes por segundo como mucho (`SIMULATOR_BACKFILL_RATE`): al cargar varias células, publicaba más deprisa de lo que la API guarda y el broker descartaba parte del histórico (LF-123).
 - La prueba de producción ya no falla si coincide con una parada del guion diario de la demo: comprueba que llegan datos en tiempo real, no que la célula esté produciendo (LF-119).
 
 ## [0.5.0] - 2026-10-08
