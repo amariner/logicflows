@@ -13,7 +13,7 @@ Cómo se rediseñó el visor en el Hito 5, para repetirlo en las pantallas sigui
 | 5. Tema y componentes | Angular e Ionic | Frontend, revisado en la pull request | Tema claro y oscuro y componentes base en `src/app/ui/` | LF-105, LF-103 |
 | 6. Pantallas | Angular | Frontend; revisión visual en la pull request | Pantallas y capturas en [pantallas.md](pantallas.md) | LF-106, LF-107, LF-108 |
 | 7. Comprobar | axe-core, Playwright | La CI | Capturas de referencia en `apps/dashboard/e2e/capturas/` | LF-110 |
-| 8. Llevar a Figma | Figma | Tech Lead | Pantallas implementadas en Figma, página *04 · Pantallas* | LF-104 |
+| 8. Dosier | Capturas de referencia de la CI | Tech Lead | [dosier.md](dosier.md): antes y después, pantallas y lámina del sistema de diseño | LF-104 |
 
 ## Los pasos
 
@@ -46,9 +46,9 @@ Cada pantalla se rediseña en su pull request, con capturas en claro, oscuro y m
 - axe-core comprueba WCAG 2.2 AA en claro y en oscuro, en tres tamaños de pantalla.
 - Las capturas de referencia detectan cualquier cambio visual no buscado. Si el cambio es el buscado, se actualizan en la misma pull request.
 
-### 8. Llevar el resultado a Figma
+### 8. Preparar el dosier
 
-Figma recibe **al final** las pantallas implementadas, junto a la exploración, para el dosier y para comparar el antes y el después. No hay sincronización automática: si un token cambia, se cambia en el código y después se actualizan las capturas.
+El plan era llevar al final las pantallas implementadas a Figma. Sin créditos en el plan gratuito, el dosier se hizo en el repositorio ([dosier.md](dosier.md)), y salió ganando: usa las capturas de referencia de la CI y una lámina del sistema de diseño dibujada con los tokens reales (`apps/dashboard/e2e/lamina.spec.ts`). Si un token o una pantalla cambian, la CI obliga a actualizar sus capturas en la misma pull request, así que el dosier no se queda atrás.
 
 ## Antes y después
 
@@ -76,4 +76,4 @@ Lo que cambió al pasar a producto: solo datos del contrato, textos en español 
 3. Si hace falta un color o un tamaño nuevo, añadirlo como token con su prueba de contraste.
 4. Componer con los componentes de `src/app/ui/`; crear uno nuevo solo si se va a reutilizar.
 5. Capturas en la pull request y, si la pantalla es clave, añadirla a las capturas de referencia.
-6. Al cerrar el hito, llevar las pantallas a Figma.
+6. Al cerrar el hito, revisar el [dosier](dosier.md) y añadir las pantallas nuevas.

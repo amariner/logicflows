@@ -9,6 +9,8 @@ Plataforma IIoT para monitorizar en tiempo real células robotizadas de paletiza
   <img src="docs/imagenes/visor-movil.png" alt="Detalle de una célula en un móvil, tema claro: estado, alarmas y el esquema de la cinta, el robot y el palé" width="28%">
 </p>
 
+<p align="center"><a href="docs/diseno/dosier.md">Dosier de diseño</a>: pantallas en claro y oscuro y el sistema de diseño</p>
+
 ## Arranque rápido
 
 Solo hace falta **Docker** con Docker Compose 2 (Docker Desktop, OrbStack o Colima con `docker-buildx`). En menos de 10 minutos el sistema completo funciona en local con una célula simulada:
@@ -258,4 +260,4 @@ TypeScript está fijado en la versión 6.0 porque Angular 22 y typescript-eslint
 - [Indicadores de planta: disponibilidad, rendimiento y paradas por causa](docs/indicadores-de-planta.md)
 - [Guía de contribución y Definition of Done](CONTRIBUTING.md)
 - [Estrategia de pruebas](docs/estrategia-de-pruebas.md)
-- [Diseño del visor](docs/diseno-del-visor.md)
+- [Diseño del visor](docs/diseno-del-visor.md) y [dosier de diseño](docs/diseno/dosier.md): antes y después, pantallas y sistema de diseño

@@ -4,6 +4,10 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ## [Sin publicar]
 
+### Añadido
+
+- **Dosier de diseño** (`docs/diseno/dosier.md`): antes y después, pantallas en claro y oscuro y una lámina del sistema de diseño dibujada con los tokens reales, comprobada en la CI como captura de referencia (LF-104).
+
 ### Corregido
 
 - La prueba de producción ya no falla si coincide con una parada del guion diario de la demo: comprueba que llegan datos en tiempo real, no que la célula esté produciendo (LF-119).

@@ -2,7 +2,7 @@
 
 Sistema visual del visor, revisado en el Hito 5 (rediseño visual). El visor se consulta en planta, a distancia y con prisa: su objetivo es que una persona sepa **de un vistazo** si cada célula produce y, si no, qué ocurre y qué tan grave es. También se enseña en demos, así que tiene que parecer un producto de planta creíble.
 
-Los valores (colores, tipografía, espaciado y radios) están en el paquete [`@logicflows/design-tokens`](../packages/design-tokens) ([ADR-0020](adr/0020-tokens-de-diseno.md)). Este documento explica cómo se usan. Las pantallas resultantes, con capturas en claro, oscuro y móvil, están en [Pantallas del visor](diseno/pantallas.md), y la exploración que llevó a esta dirección, en [Exploración con Stitch](diseno/exploracion-stitch.md).
+Los valores (colores, tipografía, espaciado y radios) están en el paquete [`@logicflows/design-tokens`](../packages/design-tokens) ([ADR-0020](adr/0020-tokens-de-diseno.md)). Este documento explica cómo se usan. Las pantallas resultantes, con capturas en claro, oscuro y móvil, están en [Pantallas del visor](diseno/pantallas.md), la exploración que llevó a esta dirección, en [Exploración con Stitch](diseno/exploracion-stitch.md), y la presentación para el dosier, en el [Dosier de diseño](diseno/dosier.md).
 
 ## Principios
 
