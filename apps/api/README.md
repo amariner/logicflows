@@ -231,6 +231,7 @@ El tiempo planificado de los indicadores sale del calendario de turnos de cada p
 - **El pasado no se reescribe:** versiones y excepciones solo se crean, cambian o borran a partir de mañana, en la hora local de la planta (409 si no).
 - **Quién y cuándo:** cada versión y excepción guarda el sujeto y el nombre de usuario de quien la creó. Cada cambio se escribe además en el log como evento de auditoría (`audit: true`, `event: calendar.…`), con el antes y el después.
 - **Hora de turno** (`src/calendar/calendar.ts`): una hora es de turno según la versión y las excepciones del día en que empezó el turno, en la hora local de la planta, con el cambio de hora incluido.
+- **Indicadores:** el histórico decide una vez qué horas del periodo son de turno; en ellas, `STOPPED` es la parada «Detenida en turno» (`STOPPED` en las paradas). El agregador anota siempre las paradas `STOPPED`, y los indicadores solo las cuentan en turno. `seconds.shift` es el tiempo de turno del periodo.
 - **La demo** carga su calendario con `infra/postgres/calendario-demo.sql`: mañana y tarde de lunes a viernes.
 
 ## Estructura

@@ -11,10 +11,12 @@ export type TimeBucket = Exclude<CellState, 'WAITING'> | `WAITING_${WaitingReaso
 
 /**
  * Causa de una parada: el estado, el motivo de la espera o, en un fallo, el
- * código de la alarma que lo provocó (`FAULT:ROB-001`).
+ * código de la alarma que lo provocó (`FAULT:ROB-001`). `STOPPED` se anota
+ * siempre, pero solo es una parada dentro de un turno (ADR-0021): lo decide
+ * el cálculo de los indicadores con el calendario.
  */
 export type StopCause =
-  'STARTING' | 'PAUSED' | 'STARVED' | 'BLOCKED' | 'EMERGENCY_STOP' | `FAULT:${string}`;
+  'STARTING' | 'PAUSED' | 'STARVED' | 'BLOCKED' | 'EMERGENCY_STOP' | 'STOPPED' | `FAULT:${string}`;
 
 export interface StopTotals {
   readonly seconds: number;
@@ -120,8 +122,9 @@ function situationAt(t: number, input: HourInput, faultEntry: StatePoint | undef
     case 'EMERGENCY_STOP':
       return { bucket: state.state, cause: state.state };
     case 'STOPPED':
+      return { bucket: 'STOPPED', cause: 'STOPPED' };
     case 'RUNNING':
-      return { bucket: state.state, cause: null };
+      return { bucket: 'RUNNING', cause: null };
   }
 }
 

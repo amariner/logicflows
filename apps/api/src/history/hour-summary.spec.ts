@@ -58,7 +58,9 @@ describe('resumen de una hora de una célula (LF-79)', () => {
       PAUSED: 3 * 60,
     });
     expect(Object.values(summary.seconds).reduce((a, b) => a + b, 0)).toBe(HOUR_MS / 1000);
+    // STOPPED se anota siempre; si es una parada lo decide el calendario (ADR-0021).
     expect(summary.stops).toEqual({
+      STOPPED: { seconds: 360, count: 1 },
       STARTING: { seconds: 180, count: 2 },
       'FAULT:ROB-001': { seconds: 600, count: 1 },
       STARVED: { seconds: 240, count: 1 },
@@ -77,7 +79,10 @@ describe('resumen de una hora de una célula (LF-79)', () => {
       boxes: 0,
       pallets: 0,
     });
-    expect(summary.stops).toEqual({ 'FAULT:ROB-002': { seconds: 600, count: 0 } });
+    expect(summary.stops).toEqual({
+      'FAULT:ROB-002': { seconds: 600, count: 0 },
+      STOPPED: { seconds: 3000, count: 1 },
+    });
     // La alarma se activó en la hora anterior.
     expect(summary.alarms).toEqual({});
   });
@@ -98,7 +103,10 @@ describe('resumen de una hora de una célula (LF-79)', () => {
       boxes: 0,
       pallets: 0,
     });
-    expect(summary.stops).toEqual({ 'FAULT:ROB-001': { seconds: 540, count: 1 } });
+    expect(summary.stops).toEqual({
+      'FAULT:ROB-001': { seconds: 540, count: 1 },
+      STOPPED: { seconds: 3000, count: 1 },
+    });
     expect(summary.alarms).toEqual({ MEDIUM: 1, HIGH: 1, CRITICAL: 1 });
   });
 

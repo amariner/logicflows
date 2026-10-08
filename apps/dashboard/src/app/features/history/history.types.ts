@@ -9,7 +9,15 @@ import type {
 /** Resolución del histórico: por horas o por días. */
 export type Resolution = 'hour' | 'day';
 
-export type StopCause = 'STARTING' | 'PAUSED' | 'STARVED' | 'BLOCKED' | 'FAULT' | 'EMERGENCY_STOP';
+export type StopCause =
+  | 'STARTING'
+  | 'PAUSED'
+  | 'STARVED'
+  | 'BLOCKED'
+  | 'FAULT'
+  | 'EMERGENCY_STOP'
+  /** Detenida dentro de un turno del calendario (ADR-0021). */
+  | 'STOPPED';
 
 /** Indicadores de un periodo, como los devuelve la API (LF-80). */
 export interface PeriodIndicators {
@@ -19,6 +27,8 @@ export interface PeriodIndicators {
   readonly pallets: number;
   readonly seconds: {
     readonly total: number;
+    /** Tiempo de turno según el calendario de la planta (ADR-0021). */
+    readonly shift: number;
     readonly noData: number;
     readonly outOfProduction: number;
     readonly planned: number;

@@ -42,6 +42,7 @@ describe('indicadores de planta (LF-78)', () => {
     const indicators = computeIndicators([shift], T('06:00'), T('14:00'), NOW, 900);
     expect(indicators.seconds).toEqual({
       total: 28_800,
+      shift: 0,
       noData: 0,
       outOfProduction: 3600,
       planned: 25_200,
@@ -115,5 +116,77 @@ describe('indicadores de planta (LF-78)', () => {
     const indicators = computeIndicators([], T('10:00'), T('11:00'), now, 900);
     expect(indicators.seconds).toMatchObject({ total: 1200, noData: 1200 });
     expect(indicators.availability).toBeNull();
+  });
+
+  describe('con el calendario de turnos (ADR-0021)', () => {
+    const shiftFrom = (start: string, end: string) => (hour: Date) =>
+      hour >= T(start) && hour < T(end);
+    const hours = (from: number, to: number, values: (hour: number) => Partial<HourRow>) =>
+      Array.from({ length: to - from }, (_, index) => {
+        const hour = from + index;
+        return row(`${String(hour).padStart(2, '0')}:00`, values(hour));
+      });
+
+    it('ejemplo 4: dos horas detenida en mitad del turno restan disponibilidad', () => {
+      // Turno de 06:00 a 14:00, en STOPPED de 10:00 a 12:00.
+      const rows = hours(6, 14, (hour) =>
+        hour === 10 || hour === 11
+          ? {
+              seconds: { STOPPED: 3600 },
+              stops: { STOPPED: { seconds: 3600, count: hour === 10 ? 1 : 0 } },
+            }
+          : { seconds: { RUNNING: 3600 } },
+      );
+      const without = computeIndicators(rows, T('06:00'), T('14:00'), NOW, 900);
+      expect(without.availability).toBe(1);
+      expect(without.stops).toEqual([]);
+
+      const withShift = computeIndicators(
+        rows,
+        T('06:00'),
+        T('14:00'),
+        NOW,
+        900,
+        shiftFrom('06:00', '14:00'),
+      );
+      expect(withShift.seconds).toMatchObject({
+        total: 28_800,
+        shift: 28_800,
+        outOfProduction: 0,
+        planned: 28_800,
+        running: 21_600,
+        stopped: 7200,
+      });
+      expect(withShift.availability).toBe(0.75);
+      expect(withShift.stops).toEqual([
+        { cause: 'STOPPED', alarmCode: null, seconds: 7200, count: 1 },
+      ]);
+    });
+
+    it('ejemplo 5: las horas extra cuentan y la parada fuera de turno no', () => {
+      // Turno de 06:00 a 14:00; produce hasta las 15:00 y de 15:00 a 16:00 está en STOPPED.
+      const rows = hours(6, 16, (hour) =>
+        hour === 15
+          ? { seconds: { STOPPED: 3600 }, stops: { STOPPED: { seconds: 3600, count: 1 } } }
+          : { seconds: { RUNNING: 3600 } },
+      );
+      const indicators = computeIndicators(
+        rows,
+        T('06:00'),
+        T('16:00'),
+        NOW,
+        900,
+        shiftFrom('06:00', '14:00'),
+      );
+      expect(indicators.seconds).toMatchObject({
+        total: 36_000,
+        shift: 28_800,
+        outOfProduction: 3600,
+        planned: 32_400,
+        running: 32_400,
+      });
+      expect(indicators.availability).toBe(1);
+      expect(indicators.stops).toEqual([]);
+    });
   });
 });

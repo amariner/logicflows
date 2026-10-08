@@ -53,6 +53,7 @@ const indicators = (values: Partial<PeriodIndicators> = {}): PeriodIndicators =>
   pallets: 20,
   seconds: {
     total: 3600,
+    shift: 0,
     noData: 0,
     outOfProduction: 0,
     planned: 3600,

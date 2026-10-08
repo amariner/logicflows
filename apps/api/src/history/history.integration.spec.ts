@@ -17,6 +17,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { ConfigService } from '@nestjs/config';
 import type { PinoLogger } from 'nestjs-pino';
 
+import { CalendarRepository } from '../calendar/calendar.repository.ts';
 import type { AppConfig } from '../config/config.ts';
 import { DATABASE, POOL } from '../database/database.module.ts';
 import type { Database } from '../database/database.module.ts';
@@ -196,7 +197,11 @@ describe('histórico agregado por hora (LF-79, LF-80)', () => {
       boxes: 350,
       pallets: 11 - 2,
       seconds: { RUNNING: 20 * 60, FAULT: 10 * 60, STOPPED: 30 * 60 },
-      stops: { 'FAULT:ROB-001': { seconds: 600, count: 1 } },
+      // STOPPED se anota siempre; solo es parada en hora de turno (ADR-0021).
+      stops: {
+        'FAULT:ROB-001': { seconds: 600, count: 1 },
+        STOPPED: { seconds: 1800, count: 1 },
+      },
     });
     // La primera muestra de la sesión cuenta desde cero.
     expect((await hourRow(at('08:00')))?.boxes).toBe(100);
@@ -329,6 +334,7 @@ describe('histórico agregado por hora (LF-79, LF-80)', () => {
       pallets: 11,
       seconds: {
         total: 3 * 3600,
+        shift: 0,
         noData: 55 * 60,
         outOfProduction: 30 * 60 + 3600,
         planned: 25 * 60 + 10 * 60,
@@ -345,6 +351,46 @@ describe('histórico agregado por hora (LF-79, LF-80)', () => {
       [at('09:00'), 370],
       [at('10:00'), 0],
     ]);
+  });
+
+  it('con calendario, STOPPED dentro del turno es una parada (ADR-0021)', async () => {
+    // El 10 de septiembre de 2026 es jueves: turno de 09:00 a 11:00 UTC.
+    const calendar = app.get(CalendarRepository);
+    await calendar.saveVersion('demo', {
+      effectiveFrom: '2026-09-01',
+      timeZone: 'UTC',
+      shifts: [{ weekday: 4, start: 9, end: 11, name: 'Prueba' }],
+      createdBy: 'prueba',
+      createdByName: 'prueba',
+      createdAt: new Date(),
+    });
+    try {
+      const response = await request(app.getHttpServer() as Server)
+        .get(`/api/v1/sites/demo/cells/${CELL}/history`)
+        .set('Authorization', `Bearer ${token}`)
+        .query({ from: at('08:00'), to: at('11:00') })
+        .expect(200);
+      const { summary } = response.body as {
+        summary: { seconds: object; availability: number; stops: object[] };
+      };
+      // Detenida de 09:30 a 11:00, en turno: 5 400 s de parada en lugar de fuera de producción.
+      expect(summary.seconds).toEqual({
+        total: 3 * 3600,
+        shift: 2 * 3600,
+        noData: 55 * 60,
+        outOfProduction: 0,
+        planned: 25 * 60 + 10 * 60 + 5400,
+        running: 25 * 60,
+        stopped: 10 * 60 + 5400,
+      });
+      expect(summary.availability).toBeCloseTo(1500 / 7500, 6);
+      expect(summary.stops).toEqual([
+        { cause: 'STOPPED', alarmCode: null, seconds: 5400, count: 1 },
+        { cause: 'FAULT', alarmCode: 'ROB-001', seconds: 600, count: 1 },
+      ]);
+    } finally {
+      await calendar.deleteVersion('demo', '2026-09-01');
+    }
   });
 
   it('con 90 días de agregados, el histórico de 30 días responde en menos de 300 ms', async () => {

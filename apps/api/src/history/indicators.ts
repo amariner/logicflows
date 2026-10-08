@@ -13,7 +13,15 @@ export interface HourRow {
   readonly computedAt: Date;
 }
 
-export type StopKind = 'STARTING' | 'PAUSED' | 'STARVED' | 'BLOCKED' | 'FAULT' | 'EMERGENCY_STOP';
+export type StopKind =
+  | 'STARTING'
+  | 'PAUSED'
+  | 'STARVED'
+  | 'BLOCKED'
+  | 'FAULT'
+  | 'EMERGENCY_STOP'
+  /** Detenida dentro de un turno (ADR-0021). */
+  | 'STOPPED';
 
 export interface Stop {
   readonly cause: StopKind;
@@ -32,8 +40,10 @@ export interface Indicators {
   readonly seconds: {
     /** Tiempo transcurrido del periodo: lo que aún no ha ocurrido no cuenta. */
     readonly total: number;
+    /** Tiempo de turno del periodo, según el calendario de la planta (ADR-0021). */
+    readonly shift: number;
     readonly noData: number;
-    /** `STOPPED`: no se pretendía producir. */
+    /** `STOPPED` fuera de turno: no se pretendía producir. */
     readonly outOfProduction: number;
     readonly planned: number;
     readonly running: number;
@@ -67,10 +77,17 @@ function stopOf(key: string): Pick<Stop, 'cause' | 'alarmCode'> {
   return { cause: key as StopKind, alarmCode: null };
 }
 
+/** Segundos de `STOPPED` en horas de turno: cuentan como parada (ADR-0021). */
+const STOPPED_IN_SHIFT = 'STOPPED_IN_SHIFT';
+
 /**
  * Indicadores de [from, to) a partir de los agregados por hora de ese periodo.
  * Una hora sin agregado es tiempo sin datos. De la hora en curso solo cuenta
  * lo ya agregado, y nada de lo que todavía no ha ocurrido.
+ *
+ * `isShiftHour` dice si una hora es de turno según el calendario de la planta
+ * (ADR-0021): en ellas, `STOPPED` es una parada. Sin calendario, ninguna lo
+ * es y el resultado es el de siempre.
  */
 export function computeIndicators(
   rows: readonly HourRow[],
@@ -78,9 +95,11 @@ export function computeIndicators(
   to: Date,
   now: Date,
   nominalBoxesPerHour: number,
+  isShiftHour: (hour: Date) => boolean = () => false,
 ): Indicators {
   const byHour = new Map(rows.map((row) => [row.hour.getTime(), row]));
   let totalMs = 0;
+  let shiftMs = 0;
   let boxes = 0;
   let pallets = 0;
   const seconds = new Map<string, number>();
@@ -91,16 +110,25 @@ export function computeIndicators(
     const row = byHour.get(hour);
     const end =
       hour + HOUR_MS <= now.getTime() ? hour + HOUR_MS : (row?.computedAt ?? now).getTime();
-    totalMs += Math.min(HOUR_MS, Math.max(0, Math.min(end, now.getTime()) - hour));
+    const elapsedMs = Math.min(HOUR_MS, Math.max(0, Math.min(end, now.getTime()) - hour));
+    totalMs += elapsedMs;
+    const inShift = isShiftHour(new Date(hour));
+    if (inShift) {
+      shiftMs += elapsedMs;
+    }
     if (row === undefined) {
       continue;
     }
     boxes += row.boxes;
     pallets += row.pallets;
     for (const [bucket, value = 0] of Object.entries(row.seconds)) {
-      seconds.set(bucket, (seconds.get(bucket) ?? 0) + value);
+      const key = inShift && bucket === 'STOPPED' ? STOPPED_IN_SHIFT : bucket;
+      seconds.set(key, (seconds.get(key) ?? 0) + value);
     }
     for (const [cause, value] of Object.entries(row.stops)) {
+      if (cause === 'STOPPED' && !inShift) {
+        continue;
+      }
       const current = stops.get(cause) ?? { seconds: 0, count: 0 };
       stops.set(cause, {
         seconds: current.seconds + (value?.seconds ?? 0),
@@ -115,7 +143,9 @@ export function computeIndicators(
   const total = Math.round(totalMs / 1000);
   const running = seconds.get('RUNNING') ?? 0;
   const outOfProduction = seconds.get('STOPPED') ?? 0;
-  const stopped = STOP_BUCKETS.reduce((sum, bucket) => sum + (seconds.get(bucket) ?? 0), 0);
+  const stopped =
+    STOP_BUCKETS.reduce((sum, bucket) => sum + (seconds.get(bucket) ?? 0), 0) +
+    (seconds.get(STOPPED_IN_SHIFT) ?? 0);
   const planned = running + stopped;
   return {
     from: from.toISOString(),
@@ -124,6 +154,7 @@ export function computeIndicators(
     pallets,
     seconds: {
       total,
+      shift: Math.round(shiftMs / 1000),
       noData: Math.max(0, total - planned - outOfProduction),
       outOfProduction,
       planned,

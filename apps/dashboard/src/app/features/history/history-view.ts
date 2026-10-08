@@ -57,6 +57,7 @@ const STOP_LABELS: Readonly<Record<StopCause, string>> = {
   BLOCKED: 'Salida ocupada',
   FAULT: 'Fallo',
   EMERGENCY_STOP: 'Parada de emergencia',
+  STOPPED: 'Detenida en turno',
 };
 
 const SEVERITY_NAMES: readonly [AlarmSeverity, string, string][] = [

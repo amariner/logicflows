@@ -11,6 +11,7 @@ const period = (from: string, to: string, values: Partial<PeriodIndicators> = {}
     pallets: 20,
     seconds: {
       total: 3600,
+      shift: 3600,
       noData: 0,
       outOfProduction: 0,
       planned: 3600,
@@ -47,12 +48,12 @@ describe('histórico en CSV (LF-88)', () => {
   it('una fila por periodo, en hora local, con separador ; y decimales con coma', () => {
     const lines = toHistoryCsv(history).split('\r\n');
     expect(lines[0]).toBe(
-      '﻿Desde;Hasta;Cajas;Palés;Tiempo total (s);Sin datos (s);Fuera de producción (s);Planificado (s);En producción (s);Paradas (s);Disponibilidad (%);Rendimiento (%)',
+      '﻿Desde;Hasta;Cajas;Palés;Tiempo total (s);Tiempo de turno (s);Sin datos (s);Fuera de producción (s);Planificado (s);En producción (s);Paradas (s);Disponibilidad (%);Rendimiento (%)',
     );
     expect(lines[1]).toBe(
-      '2026-10-05 00:00;2026-10-05 01:00;810;20;3600;0;0;3600;3240;360;90,0;90,5',
+      '2026-10-05 00:00;2026-10-05 01:00;810;20;3600;3600;0;0;3600;3240;360;90,0;90,5',
     );
-    expect(lines[2]).toBe('2026-10-05 01:00;2026-10-05 02:00;0;20;3600;0;0;3600;3240;360;;');
+    expect(lines[2]).toBe('2026-10-05 01:00;2026-10-05 02:00;0;20;3600;3600;0;0;3600;3240;360;;');
     expect(lines[3]).toBe('');
   });
 
