@@ -76,6 +76,12 @@ export function formatAlarms(alarms: Readonly<Record<AlarmSeverity, number>>): s
   return parts.length === 0 ? 'ninguna' : parts.join(' · ');
 }
 
+/** Nombre de una parada: su causa y, en un fallo, el código de la alarma. */
+export const stopLabel = (stop: PeriodIndicators['stops'][number]): string =>
+  stop.cause === 'FAULT' && stop.alarmCode !== null
+    ? `${STOP_LABELS.FAULT} ${stop.alarmCode}`
+    : STOP_LABELS[stop.cause];
+
 /** Una fracción como porcentaje; sin definir, «—». */
 export const formatRatio = (value: number | null): string =>
   value === null ? MISSING : percent.format(value);
@@ -164,10 +170,7 @@ export function toHistoryView(history: CellHistory): HistoryView {
     chartMax: `${integer.format(maxBoxes)} cajas`,
     bars,
     stops: summary.stops.map((stop) => ({
-      label:
-        stop.cause === 'FAULT' && stop.alarmCode !== null
-          ? `${STOP_LABELS.FAULT} ${stop.alarmCode}`
-          : STOP_LABELS[stop.cause],
+      label: stopLabel(stop),
       duration: formatDuration(stop.seconds),
       count: stop.count === 1 ? '1 vez' : `${integer.format(stop.count)} veces`,
       ratio: longest === 0 ? 0 : stop.seconds / longest,

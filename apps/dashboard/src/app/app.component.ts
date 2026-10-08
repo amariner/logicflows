@@ -26,7 +26,7 @@ import {
 } from '@ionic/angular';
 import type { ToastButton } from '@ionic/angular';
 import { addIcons } from 'ionicons';
-import { gridSharp, logOutSharp } from 'ionicons/icons';
+import { gridSharp, logOutSharp, statsChartSharp } from 'ionicons/icons';
 
 import { AuthService } from './core/auth/auth';
 import { AppUpdateService } from './core/pwa/app-update';
@@ -90,6 +90,7 @@ export class AppComponent {
   private readonly outlet = viewChild.required(IonRouterOutlet);
   protected readonly menu: readonly MenuEntry[] = [
     { title: 'Células', url: '/cells', icon: 'grid-sharp' },
+    { title: 'Comparar', url: '/comparison', icon: 'stats-chart-sharp' },
   ];
 
   /** Al cerrar sesión, el dispositivo deja de recibir avisos (ADR-0015). */
@@ -118,7 +119,7 @@ export class AppComponent {
   }
 
   constructor() {
-    addIcons({ gridSharp, logOutSharp });
+    addIcons({ gridSharp, logOutSharp, statsChartSharp });
     if (Capacitor.isNativePlatform()) {
       exitOnRootBackButton(
         inject(Platform),

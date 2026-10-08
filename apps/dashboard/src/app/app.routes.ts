@@ -18,6 +18,13 @@ export const routes: Routes = [
       import('./features/cells/cell-detail/cell-detail.page').then((m) => m.CellDetailPage),
   },
   {
+    path: 'comparison',
+    title: 'Comparar células · LogicFlows',
+    canActivate: [sessionGuard],
+    loadComponent: () =>
+      import('./features/comparison/comparison.page').then((m) => m.ComparisonPage),
+  },
+  {
     path: 'cells/:siteId/:cellId/history',
     title: 'Histórico · LogicFlows',
     canActivate: [sessionGuard],

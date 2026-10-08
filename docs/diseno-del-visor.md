@@ -64,6 +64,15 @@ Las alarmas activas aparecen **justo debajo del estado**, de más a menos grave,
 
 Cada indicador es un `app-indicator`: nombre en el texto secundario, cifra en monoespaciada y unidad aparte, siempre escrita. Cuando falta un dato se muestra «—», nunca un cero que pueda confundirse con un valor real.
 
+## Comparar células
+
+`/comparison` (LF-130), en el menú como «Comparar»: los indicadores de cada célula de la planta en el mismo periodo (hoy, 7 o 30 días).
+
+- **Tabla ordenable:** cada cabecera es un botón que ordena por esa columna, con `aria-sort` y una flecha. Por defecto, de menor a mayor disponibilidad: lo que requiere atención, arriba. Las células sin dato van siempre al final.
+- **La peor, sin depender del color:** la de menor disponibilidad lleva la etiqueta «Menor disponibilidad» con su icono y un borde ámbar, y un aviso encima de la tabla lo dice en texto. Si empatan, no se señala ninguna.
+- **En el móvil**, una lista con los indicadores de cada célula en lugar de una tabla ancha.
+- Cada célula enlaza con su histórico, y la comparación se descarga en CSV con el formato del histórico.
+
 ## Detalle de una célula
 
 Estado, alarmas, el **esquema de la célula** y la producción (LF-106). El esquema dibuja la cinta, el robot y el palé capa a capa: las capas terminadas en el color primario, la que está en curso con su avance y las que faltan discontinuas. Las piezas en marcha van en verde discreto, las paradas en neutro y solo una avería en rojo. El dibujo es decorativo; debajo, el mismo contenido en texto.

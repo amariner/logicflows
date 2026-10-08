@@ -208,3 +208,21 @@ test.describe('tema elegido por el usuario', () => {
     );
   });
 });
+
+for (const colorScheme of ['light', 'dark'] as const) {
+  for (const [name, viewport] of Object.entries(VIEWPORTS)) {
+    test(`la comparación de células no tiene infracciones de WCAG 2.2 AA en ${name}, tema ${colorScheme === 'light' ? 'claro' : 'oscuro'}`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({ colorScheme });
+      await page.setViewportSize(viewport);
+      await page.goto('/comparison');
+      await expect(page.getByTestId('worst-note')).toHaveText(
+        /cell-03 tiene la menor disponibilidad/,
+      );
+
+      const { violations } = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+      expect(violations.map((violation) => `${violation.id}: ${violation.help}`)).toEqual([]);
+    });
+  }
+}
