@@ -2,13 +2,13 @@
 
 Proveedor de identidad OpenID Connect de LogicFlows ([ADR-0009](../../docs/adr/0009-autenticacion-y-autorizacion.md)). Docker Compose lo arranca en modo desarrollo e importa el *realm* `logicflows` de [`realm-logicflows.json`](realm-logicflows.json):
 
-- Roles `viewer` (consulta) y `admin` (incluye `viewer`).
+- Roles `viewer` (consulta), `operator` (reconoce alarmas; incluye `viewer`, ADR-0022) y `admin` (incluye los dos).
 - Cliente público `logicflows-visor` con Authorization Code y PKCE (S256). Sus tokens incluyen la audiencia `logicflows-api`.
 - Tokens de acceso de 5 minutos y tokens de refresco de un solo uso.
 
 | Usuario | Contraseña | Rol |
 |---|---|---|
-| `operario` | `operario-local` | `viewer` |
+| `operario` | `operario-local` | `operator` |
 | `administrador` | `administrador-local` | `admin` |
 
 Estos usuarios y contraseñas son **solo para desarrollo, pruebas y previsualizaciones**. Producción importa el *realm* sin usuarios y los da de alta el administrador de cada planta.
@@ -127,6 +127,19 @@ La app Android inicia sesión en el navegador del sistema y vuelve por su esquem
    Cerrar sesión debe devolver a la app y pedir otra vez el inicio de sesión.
 
 Permitir `https://localhost` en la API no expone nada nuevo: la API exige un token en cada petición y no usa cookies. Una página que se sirva en `https://localhost` en el ordenador de alguien no tiene ese token.
+
+### Crear el rol `operator` en producción (ADR-0022, LF-126)
+
+El realm de producción ya existe, y `--import-realm` no lo modifica. Una sola vez, después de desplegar una versión con el reconocimiento de alarmas:
+
+1. En la consola, realm `logicflows`, abrir **Realm roles → Create role**.
+2. **Role name:** `operator`. **Description:** «Reconoce alarmas; incluye todo lo de viewer». Pulsar **Save**.
+3. En el rol `operator`, pestaña **Associated roles → Assign role**, filtrar por roles del realm, elegir `viewer` y pulsar **Assign**.
+4. Abrir el rol `admin`, pestaña **Associated roles → Assign role**, elegir `operator` y pulsar **Assign**.
+5. Asignar `operator` a quien atienda alarmas: **Users →** el usuario **→ Role mapping → Assign role**. El usuario de la prueba de producción (`prueba-e2e`) **no** debe tenerlo: la prueba lo comprueba.
+6. Comprobar: con un usuario `operator`, el botón «Reconocer» aparece en las alarmas; con uno `viewer`, no.
+
+Sin el rol, el reconocimiento responde 403 a todos menos a `admin`, que lo incluye en la API.
 
 ### Activar el tema de inicio de sesión en producción (LF-108)
 

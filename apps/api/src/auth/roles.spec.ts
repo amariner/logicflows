@@ -29,4 +29,12 @@ describe('roles', () => {
     expect(hasRole(principal(['viewer']), 'admin')).toBe(false);
     expect(hasRole(principal([]), 'viewer')).toBe(false);
   });
+
+  it('operator está entre viewer y admin (ADR-0022)', () => {
+    expect(hasRole(principal(['operator']), 'viewer')).toBe(true);
+    expect(hasRole(principal(['operator']), 'operator')).toBe(true);
+    expect(hasRole(principal(['operator']), 'admin')).toBe(false);
+    expect(hasRole(principal(['viewer']), 'operator')).toBe(false);
+    expect(hasRole(principal(['admin']), 'operator')).toBe(true);
+  });
 });
