@@ -15,6 +15,9 @@ import type { Scenario } from './scenarios.ts';
  *
  *   SIMULATOR_BACKFILL_DAYS=90 pnpm simulator:historico
  *
+ * Con SIMULATOR_BACKFILL_CELLS, solo esas células: por ejemplo, las que se
+ * añaden a una planta que ya tiene histórico.
+ *
  * Usa la misma configuración que el simulador (células, formato, tiempos y
  * escenario), con el perfil de cada célula. Hay que ejecutarlo con el
  * simulador en directo de esas células parado y sin datos más recientes en
@@ -97,7 +100,21 @@ async function backfillCell(cellId: string, index: number): Promise<void> {
   }
 }
 
+// Solo algunas células, por ejemplo las que se añaden a una planta que ya
+// tiene histórico: cada una conserva el perfil de su posición en las células.
+const only = (process.env['SIMULATOR_BACKFILL_CELLS'] ?? '')
+  .split(',')
+  .map((cell) => cell.trim())
+  .filter((cell) => cell !== '');
+const unknown = only.filter((cell) => !config.cells.includes(cell));
+if (unknown.length > 0) {
+  console.error(`SIMULATOR_BACKFILL_CELLS incluye células que no simula: ${unknown.join(', ')}`);
+  process.exit(2);
+}
+
 // Una célula detrás de otra: la API las recibe en orden y sin picos.
 for (const [index, cellId] of config.cells.entries()) {
-  await backfillCell(cellId, index);
+  if (only.length === 0 || only.includes(cellId)) {
+    await backfillCell(cellId, index);
+  }
 }

@@ -85,7 +85,7 @@ SIMULATOR_CELLS=cell-01,cell-02,cell-03,cell-04 pnpm simulator
 
   A partir de la quinta se repiten con otro desfase. Ninguna va más rápida que el ritmo nominal, así que el rendimiento nunca pasa del 100 %.
 - **La semilla** de cada célula es la del proceso más su posición: la simulación se repite igual.
-- **El histórico simulado** (`pnpm simulator:historico`) genera las células una detrás de otra, con su perfil.
+- **El histórico simulado** (`pnpm simulator:historico`) genera las células una detrás de otra, con su perfil. Con `SIMULATOR_BACKFILL_CELLS`, solo las indicadas: así se añaden células a una planta sin borrar el histórico de las que ya tenía.
 - Hasta 20 células por proceso; cada una abre una conexión con el broker.
 
 ## Uso

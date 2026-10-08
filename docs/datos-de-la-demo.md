@@ -52,6 +52,22 @@ Tarda unos 10 minutos. Después, la API sigue guardando el histórico durante ot
 2. Al cabo de una hora, cuando la retención haya borrado la telemetría antigua, **compactar una vez** (ver abajo).
 3. Al día siguiente, medir que el tamaño no crece.
 
+## Añadir células
+
+La demo simula varias células en el mismo servicio (`SIMULATOR_CELLS`, LF-123). Para añadir células sin borrar el histórico de las que ya hay:
+
+```sh
+infra/railway/anadir-celulas.sh production cell-01,cell-02,cell-03,cell-04 31
+```
+
+Las células se escriben en orden, empezando por las que ya simula: la posición de cada una elige su perfil (`apps/simulator/src/cells.ts`). El simulador desplegado debe admitir varias células.
+
+1. Genera los días de las células nuevas con su perfil (`SIMULATOR_BACKFILL_CELLS`), en un servicio temporal.
+2. Espera a que la API lo guarde.
+3. Cambia `SIMULATOR_CELLS` del simulador, que se vuelve a desplegar con todas.
+
+El orden importa por lo mismo que al cargar la ventana: si el simulador en directo publicara antes una célula nueva, la API descartaría su histórico por ser de una sesión anterior (ADR-0004). `cargar-ventana.sh` también genera todas las células de `SIMULATOR_CELLS`.
+
 ## Medir
 
 | Qué | Cómo |
