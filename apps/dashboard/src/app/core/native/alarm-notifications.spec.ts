@@ -8,12 +8,13 @@ import {
   AlarmNotificationsService,
   NATIVE_PUSH,
   NOTIFICATIONS_PREFERENCE_KEY,
+  notificationTarget,
 } from './alarm-notifications';
 
 /** App nativa falsa: la prueba decide el permiso, el token y cuándo se toca un aviso. */
 const fakePush = (permission = true) => {
   let registration: (token: string) => void = () => undefined;
-  let opened: () => void = () => undefined;
+  let opened: (data: unknown) => void = () => undefined;
   return {
     native: true,
     createAlarmChannel: vi.fn(() => Promise.resolve()),
@@ -26,11 +27,11 @@ const fakePush = (permission = true) => {
     onRegistration: (handler: (token: string) => void) => {
       registration = handler;
     },
-    onNotificationOpened: (handler: () => void) => {
+    onNotificationOpened: (handler: (data: unknown) => void) => {
       opened = handler;
     },
-    open: () => {
-      opened();
+    open: (data: unknown = { siteId: 'demo', cellId: 'cell-03' }) => {
+      opened(data);
     },
   };
 };
@@ -101,14 +102,19 @@ describe('avisos de alarmas en la app (LF-69)', () => {
     expect(push.requestPermission).not.toHaveBeenCalled();
   });
 
-  it('al tocar un aviso abre las células', async () => {
+  it('al tocar un aviso abre el detalle de su célula, donde se reconoce (ADR-0022)', async () => {
     const push = fakePush();
     const service = setup(push);
     const navigate = vi.spyOn(TestBed.inject(Router), 'navigateByUrl').mockResolvedValue(true);
     await service.start();
     http.expectOne({ method: 'POST', url: DEVICES }).flush(null);
     push.open();
-    expect(navigate).toHaveBeenCalledWith('/cells');
+    expect(navigate).toHaveBeenCalledWith('/cells/demo/cell-03');
+  });
+
+  it('un aviso con datos no válidos abre el panel', () => {
+    expect(notificationTarget({ siteId: 'demo', cellId: '../admin' })).toBe('/cells');
+    expect(notificationTarget(undefined)).toBe('/cells');
   });
 
   it('en el navegador no hay avisos', async () => {

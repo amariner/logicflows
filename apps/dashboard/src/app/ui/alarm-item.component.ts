@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { IonIcon } from '@ionic/angular';
+import { addIcons } from 'ionicons';
+import { checkmarkDoneSharp } from 'ionicons/icons';
 
 import type { Tone } from './presentation';
 
@@ -12,18 +14,26 @@ export interface AlarmPresentation {
   readonly tone: Tone;
   /** «desde las 08:30», o `null` si no aplica. */
   readonly sinceLabel?: string | null;
+  /**
+   * «Reconocida por operaria a las 08:32» (ADR-0022). Una alarma reconocida
+   * sigue en pantalla, sin fondo de color: ya hay alguien atendiéndola.
+   */
+  readonly acknowledgedLabel?: string | null;
 }
 
 /**
  * Una alarma: severidad escrita con su icono y su color, código, desde
  * cuándo y mensaje. El mensaje va en el color del texto, para leerse igual
- * en cualquier severidad; el color solo marca la severidad (ISA-101).
+ * en cualquier severidad; el color solo marca la severidad (ISA-101). Una
+ * alarma reconocida pierde el fondo de color, pero conserva el borde y el
+ * texto de su severidad, y dice quién la atiende. Las acciones, como
+ * reconocerla, se proyectan al final.
  */
 @Component({
   selector: 'app-alarm-item',
   template: `
     @let item = alarm();
-    <div class="alarm" [class]="'tone-' + item.tone">
+    <div class="alarm" [class]="'tone-' + item.tone" [class.acknowledged]="item.acknowledgedLabel">
       <ion-icon aria-hidden="true" [name]="item.icon" />
       <div>
         <p class="heading">
@@ -33,6 +43,13 @@ export interface AlarmPresentation {
           }
         </p>
         <p>{{ item.message }}</p>
+        @if (item.acknowledgedLabel) {
+          <p class="acknowledgement" data-testid="acknowledgement">
+            <ion-icon aria-hidden="true" name="checkmark-done-sharp" />
+            {{ item.acknowledgedLabel }}
+          </p>
+        }
+        <ng-content />
       </div>
     </div>
   `,
@@ -59,6 +76,19 @@ export interface AlarmPresentation {
     }
     p {
       margin: 0;
+    }
+    .acknowledged {
+      background: var(--lf-color-surface-2);
+    }
+    .acknowledgement {
+      display: flex;
+      align-items: center;
+      gap: var(--lf-space-1);
+      color: var(--lf-color-text-muted);
+    }
+    .acknowledgement ion-icon {
+      margin-top: 0;
+      color: var(--lf-color-text-muted);
     }
     strong {
       color: var(--fg);
@@ -91,5 +121,9 @@ export interface AlarmPresentation {
   imports: [IonIcon],
 })
 export class AlarmItemComponent {
+  constructor() {
+    addIcons({ checkmarkDoneSharp });
+  }
+
   readonly alarm = input.required<AlarmPresentation>();
 }

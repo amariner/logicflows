@@ -1,16 +1,13 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
-import { provideIonicAngular } from '@ionic/angular';
 import { describe, expect, it } from 'vitest';
 
 import { buildCellView } from '../../../../testing/cell-view';
+import { testProviders } from '../../../../testing/providers';
 import type { CellView } from '../cell-view';
 import { CellCardComponent } from './cell-card.component';
 
 const render = async (cell: CellView) => {
-  TestBed.configureTestingModule({
-    providers: [provideIonicAngular({ mode: 'md' }), provideRouter([])],
-  });
+  TestBed.configureTestingModule({ providers: testProviders() });
   const fixture = TestBed.createComponent(CellCardComponent);
   fixture.componentRef.setInput('cell', cell);
   await fixture.whenStable();
@@ -56,11 +53,13 @@ describe('tarjeta de célula', () => {
         alarms: [
           {
             code: 'ROB-001',
+            raisedAt: '2026-10-05T06:30:00.000Z',
             message: 'Colisión del robot detectada',
             severityLabel: 'Alta',
             icon: 'warning-sharp',
             tone: 'danger',
             sinceLabel: 'desde las 08:30',
+            acknowledgedLabel: null,
           },
         ],
       }),

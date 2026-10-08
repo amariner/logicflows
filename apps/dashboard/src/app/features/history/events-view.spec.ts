@@ -68,4 +68,28 @@ describe('registro de estados y alarmas', () => {
       'Se muestran los 1 eventos más recientes del periodo.',
     );
   });
+
+  it('muestra quién reconoció una alarma (ADR-0022)', () => {
+    const item = view([
+      event({
+        kind: 'acknowledgement',
+        state: null,
+        previousState: null,
+        event: null,
+        durationSeconds: null,
+        acknowledgement: {
+          code: 'ROB-001',
+          raisedAt: '2026-10-05T12:10:00.000Z',
+          acknowledgedBy: 'operaria',
+        },
+      }),
+    ]).items[0];
+    expect(item).toMatchObject({
+      label: 'ROB-001 reconocida por operaria',
+      icon: 'checkmark-done-sharp',
+      tone: 'info',
+      duration: null,
+      alarms: [],
+    });
+  });
 });

@@ -61,7 +61,7 @@ export interface CellHistory {
 
 /** Un cambio de estado o de conexión, como lo devuelve la API (LF-84). */
 export interface CellEventDto {
-  readonly kind: 'state' | 'connection';
+  readonly kind: 'state' | 'connection' | 'acknowledgement';
   readonly at: string;
   readonly state: CellState | null;
   readonly previousState: CellState | null;
@@ -70,6 +70,12 @@ export interface CellEventDto {
   readonly alarms: readonly Alarm[];
   readonly online: boolean | null;
   readonly durationSeconds: number | null;
+  /** Solo en los reconocimientos de alarmas (ADR-0022). */
+  readonly acknowledgement?: {
+    readonly code: string;
+    readonly raisedAt: string;
+    readonly acknowledgedBy: string;
+  } | null;
 }
 
 /** Respuesta de `GET /api/v1/sites/{siteId}/cells/{cellId}/events`. */

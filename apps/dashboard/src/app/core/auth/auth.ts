@@ -1,4 +1,4 @@
-import { Injectable, inject, makeEnvironmentProviders, signal } from '@angular/core';
+import { Injectable, computed, inject, makeEnvironmentProviders, signal } from '@angular/core';
 import type { EnvironmentProviders } from '@angular/core';
 import { Router } from '@angular/router';
 import type { CanActivateFn } from '@angular/router';
@@ -147,6 +147,14 @@ export function provideVisorAuth(): EnvironmentProviders {
   ]);
 }
 
+/** Roles del realm en el token de acceso de Keycloak (`realm_access.roles`). */
+export function rolesOf(payload: unknown): string[] {
+  const roles = (payload as { realm_access?: { roles?: unknown } } | null)?.realm_access?.roles;
+  return Array.isArray(roles)
+    ? roles.filter((role): role is string => typeof role === 'string')
+    : [];
+}
+
 /** Sesión del usuario del visor. */
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -154,6 +162,7 @@ export class AuthService {
   readonly #oidc = inject(OidcSecurityService);
   readonly #native = inject(NATIVE_AUTH_BRIDGE);
   readonly #userName = signal<string | null>(null);
+  readonly #roles = signal<readonly string[]>([]);
   readonly #problem = signal<string | null>(null);
   #session: Promise<boolean> | undefined;
   /** En la app, la sesión se resuelve cuando el proveedor vuelve a ella. */
@@ -161,6 +170,14 @@ export class AuthService {
 
   /** Nombre del usuario con sesión, para mostrarlo en el menú. */
   readonly userName = this.#userName.asReadonly();
+
+  /**
+   * Si el usuario puede reconocer alarmas (`operator` o `admin`, ADR-0022).
+   * Solo decide si se ofrece el botón: quien autoriza es la API.
+   */
+  readonly canAcknowledge = computed(() =>
+    this.#roles().some((role) => role === 'operator' || role === 'admin'),
+  );
 
   /**
    * Por qué no se puede comprobar la sesión: sin conexión o sin respuesta del
@@ -443,6 +460,14 @@ export class AuthService {
     const data = userData as { preferred_username?: unknown; name?: unknown } | null;
     const name = data?.name ?? data?.preferred_username;
     this.#userName.set(typeof name === 'string' ? name : null);
+    this.#oidc.getPayloadFromAccessToken().subscribe({
+      next: (payload: unknown) => {
+        this.#roles.set(rolesOf(payload));
+      },
+      error: () => {
+        this.#roles.set([]);
+      },
+    });
   }
 
   #retryWhenOnline(): void {

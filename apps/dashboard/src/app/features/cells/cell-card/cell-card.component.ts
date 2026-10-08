@@ -30,6 +30,7 @@ import { NO_SUMMARY } from '../today-summary';
 import type { TodaySummary } from '../today-summary';
 import { ProductionIndicatorsComponent } from '../production-indicators/production-indicators.component';
 import { AlarmItemComponent } from '../../../ui/alarm-item.component';
+import { AcknowledgeButtonComponent } from '../acknowledge-button/acknowledge-button.component';
 import { StateBadgeComponent } from '../../../ui/state-badge.component';
 
 /**
@@ -43,6 +44,7 @@ import { StateBadgeComponent } from '../../../ui/state-badge.component';
   styleUrl: './cell-card.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    AcknowledgeButtonComponent,
     AlarmItemComponent,
     IonButton,
     IonCard,

@@ -34,7 +34,18 @@
       @if (view.alarms.length > 0) {
         <ul class="alarms" aria-label="Alarmas activas">
           @for (alarm of view.alarms; track alarm.code) {
-            <li data-testid="alarm"><app-alarm-item [alarm]="alarm" /></li>
+            <li data-testid="alarm">
+              <app-alarm-item [alarm]="alarm">
+                @if (!alarm.acknowledgedLabel) {
+                  <app-acknowledge-button
+                    [siteId]="view.siteId"
+                    [cellId]="view.cellId"
+                    [code]="alarm.code"
+                    [raisedAt]="alarm.raisedAt"
+                  />
+                }
+              </app-alarm-item>
+            </li>
           }
         </ul>
       }

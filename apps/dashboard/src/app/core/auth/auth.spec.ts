@@ -21,6 +21,7 @@ import {
   APP_LOGOUT_CALLBACK,
   AuthService,
   openIdConfiguration,
+  rolesOf,
   safeReturnPath,
   sessionGuard,
   withoutAuthResponse,
@@ -46,6 +47,7 @@ const fakeOidc = (isAuthenticated: boolean) => ({
   authorize: vi.fn<(configId?: string, options?: UrlHandlerOptions) => void>(),
   preloadAuthWellKnownDocument: vi.fn<() => Observable<unknown>>(() => of({})),
   getAccessToken: vi.fn(() => of(isAuthenticated ? 'token-de-acceso' : '')),
+  getPayloadFromAccessToken: vi.fn(() => of({ realm_access: { roles: ['viewer', 'operator'] } })),
   logoff: vi.fn<(configId?: string, options?: UrlHandlerOptions) => Observable<null>>(() =>
     of(null),
   ),
@@ -91,6 +93,17 @@ describe('sesión del visor', () => {
     expect(auth.userName()).toBe('Operario de pruebas');
     expect(await auth.accessToken()).toBe('token-de-acceso');
     expect(oidc.authorize).not.toHaveBeenCalled();
+    // Con operator en el token, se ofrece reconocer alarmas (ADR-0022).
+    expect(auth.canAcknowledge()).toBe(true);
+  });
+
+  it('lee los roles del realm del token de acceso', () => {
+    expect(rolesOf({ realm_access: { roles: ['viewer', 7, 'operator'] } })).toEqual([
+      'viewer',
+      'operator',
+    ]);
+    expect(rolesOf(null)).toEqual([]);
+    expect(rolesOf({ realm_access: { roles: 'admin' } })).toEqual([]);
   });
 
   it('sin sesión, redirige al inicio de sesión una sola vez', async () => {
