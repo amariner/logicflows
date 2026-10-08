@@ -4,6 +4,10 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ## [Sin publicar]
 
+## [0.6.0] - 2026-10-08
+
+**Hito 6 · Operación de planta.** El visor sirve para dirigir un turno, no solo para mirarlo: calendario de turnos, reconocimiento de alarmas y comparación de células, con cuatro células simuladas en producción sin servicios nuevos.
+
 ### Añadido
 
 - **Versiones por digest** (LF-131): al etiquetar, cada imagen recibe la versión a partir del digest de la imagen probada del commit, y los digests quedan en las notas de la release.
@@ -21,6 +25,11 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 - La carga del histórico simulado va a 200 mensajes por segundo como mucho (`SIMULATOR_BACKFILL_RATE`): al cargar varias células, publicaba más deprisa de lo que la API guarda y el broker descartaba parte del histórico (LF-123).
 - La prueba de producción ya no falla si coincide con una parada del guion diario de la demo: comprueba que llegan datos en tiempo real, no que la célula esté produciendo (LF-119).
+
+### Para desplegar
+
+- El rol `operator` se crea una sola vez en el realm de producción, que ya existe ([pasos](infra/keycloak/README.md)). Sin él, solo `admin` puede reconocer alarmas.
+- El calendario de la demo ya está cargado en producción (`infra/postgres/calendario-demo.sql`), en vigor desde el 12 de octubre de 2026.
 
 ## [0.5.0] - 2026-10-08
 
@@ -231,7 +240,8 @@ Esta versión incluye también el histórico del Hito 4 (indicadores de planta, 
 - La API mantiene el estado en memoria y no admite aún varias réplicas: cada instancia necesitaría su propio identificador de cliente MQTT.
 - La rama `main` no tiene protección técnica: la exige una decisión pendiente sobre la visibilidad del repositorio.
 
-[Sin publicar]: https://github.com/amariner/logicflows/compare/v0.5.0...HEAD
+[Sin publicar]: https://github.com/amariner/logicflows/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/amariner/logicflows/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/amariner/logicflows/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/amariner/logicflows/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/amariner/logicflows/compare/v0.2.0...v0.3.0

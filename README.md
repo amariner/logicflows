@@ -2,7 +2,7 @@
 
 Plataforma IIoT para monitorizar en tiempo real células robotizadas de paletizado: estado de la máquina, producción y alarmas, desde la web y desde el móvil.
 
-> **Estado:** [`v0.5.0`](CHANGELOG.md) publicada: **Hito 5 · Rediseño visual**, en producción en Railway y con el APK firmado en su [release](https://github.com/amariner/logicflows/releases/tag/v0.5.0). El hito siguiente está por decidir.
+> **Estado:** [`v0.6.0`](CHANGELOG.md) publicada: **Hito 6 · Operación de planta**, con calendario de turnos, reconocimiento de alarmas y comparación de células, en producción en Railway y con el APK firmado en su [release](https://github.com/amariner/logicflows/releases/tag/v0.6.0). El hito siguiente está por decidir.
 
 <p>
   <img src="docs/imagenes/visor-escritorio.png" alt="Panel de células de LogicFlows en escritorio, tema oscuro: resumen de estados, aviso de parada de emergencia y una tarjeta por célula con su estado, sus alarmas y su producción" width="68%">
@@ -212,7 +212,7 @@ El workflow [Imágenes](.github/workflows/imagenes.yml) publica las cinco imáge
 | Etiqueta `vX.Y.Z` | `vX.Y.Z`, asignada a las imágenes ya publicadas de ese commit sin recompilar |
 
 ```sh
-docker pull ghcr.io/amariner/logicflows-api:v0.5.0
+docker pull ghcr.io/amariner/logicflows-api:v0.6.0
 ```
 
 Una versión solo puede salir de imágenes construidas y probadas en `main`: si el commit de la etiqueta no tiene imágenes publicadas, la promoción falla. Las pull requests no publican nada. Las imágenes son públicas, como el repositorio, y se descargan sin credenciales. No contienen secretos: toda la configuración entra por variables de entorno al arrancar.
@@ -255,7 +255,7 @@ TypeScript está fijado en la versión 6.0 porque Angular 22 y typescript-eslint
 ## Documentación
 
 - [Registro de cambios](CHANGELOG.md)
-- Guiones de la demo: [Hito 1, en local](docs/demo.md), [Hito 2, en producción](docs/demo-hito-2.md), [Hito 3, app Android](docs/demo-hito-3.md), [Hito 4, histórico](docs/demo-hito-4.md) y [Hito 5, rediseño visual](docs/demo-hito-5.md)
+- Guiones de la demo: [Hito 1, en local](docs/demo.md), [Hito 2, en producción](docs/demo-hito-2.md), [Hito 3, app Android](docs/demo-hito-3.md), [Hito 4, histórico](docs/demo-hito-4.md), [Hito 5, rediseño visual](docs/demo-hito-5.md) y [Hito 6, operación de planta](docs/demo-hito-6.md)
 - [Decisiones de arquitectura (ADR)](docs/adr/README.md)
 - [Despliegue en Railway: servicios, configuración, secretos y rotación](docs/despliegue.md)
 - [Datos de la demo: generación, ventana fija, mantenimiento y consumo](docs/datos-de-la-demo.md)

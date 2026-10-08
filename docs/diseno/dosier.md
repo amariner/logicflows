@@ -41,6 +41,34 @@ Indicadores, gráfico con su tabla equivalente, paradas por causa y registro de 
 |---|---|
 | ![Histórico en tema claro](../../apps/dashboard/e2e/capturas/historico-claro-escritorio.png) | ![Histórico en tema oscuro](../../apps/dashboard/e2e/capturas/historico-oscuro-escritorio.png) |
 
+## Operación de planta (`v0.6.0`)
+
+Las pantallas del Hito 6 se construyeron ya con el sistema de diseño, sin pasar por otra exploración.
+
+### Reconocer alarmas
+
+Una alarma reconocida sigue en pantalla, porque sigue activa, pero pierde el fondo de color y dice quién la atiende. Lo que nadie atiende destaca sobre lo que ya se atiende (ADR-0022).
+
+| Claro | Oscuro, móvil |
+|---|---|
+| ![Detalle con una alarma reconocida y otra sin reconocer](../../apps/dashboard/e2e/capturas/detalle-claro-escritorio.png) | ![La misma célula en el móvil, tema oscuro](../../apps/dashboard/e2e/capturas/detalle-oscuro-movil.png) |
+
+### Comparar células
+
+Las células de la planta de menor a mayor disponibilidad, con la peor señalada con texto e icono. En el móvil, una lista en lugar de una tabla ancha.
+
+| Claro | Oscuro, móvil |
+|---|---|
+| ![Comparación de células](../../apps/dashboard/e2e/capturas/comparacion-claro-escritorio.png) | ![Comparación en el móvil, tema oscuro](../../apps/dashboard/e2e/capturas/comparacion-oscuro-movil.png) |
+
+### Turnos
+
+El calendario de la planta, día a día, con los días sin turnos. Quien administra la planta crea versiones futuras: el pasado no se reescribe (ADR-0021).
+
+| Claro | Oscuro |
+|---|---|
+| ![Calendario de turnos](../../apps/dashboard/e2e/capturas/turnos-claro-escritorio.png) | ![Calendario de turnos, tema oscuro](../../apps/dashboard/e2e/capturas/turnos-oscuro-escritorio.png) |
+
 ## El sistema de diseño
 
 Un único juego de tokens (`@logicflows/design-tokens`, [ADR-0020](../adr/0020-tokens-de-diseno.md)) da estilo al visor web, a la app Android y al inicio de sesión. La lámina se dibuja con esos tokens, así que muestra los valores reales.
