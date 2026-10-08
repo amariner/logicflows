@@ -4,6 +4,8 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ## [Sin publicar]
 
+## [0.5.0] - 2026-10-08
+
 **Hito 5 · Rediseño visual.** El visor, el inicio de sesión y la app Android con un sistema de diseño propio en claro y oscuro, más visual para las demos y fiel a ISA-101: interfaz neutra y color intenso solo para lo anómalo. Incluye las acciones de la retrospectiva del Hito 4.
 
 ### Añadido
@@ -211,7 +213,8 @@ Esta versión incluye también el histórico del Hito 4 (indicadores de planta, 
 - La API mantiene el estado en memoria y no admite aún varias réplicas: cada instancia necesitaría su propio identificador de cliente MQTT.
 - La rama `main` no tiene protección técnica: la exige una decisión pendiente sobre la visibilidad del repositorio.
 
-[Sin publicar]: https://github.com/amariner/logicflows/compare/v0.4.0...HEAD
+[Sin publicar]: https://github.com/amariner/logicflows/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/amariner/logicflows/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/amariner/logicflows/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/amariner/logicflows/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/amariner/logicflows/compare/v0.1.0...v0.2.0
