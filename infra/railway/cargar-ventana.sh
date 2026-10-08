@@ -63,12 +63,11 @@ run_temporary ventana "ghcr.io/amariner/logicflows-simulator:$version" \
   "sh -c 'node dist/backfill-main.js && echo CARGA-COMPLETADA'" CARGA-COMPLETADA \
   'SIMULATOR_SEED=${{simulator.SIMULATOR_SEED}}' SIMULATOR_SCENARIO=guion "SIMULATOR_BACKFILL_DAYS=$days"
 
-# En Railway, la API guarda unos 300 mensajes por segundo: 31 días de una
-# célula, unos 270 000, tardan un cuarto de hora. El simulador puede arrancar
-# antes: sus mensajes llegan a la API detrás del histórico, en orden. Con
-# varias células (LF-123), la carga las genera una detrás de otra y el paso 5
-# tarda proporcionalmente más; aquí solo se espera por la última.
-wait_s=$((days * 9000 / 300 / 4 + 60))
+# La carga publica a 200 mensajes por segundo, por debajo de los unos 300
+# que guarda la API en Railway: si fuera más deprisa, el broker llenaría la
+# cola de la API y descartaría mensajes (LF-123). Al terminar, a la API solo
+# le queda lo último; el simulador puede arrancar: sus mensajes llegan detrás.
+wait_s=120
 echo "6/6 Esperando ${wait_s} s a que la API lo guarde y arrancando el simulador…"
 sleep "$wait_s"
 # Tras `railway down`, un despliegue nuevo va a la región por defecto (us-west2,

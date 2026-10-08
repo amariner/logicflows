@@ -48,9 +48,9 @@ run_temporary celulas "ghcr.io/amariner/logicflows-simulator:$version" \
   'SIMULATOR_SEED=${{simulator.SIMULATOR_SEED}}' 'SIMULATOR_SCENARIO=${{simulator.SIMULATOR_SCENARIO}}' \
   "SIMULATOR_CELLS=$cells" "SIMULATOR_BACKFILL_CELLS=$new" "SIMULATOR_BACKFILL_DAYS=$days"
 
-# Como en cargar-ventana.sh: la API guarda unos 300 mensajes por segundo y ya
-# ha ido guardando mientras se generaban; se espera por la última célula.
-wait_s=$((days * 9000 / 300 / 4 + 60))
+# Como en cargar-ventana.sh: la carga va más despacio de lo que guarda la API,
+# así que al terminar solo le queda lo último.
+wait_s=120
 echo "2/3 Esperando ${wait_s} s a que la API lo guarde…"
 sleep "$wait_s"
 
