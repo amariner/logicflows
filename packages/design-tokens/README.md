@@ -33,4 +33,4 @@ El tema claro es el de por defecto. El oscuro se aplica con la clase `lf-dark` e
 
 1. Cambiar el valor en `tokens.css`. Si es un color del tema oscuro, en los dos bloques, que deben ser idénticos.
 2. `pnpm --filter @logicflows/design-tokens test` comprueba el contraste WCAG 2.2 AA de cada par de texto y fondo (4,5:1) y de bordes y foco (3:1), en los dos temas.
-3. Si cambia el aspecto, actualizar las capturas en Figma para el dosier.
+3. Si cambia el aspecto, la CI pide actualizar las capturas de referencia, incluida la lámina del sistema de diseño del [dosier](../../docs/diseno/dosier.md).
