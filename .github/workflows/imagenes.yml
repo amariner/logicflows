@@ -3,8 +3,10 @@ name: Imágenes
 # Publica las imágenes de las aplicaciones y de la infraestructura (broker y
 # proveedor de identidad, ADR-0010) en GitHub Container Registry.
 # - Cada cambio en main: imágenes etiquetadas con el commit (sha-xxxxxxx) y main.
-# - Cada etiqueta vX.Y.Z: la versión se asigna a las imágenes ya publicadas de
-#   ese commit, sin recompilar: se promociona exactamente lo que se probó.
+# - Cada etiqueta vX.Y.Z: la versión se asigna, por digest, a las imágenes ya
+#   publicadas de ese commit, sin recompilar: se promociona exactamente lo que
+#   se probó (LF-131). Los digests quedan en el resumen del flujo y en las
+#   notas de la release.
 # Las pull requests no publican; la CI solo construye las imágenes.
 on:
   push:
@@ -91,14 +93,96 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       # Si el commit de la etiqueta no se publicó desde main, falla: una
-      # versión solo puede salir de imágenes ya construidas y probadas.
-      - name: Etiquetar la imagen del commit con la versión
+      # versión solo puede salir de imágenes ya construidas y probadas. La
+      # versión se crea desde el digest, no desde la etiqueta sha-…, que se
+      # podría sobrescribir entre la consulta y la copia (LF-131).
+      - name: Etiquetar por digest la imagen del commit con la versión
+        id: promote
         env:
           IMAGE: ${{ env.REGISTRY }}/${{ github.repository_owner }}/logicflows-${{ matrix.app }}
           VERSION: ${{ github.ref_name }}
           SHA: ${{ github.sha }}
+          APP: ${{ matrix.app }}
         run: |
-          source="$IMAGE:sha-${SHA::7}"
-          docker buildx imagetools inspect "$source" > /dev/null
-          docker buildx imagetools create --tag "$IMAGE:$VERSION" "$source"
-          docker buildx imagetools inspect "$IMAGE:$VERSION"
+          digest="$(docker buildx imagetools inspect "$IMAGE:sha-${SHA::7}" --format '{{json .Manifest}}' | jq -r .digest)"
+          if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo "::error::No hay imagen publicada de ${SHA::7} para $APP"
+            exit 1
+          fi
+          docker buildx imagetools create --tag "$IMAGE:$VERSION" "$IMAGE@$digest"
+          promoted="$(docker buildx imagetools inspect "$IMAGE:$VERSION" --format '{{json .Manifest}}' | jq -r .digest)"
+          if [[ "$promoted" != "$digest" ]]; then
+            echo "::error::$IMAGE:$VERSION apunta a $promoted y no a $digest"
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/digest"
+          echo "| \`logicflows-$APP\` | \`$digest\` |" > "$RUNNER_TEMP/digest/$APP.md"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: digest-${{ matrix.app }}
+          path: ${{ runner.temp }}/digest/${{ matrix.app }}.md
+          retention-days: 1
+
+  record:
+    name: Registrar los digests
+    needs: promote
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: digest-*
+          path: ${{ runner.temp }}/digests
+          merge-multiple: true
+
+      - name: Tabla de digests
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          {
+            echo '### Imágenes'
+            echo
+            echo "Imágenes de \`$TAG\` en GitHub Container Registry, por digest (LF-131). Lo que despliega producción con \`$TAG\` es exactamente esto:"
+            echo
+            echo '| Imagen | Digest |'
+            echo '|---|---|'
+            cat "$RUNNER_TEMP"/digests/*.md | sort
+          } > "$RUNNER_TEMP/imagenes.md"
+          cat "$RUNNER_TEMP/imagenes.md" >> "$GITHUB_STEP_SUMMARY"
+
+      # La release la crea normalmente el flujo App Android, que pone su sección
+      # al final. Las imágenes van antes de «### App Android», así que ninguno
+      # de los dos borra la sección del otro, sea cual sea el orden.
+      - name: Añadir a las notas de la release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          for _ in $(seq 1 60); do
+            gh release view "$TAG" > /dev/null 2>&1 && break
+            sleep 10
+          done
+          if ! gh release view "$TAG" > /dev/null 2>&1; then
+            version="${TAG#v}"
+            awk -v v="$version" '$0 ~ "^## \\[" v "\\]" {f=1; next} /^## \[/ {f=0} f' CHANGELOG.md > "$RUNNER_TEMP/notas.md"
+            gh release create "$TAG" --verify-tag --title "$TAG" --notes-file "$RUNNER_TEMP/notas.md"
+          fi
+          body="$RUNNER_TEMP/cuerpo.md"
+          gh release view "$TAG" --json body --jq .body > "$RUNNER_TEMP/actual.md"
+          # Sin la sección de imágenes anterior, si se vuelve a ejecutar, ni las
+          # líneas en blanco del final: así es idempotente.
+          awk '/^### Imágenes/ {skip=1; next} /^### / {skip=0}
+            !skip { if ($0 == "") blank++; else { for (; blank > 0; blank--) print ""; print } }' \
+            "$RUNNER_TEMP/actual.md" > "$RUNNER_TEMP/limpio.md"
+          awk -v section="$RUNNER_TEMP/imagenes.md" '
+            /^### App Android/ && !done { while ((getline line < section) > 0) print line; print ""; done=1 }
+            { print }
+            END { if (!done) { print ""; while ((getline line < section) > 0) print line } }
+          ' "$RUNNER_TEMP/limpio.md" > "$body"
+          gh release edit "$TAG" --notes-file "$body"

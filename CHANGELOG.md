@@ -6,6 +6,7 @@ Los cambios relevantes de cada versión de LogicFlows. El formato sigue [Keep a 
 
 ### Añadido
 
+- **Versiones por digest** (LF-131): al etiquetar, cada imagen recibe la versión a partir del digest de la imagen probada del commit, y los digests quedan en las notas de la release.
 - **Pantalla «Turnos»** (LF-127): el calendario de turnos de la planta, día a día, con los días sin turnos. Con `admin`, se marcan días sin turnos y se crean o borran versiones futuras. El histórico explica de dónde sale el tiempo planificado.
 - **Pantalla «Comparar células»** (LF-130): los indicadores de todas las células de la planta para hoy, 7 y 30 días, ordenables por cada columna, con la de menor disponibilidad señalada con texto e icono. En el móvil, una lista. Descarga en CSV y enlace al histórico de cada célula.
 - **Comparar las células de una planta** en la API (LF-129): `GET /api/v1/sites/{siteId}/comparison` devuelve los indicadores de cada célula en el mismo periodo, con el calendario de turnos. Con 4 células y 30 días responde en menos de 200 ms.
