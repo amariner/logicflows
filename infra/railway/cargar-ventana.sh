@@ -75,3 +75,10 @@ sleep "$wait_s"
 # .railway/railway.ts, y eso ya lo vuelve a desplegar.
 railway service scale --service simulator --environment "$environment" "$region=1" us-west2=0 > /dev/null
 echo "Ventana cargada."
+# La retención borra lo cargado de más, pero el espacio no vuelve al disco
+# (300 MB tras recargar cuatro células, 30 MB compactada), y la caché de
+# ficheros de la carga cuenta como memoria del contenedor hasta reiniciarlo
+# (1,03 GB, 87 MB tras reiniciar). Ver docs/datos-de-la-demo.md (LF-133).
+echo "Cuando pase la retención (cada hora en la API), compacta y reinicia PostgreSQL:"
+echo "  infra/railway/ejecutar-sql.sh $environment infra/postgres/compactar.sql"
+echo "  railway restart --service Postgres --environment $environment --yes"
