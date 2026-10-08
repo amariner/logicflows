@@ -226,3 +226,19 @@ for (const colorScheme of ['light', 'dark'] as const) {
     });
   }
 }
+
+for (const colorScheme of ['light', 'dark'] as const) {
+  for (const [name, viewport] of Object.entries(VIEWPORTS)) {
+    test(`el calendario de turnos no tiene infracciones de WCAG 2.2 AA en ${name}, tema ${colorScheme === 'light' ? 'claro' : 'oscuro'}`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({ colorScheme });
+      await page.setViewportSize(viewport);
+      await page.goto('/calendar');
+      await expect(page.getByText('Fiesta Nacional')).toBeVisible();
+
+      const { violations } = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+      expect(violations.map((violation) => `${violation.id}: ${violation.help}`)).toEqual([]);
+    });
+  }
+}

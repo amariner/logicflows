@@ -36,6 +36,11 @@ export interface HistoryView {
   readonly running: string;
   readonly planned: string;
   readonly noData: string;
+  /**
+   * De dónde sale el tiempo planificado (ADR-0021): «16 h de turno según el
+   * calendario» o, sin turnos en el periodo, la regla sin calendario.
+   */
+  readonly plannedBasis: string;
   readonly nominal: string;
   /** Alarmas activadas en el periodo, de más a menos grave: «2 altas · 1 media». */
   readonly alarms: string;
@@ -162,6 +167,10 @@ export function toHistoryView(history: CellHistory): HistoryView {
     running: formatDuration(summary.seconds.running),
     planned: formatDuration(summary.seconds.planned),
     noData: formatDuration(summary.seconds.noData),
+    plannedBasis:
+      summary.seconds.shift > 0
+        ? `${formatDuration(summary.seconds.shift)} de turno según el calendario: una célula detenida en turno cuenta como parada`
+        : 'Sin turnos en el periodo: una célula detenida no cuenta como tiempo planificado',
     nominal: `${integer.format(history.nominalBoxesPerHour)} cajas/h`,
     alarms: formatAlarms(summary.alarms),
     empty: summary.seconds.noData >= summary.seconds.total,

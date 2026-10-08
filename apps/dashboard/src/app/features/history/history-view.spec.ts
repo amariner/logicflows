@@ -171,4 +171,18 @@ describe('presentación del histórico', () => {
       '1 crítica · 2 altas · 1 baja',
     );
   });
+
+  it('explica de dónde sale el tiempo planificado (ADR-0021)', () => {
+    expect(toHistoryView(history()).plannedBasis).toBe(
+      'Sin turnos en el periodo: una célula detenida no cuenta como tiempo planificado',
+    );
+    const base = history();
+    const withShifts = toHistoryView({
+      ...base,
+      summary: { ...base.summary, seconds: { ...base.summary.seconds, shift: 57_600 } },
+    });
+    expect(withShifts.plannedBasis).toBe(
+      '16 h de turno según el calendario: una célula detenida en turno cuenta como parada',
+    );
+  });
 });
